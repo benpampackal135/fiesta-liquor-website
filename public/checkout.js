@@ -145,12 +145,42 @@ async function checkUserAuth() {
     });
 }
 
+// Helper to split full name into first/last
+function splitName(fullName = '') {
+    const parts = fullName.trim().split(/\s+/).filter(Boolean);
+    if (parts.length === 0) return { first: '', last: '' };
+    if (parts.length === 1) return { first: parts[0], last: '' };
+    return { first: parts[0], last: parts.slice(1).join(' ') };
+}
+
 // Pre-fill user information
 function prefillUserInfo() {
-    if (currentUser) {
-        document.getElementById('email').value = currentUser.email || '';
-        // You can add more pre-filling if user profile has name/phone
-    }
+    if (!currentUser) return;
+
+    const emailInput = document.getElementById('email');
+    const firstNameInput = document.getElementById('firstName');
+    const lastNameInput = document.getElementById('lastName');
+    const phoneInput = document.getElementById('phone');
+
+    if (emailInput) emailInput.value = currentUser.email || '';
+
+    // Determine sources
+    const storedUser = JSON.parse(localStorage.getItem('currentUser') || 'null');
+    const firebaseUser = JSON.parse(localStorage.getItem('firebaseUser') || 'null');
+
+    const nameSource = currentUser.displayName || currentUser.name || storedUser?.name || firebaseUser?.displayName || '';
+    const { first, last } = splitName(nameSource);
+
+    const phoneSource = currentUser.phone || storedUser?.phone || '';
+
+    // Identify Google sign-in (has firebaseUser with displayName)
+    const isGoogleUser = !!firebaseUser && !!firebaseUser.displayName;
+
+    // Email/password users: fill first, last, phone (if available)
+    // Google users: fill first/last only
+    if (firstNameInput && first) firstNameInput.value = first;
+    if (lastNameInput && last) lastNameInput.value = last;
+    if (!isGoogleUser && phoneInput && phoneSource) phoneInput.value = phoneSource;
 }
 
 // Setup address field toggle
