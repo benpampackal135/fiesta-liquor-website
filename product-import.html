@@ -1,0 +1,458 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Product Import - Fiesta Liquor Admin</title>
+    <link rel="stylesheet" href="public/styles.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Open Sans', sans-serif;
+            background: #f8f9fa;
+            padding: 20px;
+        }
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #1a1a2e;
+            text-align: center;
+            margin-bottom: 30px;
+            font-family: 'Playfair Display', serif;
+        }
+        .upload-area {
+            border: 2px dashed #ddd;
+            border-radius: 10px;
+            padding: 40px;
+            text-align: center;
+            margin: 20px 0;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+        .upload-area:hover {
+            border-color: #ffd700;
+            background: #fffbf0;
+        }
+        .upload-area.dragover {
+            border-color: #4CAF50;
+            background: #f0f8f0;
+        }
+        input[type="file"] {
+            margin: 20px 0;
+        }
+        button {
+            background: #1a1a2e;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 10px 5px;
+            font-weight: 600;
+        }
+        button:hover {
+            background: #ffd700;
+            color: #1a1a2e;
+        }
+        .btn-success {
+            background: #28a745;
+        }
+        .btn-success:hover {
+            background: #218838;
+        }
+        .btn-danger {
+            background: #dc3545;
+        }
+        .btn-danger:hover {
+            background: #c82333;
+        }
+        .preview {
+            margin-top: 20px;
+            max-height: 400px;
+            overflow-y: auto;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        th, td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+        th {
+            background: #f8f9fa;
+            font-weight: 600;
+            color: #1a1a2e;
+        }
+        .instructions {
+            background: #e3f2fd;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        .instructions h3 {
+            margin-top: 0;
+            color: #1976d2;
+        }
+        .instructions ol {
+            margin: 10px 0;
+        }
+        .instructions li {
+            margin: 5px 0;
+        }
+        .download-template {
+            background: #4CAF50;
+            color: white;
+            padding: 10px 20px;
+            text-decoration: none;
+            border-radius: 5px;
+            display: inline-block;
+            margin: 10px 0;
+            font-weight: 600;
+        }
+        .download-template:hover {
+            background: #45a049;
+        }
+        .success-message {
+            background: #d4edda;
+            color: #155724;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 20px 0;
+            border: 1px solid #c3e6cb;
+        }
+        .error-message {
+            background: #f8d7da;
+            color: #721c24;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 20px 0;
+            border: 1px solid #f5c6cb;
+        }
+        .back-link {
+            display: inline-block;
+            margin-bottom: 20px;
+            color: #1a1a2e;
+            text-decoration: none;
+            font-weight: 600;
+        }
+        .back-link:hover {
+            color: #ffd700;
+        }
+        .loading {
+            text-align: center;
+            padding: 20px;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <a href="/admin-dashboard.html" class="back-link">
+            <i class="fas fa-arrow-left"></i> Back to Dashboard
+        </a>
+        
+        <h1>🍷 Product Import Tool</h1>
+        
+        <div class="instructions">
+            <h3>📋 How to Import Your Products:</h3>
+            <ol>
+                <li><strong>Download the template:</strong> Click the button below to get a CSV template</li>
+                <li><strong>Fill in your products:</strong> Add all your store items with the required information</li>
+                <li><strong>Upload the file:</strong> Drag and drop or select your completed CSV file</li>
+                <li><strong>Preview & Import:</strong> Review the products and click "Import to Website" - they'll be added automatically!</li>
+            </ol>
+            
+            <a href="#" class="download-template" onclick="downloadTemplate()">
+                <i class="fas fa-download"></i> Download CSV Template
+            </a>
+        </div>
+
+        <div id="messageArea"></div>
+
+        <div class="upload-area" id="uploadArea" onclick="document.getElementById('csvFile').click()">
+            <h3>📁 Upload Your Product CSV File</h3>
+            <p>Drag and drop your CSV file here, or click to select</p>
+            <input type="file" id="csvFile" accept=".csv" onchange="handleFileSelect(event)" style="display: none;">
+            <p><small>Supported format: CSV files only</small></p>
+        </div>
+
+        <div id="preview" class="preview" style="display: none;">
+            <h3>👀 Preview Products</h3>
+            <div id="previewTable"></div>
+            <div style="text-align: center; margin-top: 20px;">
+                <button class="btn-success" onclick="importProducts()">
+                    <i class="fas fa-check"></i> Import to Website
+                </button>
+                <button class="btn-danger" onclick="clearPreview()">
+                    <i class="fas fa-times"></i> Cancel
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script src="public/api.js"></script>
+    <script>
+        let csvData = [];
+        let isImporting = false;
+        
+        // Check if user is admin
+        async function checkAuth() {
+            const token = getAuthToken();
+            if (!token) {
+                window.location.href = '/auth.html';
+                return false;
+            }
+            
+            try {
+                const user = await authAPI.getCurrentUser();
+                if (user.role !== 'admin') {
+                    window.location.href = '/auth.html';
+                    return false;
+                }
+                return true;
+            } catch (error) {
+                window.location.href = '/auth.html';
+                return false;
+            }
+        }
+        
+        // Initialize
+        document.addEventListener('DOMContentLoaded', async function() {
+            await checkAuth();
+        });
+        
+        function showMessage(message, type = 'success') {
+            const messageArea = document.getElementById('messageArea');
+            const className = type === 'success' ? 'success-message' : 'error-message';
+            messageArea.innerHTML = `<div class="${className}">${message}</div>`;
+            setTimeout(() => {
+                messageArea.innerHTML = '';
+            }, 5000);
+        }
+        
+        // Download template
+        function downloadTemplate() {
+            const template = `name,category,description,image,price,inStock
+Macallan 18 Year Old,whiskey,Aged 18 years in sherry-seasoned oak casks,images/macallan18.png,299.99,true
+Johnnie Walker Blue Label,whiskey,The pinnacle of the Johnnie Walker range,images/product_2.svg,199.99,true
+Don Julio 1942,tequila,Ultra-premium añejo tequila,images/product_5.svg,149.99,true
+Grey Goose Vodka,vodka,Premium French vodka,images/product_9.svg,34.99,true
+Hendrick's Gin,gin,Scottish gin with rose petals,images/product_13.svg,39.99,true
+Bacardi Superior Rum,rum,White rum perfect for cocktails,images/product_17.svg,19.99,true
+White Claw Hard Seltzer,beer-seltzers,Refreshing hard seltzer,images/product_21.svg,15.99,true
+Dom Pérignon Vintage,wine,Prestigious champagne,images/product_27.svg,199.99,true`;
+
+            const blob = new Blob([template], { type: 'text/csv' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'fiesta-liquor-products-template.csv';
+            a.click();
+            window.URL.revokeObjectURL(url);
+        }
+
+        // Handle file selection
+        function handleFileSelect(event) {
+            const file = event.target.files[0];
+            if (file && (file.type === 'text/csv' || file.name.endsWith('.csv'))) {
+                parseCSV(file);
+            } else {
+                showMessage('Please select a valid CSV file.', 'error');
+            }
+        }
+
+        // Parse CSV file
+        function parseCSV(file) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const text = e.target.result;
+                    const lines = text.split('\n').filter(line => line.trim());
+                    const headers = lines[0].split(',').map(h => h.trim().toLowerCase());
+                    
+                    csvData = [];
+                    for (let i = 1; i < lines.length; i++) {
+                        if (lines[i].trim()) {
+                            const values = lines[i].split(',').map(v => v.trim().replace(/^"|"$/g, ''));
+                            
+                            if (values.length >= 3) {
+                                const product = {};
+                                
+                                headers.forEach((header, index) => {
+                                    const value = values[index] || '';
+                                    if (header === 'name') product.name = value;
+                                    else if (header === 'category') product.category = value;
+                                    else if (header === 'description') product.description = value;
+                                    else if (header === 'image') product.image = value || 'images/product_placeholder.svg';
+                                    else if (header === 'price') product.price = parseFloat(value) || 0;
+                                    else if (header === 'instock') product.inStock = value.toLowerCase() === 'true' || value === '1';
+                                });
+                                
+                                // Parse sizes if provided in format "size:price,size:price"
+                                const sizesIndex = headers.indexOf('sizes');
+                                if (sizesIndex !== -1 && values[sizesIndex]) {
+                                    const sizesString = values[sizesIndex].replace(/"/g, '');
+                                    const sizePairs = sizesString.split(',');
+                                    product.sizes = [];
+                                    sizePairs.forEach(pair => {
+                                        const [size, price] = pair.split(':');
+                                        if (size && price) {
+                                            product.sizes.push({
+                                                size: size.trim(),
+                                                price: parseFloat(price.trim()) || 0
+                                            });
+                                        }
+                                    });
+                                }
+                                
+                                if (product.name && product.category) {
+                                    csvData.push(product);
+                                }
+                            }
+                        }
+                    }
+                    
+                    if (csvData.length > 0) {
+                        showPreview();
+                    } else {
+                        showMessage('No valid products found in CSV file.', 'error');
+                    }
+                } catch (error) {
+                    console.error('CSV parsing error:', error);
+                    showMessage('Error parsing CSV file. Please check the format.', 'error');
+                }
+            };
+            reader.readAsText(file);
+        }
+
+        // Show preview
+        function showPreview() {
+            const preview = document.getElementById('preview');
+            const previewTable = document.getElementById('previewTable');
+            
+            let tableHTML = `
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>Category</th>
+                            <th>Price</th>
+                            <th>In Stock</th>
+                            <th>Description</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+            `;
+            
+            csvData.forEach(product => {
+                const price = product.sizes && product.sizes.length > 0 
+                    ? product.sizes.map(s => `${s.size}: $${s.price.toFixed(2)}`).join(', ')
+                    : `$${product.price.toFixed(2)}`;
+                
+                tableHTML += `
+                    <tr>
+                        <td>${product.name}</td>
+                        <td>${product.category}</td>
+                        <td>${price}</td>
+                        <td>${product.inStock !== false ? 'Yes' : 'No'}</td>
+                        <td>${product.description || ''}</td>
+                    </tr>
+                `;
+            });
+            
+            tableHTML += '</tbody></table>';
+            previewTable.innerHTML = tableHTML;
+            preview.style.display = 'block';
+        }
+
+        // Import products to API
+        async function importProducts() {
+            if (isImporting) return;
+            
+            if (csvData.length === 0) {
+                showMessage('No products to import.', 'error');
+                return;
+            }
+            
+            isImporting = true;
+            const preview = document.getElementById('preview');
+            preview.innerHTML = '<div class="loading"><i class="fas fa-spinner fa-spin"></i> Importing products...</div>';
+            
+            let successCount = 0;
+            let errorCount = 0;
+            
+            try {
+                for (const product of csvData) {
+                    try {
+                        await productsAPI.create(product);
+                        successCount++;
+                    } catch (error) {
+                        console.error('Error importing product:', product.name, error);
+                        errorCount++;
+                    }
+                }
+                
+                if (successCount > 0) {
+                    showMessage(`✅ Successfully imported ${successCount} product(s)! ${errorCount > 0 ? `${errorCount} failed.` : ''}`, 'success');
+                    setTimeout(() => {
+                        window.location.href = '/admin-dashboard.html';
+                    }, 2000);
+                } else {
+                    showMessage(`❌ Failed to import products. Please try again.`, 'error');
+                    preview.style.display = 'none';
+                }
+            } catch (error) {
+                console.error('Import error:', error);
+                showMessage('Error importing products. Please try again.', 'error');
+                preview.style.display = 'none';
+            } finally {
+                isImporting = false;
+            }
+        }
+
+        // Clear preview
+        function clearPreview() {
+            document.getElementById('preview').style.display = 'none';
+            document.getElementById('csvFile').value = '';
+            csvData = [];
+        }
+
+        // Drag and drop functionality
+        const uploadArea = document.getElementById('uploadArea');
+        
+        uploadArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadArea.classList.add('dragover');
+        });
+        
+        uploadArea.addEventListener('dragleave', () => {
+            uploadArea.classList.remove('dragover');
+        });
+        
+        uploadArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadArea.classList.remove('dragover');
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                const file = files[0];
+                if (file.type === 'text/csv' || file.name.endsWith('.csv')) {
+                    parseCSV(file);
+                } else {
+                    showMessage('Please select a valid CSV file.', 'error');
+                }
+            }
+        });
+    </script>
+</body>
+</html>

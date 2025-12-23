@@ -1,0 +1,584 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Payment Successful - Fiesta Liquor</title>
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        body {
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+            min-height: 100vh;
+            margin: 0;
+            padding: 0;
+        }
+        .success-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            text-align: center;
+            padding: 2rem;
+            gap: 1.5rem;
+        }
+        .success-icon {
+            font-size: 6rem;
+            color: #4CAF50;
+            margin-bottom: 1rem;
+            animation: scalePopIn 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+            text-shadow: 0 0 20px rgba(76, 175, 80, 0.6);
+        }
+        @keyframes scalePopIn {
+            from {
+                transform: scale(0);
+                opacity: 0;
+            }
+            to {
+                transform: scale(1);
+                opacity: 1;
+            }
+        }
+        .success-message {
+            max-width: 700px;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            padding: 3rem 2rem;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            animation: slideUp 0.6s ease-out 0.2s both;
+        }
+        @keyframes slideUp {
+            from {
+                transform: translateY(40px);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+        .success-message h1 {
+            color: #1a1a2e;
+            margin: 0 0 0.5rem 0;
+            font-size: 2.5rem;
+            font-family: 'Playfair Display', serif;
+            background: linear-gradient(135deg, #4CAF50, #45a049);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        .success-message .subtitle {
+            color: #555;
+            margin-bottom: 2rem;
+            font-size: 1.1rem;
+            line-height: 1.6;
+        }
+        #orderDetails {
+            background: linear-gradient(135deg, rgba(76, 175, 80, 0.05), rgba(102, 126, 234, 0.05));
+            border-radius: 15px;
+            padding: 2rem;
+            margin: 2rem 0;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1.5rem;
+            border: 1px solid rgba(76, 175, 80, 0.2);
+        }
+        .detail-item {
+            padding: 1rem;
+        }
+        .detail-item label {
+            display: block;
+            font-weight: 700;
+            color: #666;
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 0.5rem;
+        }
+        .detail-item span {
+            display: block;
+            font-size: 1.3rem;
+            color: #1a1a2e;
+            font-weight: 600;
+        }
+        .loading {
+            color: #999;
+            font-style: italic;
+            font-size: 1rem;
+        }
+        .action-buttons {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin-top: 2rem;
+        }
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            padding: 1rem 2rem;
+            text-decoration: none;
+            border-radius: 12px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            border: none;
+            cursor: pointer;
+            font-size: 1rem;
+        }
+        .btn-primary {
+            background: linear-gradient(135deg, #4CAF50, #45a049);
+            color: white;
+            box-shadow: 0 8px 20px rgba(76, 175, 80, 0.3);
+        }
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 12px 28px rgba(76, 175, 80, 0.4);
+        }
+        .btn-secondary {
+            background: rgba(26, 26, 46, 0.1);
+            color: #1a1a2e;
+            border: 2px solid #1a1a2e;
+        }
+        .btn-secondary:hover {
+            background: rgba(26, 26, 46, 0.2);
+            transform: translateY(-2px);
+        }
+    </style>
+</head>
+<body>
+    <div class="success-container">
+        <div class="success-icon">
+            <i class="fas fa-check-circle"></i>
+        </div>
+        <div class="success-message">
+            <h1>Order Complete!</h1>
+            <p id="statusMessage" class="loading">Processing your order...</p>
+            <div id="orderDetails" style="display: none;">
+                <div class="detail-item">
+                    <label>Order ID</label>
+                    <span id="orderId">—</span>
+                </div>
+                <div class="detail-item">
+                    <label>Order Type</label>
+                    <span id="orderType">—</span>
+                </div>
+                <div class="detail-item">
+                    <label>Estimated Time</label>
+                    <span id="estimatedTime">—</span>
+                </div>
+                <div class="detail-item">
+                    <label>Order Total</label>
+                    <span id="orderTotal">—</span>
+                </div>
+            </div>
+            <div style="background: #fff3cd; border-left: 4px solid #ffc107; padding: 1rem; margin: 1.5rem 0; border-radius: 4px; max-width: 700px;">
+                <p style="margin: 0; font-size: 0.95rem; color: #856404; font-weight: 600; text-align: left;">
+                    <i class="fas fa-exclamation-triangle"></i> <strong>No Refund Policy:</strong> All alcohol sales are final. Alcohol cannot be returned or refunded. Period.
+                </p>
+            </div>
+            <div class="action-buttons">
+                <a href="/index.html" class="btn btn-primary" id="homeBtn" style="display: none;">
+                    <i class="fas fa-home"></i> Back to Home
+                </a>
+                <a href="/account.html" class="btn btn-secondary" id="ordersBtn" style="display: none;">
+                    <i class="fas fa-list"></i> View My Orders
+                </a>
+            </div>
+        </div>
+    </div>
+    
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+    <script src="firebase.js"></script>
+    <script src="api.js"></script>
+    <script>
+        // API_BASE_URL is already defined in api.js (loaded above), so we can use it directly
+        // Wait for Firebase to be ready
+        async function waitForFirebase() {
+            let attempts = 0;
+            while (typeof firebase === 'undefined' || !firebase.apps || firebase.apps.length === 0) {
+                if (attempts++ > 50) {
+                    console.warn('Firebase initialization timeout');
+                    return false;
+                }
+                await new Promise(resolve => setTimeout(resolve, 100));
+            }
+            return true;
+        }
+        
+        // Helper function to ensure we have a valid backend JWT token
+        async function ensureValidToken() {
+            const token = getAuthToken();
+            const firebaseUser = JSON.parse(localStorage.getItem('firebaseUser') || 'null');
+            
+            // If we have a token, try to validate it first
+            if (token) {
+                try {
+                    // Try a simple API call to validate token
+                    const testResponse = await fetch(`${API_BASE_URL}/api/auth/me`, {
+                        headers: {
+                            'Authorization': `Bearer ${token}`
+                        }
+                    });
+                    if (testResponse.ok) {
+                        return token; // Token is valid
+                    }
+                } catch (error) {
+                    console.log('Token validation failed, will refresh');
+                }
+            }
+            
+            // If no valid token and we have Firebase user, refresh it
+            if (firebaseUser) {
+                console.log('🔄 Firebase user found, attempting token refresh...');
+                // Wait for Firebase to be ready
+                const firebaseReady = await waitForFirebase();
+                console.log('🔥 Firebase ready:', firebaseReady);
+                
+                if (firebaseReady && typeof firebase !== 'undefined' && firebase.auth) {
+                    try {
+                        const auth = firebase.auth();
+                        let currentFirebaseUser = auth.currentUser;
+                        console.log('👤 Current Firebase user:', currentFirebaseUser ? currentFirebaseUser.email : 'null');
+                        
+                        // If currentUser is null, wait for auth state to restore (can take a moment after page load)
+                        if (!currentFirebaseUser) {
+                            console.log('⏳ Waiting for Firebase auth state to restore...');
+                            await new Promise((resolve) => {
+                                let resolved = false;
+                                const unsubscribe = auth.onAuthStateChanged((user) => {
+                                    if (!resolved) {
+                                        resolved = true;
+                                        currentFirebaseUser = user;
+                                        console.log('👤 Auth state restored:', user ? user.email : 'null');
+                                        unsubscribe();
+                                        resolve();
+                                    }
+                                });
+                                // Timeout after 3 seconds if auth state doesn't restore
+                                setTimeout(() => {
+                                    if (!resolved) {
+                                        resolved = true;
+                                        unsubscribe();
+                                        console.log('⏰ Auth state restore timeout');
+                                        resolve();
+                                    }
+                                }, 3000);
+                            });
+                        }
+                        
+                        if (currentFirebaseUser) {
+                            // Get fresh Firebase token (force refresh)
+                            console.log('🔑 Getting fresh Firebase ID token...');
+                            const firebaseToken = await currentFirebaseUser.getIdToken(true);
+                            console.log('✅ Got Firebase token');
+                            
+                            // Exchange Firebase token for backend JWT token
+                            const userData = {
+                                name: firebaseUser.displayName || firebaseUser.email,
+                                email: firebaseUser.email,
+                                phone: firebaseUser.phone || '',
+                                firebaseUid: firebaseUser.uid,
+                                isFirebaseUser: true
+                            };
+                            
+                            console.log('🔄 Exchanging Firebase token for backend JWT...');
+                            const response = await fetch(`${API_BASE_URL}/api/auth/firebase-register`, {
+                                method: 'POST',
+                                headers: {
+                                    'Content-Type': 'application/json'
+                                },
+                                body: JSON.stringify(userData)
+                            });
+                            
+                            console.log('📡 Backend response status:', response.status);
+                            
+                            if (response.ok) {
+                                const data = await response.json();
+                                console.log('✅ Backend registration response received');
+                                
+                                // Store the BACKEND auth token
+                                if (data.token) {
+                                    setAuthToken(data.token);
+                                    console.log('✅ Backend JWT token refreshed and stored:', data.token.substring(0, 20) + '...');
+                                    
+                                    // Small delay to ensure localStorage write completes
+                                    await new Promise(resolve => setTimeout(resolve, 50));
+                                    
+                                    // Verify it's stored
+                                    const verifyToken = getAuthToken();
+                                    console.log('✅ Token verification:', verifyToken ? 'Token stored correctly' : 'Token NOT stored!');
+                                    
+                                    if (verifyToken && verifyToken === data.token) {
+                                        console.log('✅ Token verified and matches');
+                                        return data.token;
+                                    } else {
+                                        console.error('❌ Token verification failed - tokens do not match');
+                                        // Try setting again
+                                        localStorage.setItem('authToken', data.token);
+                                        localStorage.setItem('token', data.token);
+                                        return data.token;
+                                    }
+                                } else {
+                                    console.error('❌ No token in backend response');
+                                }
+                            } else {
+                                const errorText = await response.text();
+                                console.error('❌ Backend registration failed:', response.status, errorText);
+                            }
+                        } else {
+                            console.error('❌ No current Firebase user found after waiting');
+                        }
+                    } catch (error) {
+                        console.error('❌ Error refreshing Firebase token:', error);
+                    }
+                } else {
+                    console.error('❌ Firebase not ready or not available');
+                }
+            }
+            
+            // If we got here, token refresh failed or no Firebase user
+            // Return null instead of potentially invalid token
+            console.log('❌ Could not obtain valid token');
+            return null;
+        }
+        
+        // Create order after successful payment
+        async function createOrderAfterPayment() {
+            try {
+                // Get checkout data and cart from localStorage
+                const checkoutDataStr = localStorage.getItem('checkoutData');
+                const cartDataStr = localStorage.getItem('cart');
+                
+                if (!checkoutDataStr || !cartDataStr) {
+                    document.getElementById('statusMessage').textContent = 'Order information not found. Please contact support.';
+                    document.getElementById('homeBtn').style.display = 'inline-block';
+                    return;
+                }
+                
+                const checkoutData = JSON.parse(checkoutDataStr);
+                const cart = JSON.parse(cartDataStr);
+                
+                // Ensure we have a valid backend JWT token
+                console.log('🔐 Ensuring valid token...');
+                const token = await ensureValidToken();
+                const firebaseUser = JSON.parse(localStorage.getItem('firebaseUser') || 'null');
+                
+                if (!token && !firebaseUser) {
+                    document.getElementById('statusMessage').textContent = 'Please log in to complete your order.';
+                    document.getElementById('homeBtn').style.display = 'inline-block';
+                    return;
+                }
+                
+                if (!token) {
+                    document.getElementById('statusMessage').textContent = 'Authentication failed. Please try logging in again.';
+                    document.getElementById('homeBtn').style.display = 'inline-block';
+                    return;
+                }
+                
+                // Get the token again to ensure we have the latest one
+                const finalToken = getAuthToken() || token;
+                console.log('🔑 Using token for order creation:', finalToken ? finalToken.substring(0, 20) + '...' : 'NO TOKEN');
+                
+                // Format items for order
+                const items = cart.map(item => ({
+                    name: item.name,
+                    category: item.category,
+                    size: item.selectedSize ? item.selectedSize.size : null,
+                    quantity: item.quantity,
+                    price: item.price
+                }));
+                
+                // Get Stripe session ID from URL to retrieve actual total
+                const urlParams = new URLSearchParams(window.location.search);
+                const sessionId = urlParams.get('session_id');
+                
+                let stripeTotal = null;
+                if (sessionId) {
+                    try {
+                        // Retrieve the Stripe session to get the actual total charged
+                        const sessionResponse = await fetch(`${API_BASE_URL}/get-stripe-session?session_id=${sessionId}`, {
+                            headers: {
+                                'Authorization': `Bearer ${finalToken}`
+                            }
+                        });
+                        if (sessionResponse.ok) {
+                            const sessionData = await sessionResponse.json();
+                            stripeTotal = sessionData.amount_total / 100; // Convert from cents
+                            console.log('✅ Retrieved Stripe total:', stripeTotal);
+                        }
+                    } catch (error) {
+                        console.error('Error retrieving Stripe session:', error);
+                    }
+                }
+                
+                // Calculate totals (fallback if Stripe session not available)
+                const subtotal = items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+                const deliveryFee = checkoutData.orderType === 'delivery' ? 7.99 : 0;
+                const subtotalWithFee = subtotal + deliveryFee;
+                const tax = parseFloat((subtotalWithFee * 0.0825).toFixed(2));
+                const amountBeforeFee = subtotalWithFee + tax;
+                // Calculate Stripe fee: Fee = ((Amount + 0.30) / (1 - 0.029)) - Amount
+                const totalWithFee = (amountBeforeFee + 0.30) / (1 - 0.029);
+                const stripeFee = parseFloat((totalWithFee - amountBeforeFee).toFixed(2));
+                const calculatedTotal = parseFloat(totalWithFee.toFixed(2));
+                
+                // Use Stripe total if available, otherwise use calculated total
+                const finalTotal = stripeTotal || calculatedTotal;
+                
+                // Create order data
+                const orderData = {
+                    customer: checkoutData.customer,
+                    items: items,
+                    orderType: checkoutData.orderType,
+                    paymentMethod: 'card', // Payment was via Stripe
+                    deliveryTimeEstimate: checkoutData.deliveryTimeEstimate,
+                    stripeSessionId: sessionId || null,
+                    stripeTotal: stripeTotal || null
+                };
+                
+                // Submit order using direct fetch with explicit token (more reliable than apiRequest)
+                console.log('📡 Creating order with token...');
+                const orderResponse = await fetch(`${API_BASE_URL}/api/orders`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${finalToken}`
+                    },
+                    body: JSON.stringify(orderData)
+                });
+                
+                if (!orderResponse.ok) {
+                    const errorData = await orderResponse.json().catch(() => ({ error: 'Unknown error' }));
+                    throw new Error(errorData.error || `Order creation failed: ${orderResponse.status}`);
+                }
+                
+                const order = await orderResponse.json();
+                console.log('✅ Order created successfully:', order.id);
+                
+                // Clear cart completely - localStorage, cookies, and server
+                console.log('🛒 Clearing cart after successful payment...');
+                
+                // Clear all cart-related localStorage
+                localStorage.removeItem('cart');
+                localStorage.removeItem('compressedCart');
+                localStorage.removeItem('cartCache');
+                localStorage.removeItem('checkoutData');
+                
+                // Clear all user-specific cart localStorage
+                try {
+                    const storedUser = JSON.parse(localStorage.getItem('currentUser') || 'null');
+                    const firebaseUser = JSON.parse(localStorage.getItem('firebaseUser') || 'null');
+                    const userId = storedUser?.id || storedUser?.email || firebaseUser?.uid || firebaseUser?.email || 'guest';
+                    const cartKey = `cart_${userId}`;
+                    localStorage.removeItem(cartKey);
+                    console.log('✅ Cart localStorage cleared');
+                } catch (error) {
+                    console.error('Error clearing cart localStorage:', error);
+                }
+                
+                // Clear cart cookies
+                try {
+                    // Get user ID for cart cookie name
+                    const storedUser = JSON.parse(localStorage.getItem('currentUser') || 'null');
+                    const firebaseUser = JSON.parse(localStorage.getItem('firebaseUser') || 'null');
+                    const userId = storedUser?.id || storedUser?.email || firebaseUser?.uid || firebaseUser?.email || 'guest';
+                    const cartCookieName = `cart_${userId}`;
+                    
+                    // Delete cart cookies
+                    document.cookie = `${cartCookieName}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;`;
+                    document.cookie = `cart=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;`;
+                    console.log('✅ Cart cookies cleared');
+                } catch (error) {
+                    console.error('Error clearing cart cookies:', error);
+                }
+                
+                // Clear server cart if user is logged in
+                try {
+                    if (finalToken) {
+                        const clearCartResponse = await fetch(`${API_BASE_URL}/api/cart`, {
+                            method: 'DELETE',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'Authorization': `Bearer ${finalToken}`
+                            }
+                        });
+                        if (clearCartResponse.ok) {
+                            console.log('✅ Server cart cleared');
+                        } else {
+                            console.log('⚠️ Server cart clear response:', clearCartResponse.status);
+                        }
+                    }
+                } catch (error) {
+                    console.error('Error clearing server cart:', error);
+                    // Continue anyway - not critical
+                }
+                
+                // Display order details
+                document.getElementById('statusMessage').textContent = 'Your order has been received and will be processed shortly.';
+                document.getElementById('orderId').textContent = `#${order.id}`;
+                document.getElementById('orderType').textContent = order.orderType === 'delivery' ? '🚚 Delivery' : '🏪 Pickup';
+                
+                let estimatedTime = '15-20 minutes';
+                if (order.orderType === 'delivery' && order.deliveryTimeEstimate) {
+                    if (order.deliveryTimeEstimate <= 30) {
+                        estimatedTime = '20-30 minutes';
+                    } else if (order.deliveryTimeEstimate <= 45) {
+                        estimatedTime = '30-45 minutes';
+                    } else if (order.deliveryTimeEstimate <= 60) {
+                        estimatedTime = '45-60 minutes';
+                    } else {
+                        estimatedTime = '60-90 minutes';
+                    }
+                }
+                document.getElementById('estimatedTime').textContent = estimatedTime;
+                // Use Stripe total if available, otherwise use order total
+                const displayTotal = order.stripeTotal || order.total;
+                document.getElementById('orderTotal').textContent = `$${displayTotal.toFixed(2)}`;
+                
+                document.getElementById('orderDetails').style.display = 'grid';
+                document.getElementById('homeBtn').style.display = 'inline-flex';
+                document.getElementById('ordersBtn').style.display = 'inline-flex';
+
+                // Redeem promo code (marks it as used for this user)
+                if (checkoutData && checkoutData.promo && checkoutData.promo.code) {
+                    try {
+                        const redeemRes = await fetch(`${API_BASE_URL}/api/promo-codes/redeem`, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'Authorization': `Bearer ${finalToken}`
+                            },
+                            body: JSON.stringify({ code: checkoutData.promo.code })
+                        });
+                        if (redeemRes.ok) {
+                            console.log('✅ Promo code redeemed and marked as used');
+                        } else {
+                            const redeemErr = await redeemRes.json().catch(() => ({}));
+                            console.warn('⚠️ Promo redeem failed:', redeemErr.error || redeemRes.status);
+                        }
+                    } catch (redeemError) {
+                        console.warn('⚠️ Promo redeem error:', redeemError);
+                    }
+                }
+                
+                console.log('✅ Cart cleared completely');
+                
+            } catch (error) {
+                console.error('Error creating order:', error);
+                const msg = (error && error.message) ? error.message : 'Unknown error';
+                document.getElementById('statusMessage').textContent = `Payment was successful, but order processing failed: ${msg}. If this persists, please contact support.`;
+                document.getElementById('homeBtn').style.display = 'inline-block';
+            }
+        }
+        
+        // Run on page load
+        document.addEventListener('DOMContentLoaded', createOrderAfterPayment);
+    </script>
+</body>
+</html>
+

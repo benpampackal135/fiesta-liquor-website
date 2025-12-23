@@ -1,0 +1,946 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Account - Fiesta Liquor</title>
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=Open+Sans:wght@300;400;600&display=swap" rel="stylesheet">
+    <style>
+        .account-container {
+            min-height: 100vh;
+            background: #f8f9fa;
+            padding-top: 100px;
+        }
+        
+        .account-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+        
+        .account-header {
+            background: white;
+            padding: 2rem;
+            border-radius: 15px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+            margin-bottom: 2rem;
+            text-align: center;
+        }
+        
+        .account-header h1 {
+            color: #1a1a2e;
+            font-family: 'Playfair Display', serif;
+            margin-bottom: 0.5rem;
+        }
+        
+        .account-tabs {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 2rem;
+            background: white;
+            padding: 1rem;
+            border-radius: 15px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+        }
+        
+        .account-tab {
+            padding: 1rem 2rem;
+            background: #f8f9fa;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+        
+        .account-tab.active {
+            background: #1a1a2e;
+            color: white;
+        }
+        
+        .account-tab:hover:not(.active) {
+            background: #e9ecef;
+        }
+        
+        .tab-content {
+            display: none;
+        }
+        
+        .tab-content.active {
+            display: block;
+        }
+        
+        .order-card {
+            background: white;
+            padding: 1.5rem;
+            border-radius: 10px;
+            box-shadow: 0 3px 10px rgba(0,0,0,0.1);
+            margin-bottom: 1rem;
+        }
+        
+        .order-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+            padding-bottom: 1rem;
+            border-bottom: 1px solid #e0e0e0;
+        }
+        
+        .order-id {
+            font-weight: 600;
+            color: #1a1a2e;
+        }
+        
+        .order-date {
+            color: #666;
+        }
+        
+        .order-status {
+            padding: 0.3rem 0.8rem;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+        
+        .status-pending {
+            background: #fff3cd;
+            color: #856404;
+        }
+        
+        .status-completed {
+            background: #d4edda;
+            color: #155724;
+        }
+        
+        .status-processing {
+            background: #cce5ff;
+            color: #004085;
+        }
+        
+        .order-items {
+            margin-bottom: 1rem;
+        }
+        
+        .order-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 0.5rem 0;
+            border-bottom: 1px solid #f0f0f0;
+        }
+        
+        .order-item:last-child {
+            border-bottom: none;
+        }
+        
+        .order-total {
+            font-weight: 600;
+            color: #1a1a2e;
+            font-size: 1.1rem;
+        }
+
+        .order-actions {
+            display: flex;
+            gap: 1rem;
+            margin-top: 1rem;
+            padding-top: 1rem;
+            border-top: 1px solid #e0e0e0;
+        }
+
+        .cancel-btn {
+            background: #dc3545;
+            color: white;
+            border: none;
+            padding: 0.6rem 1.2rem;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 0.9rem;
+            transition: all 0.3s ease;
+        }
+
+        .cancel-btn:hover {
+            background: #c82333;
+        }
+
+        .cancel-btn:disabled {
+            background: #cccccc;
+            cursor: not-allowed;
+        }
+
+        .refund-policy {
+            background: #fff3cd;
+            border-left: 4px solid #ffc107;
+            padding: 0.75rem 1rem;
+            margin-top: 0.75rem;
+            border-radius: 4px;
+            font-size: 0.85rem;
+            color: #856404;
+        }
+
+        .status-delivered {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .status-cancelled {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        
+        .profile-form {
+            background: white;
+            padding: 2rem;
+            border-radius: 15px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+        }
+        
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+            color: #333;
+        }
+        
+        .form-group input {
+            width: 100%;
+            padding: 0.8rem;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 1rem;
+            transition: border-color 0.3s ease;
+        }
+        
+        .form-group input:focus {
+            outline: none;
+            border-color: #ffd700;
+        }
+        
+        .save-btn {
+            background: #1a1a2e;
+            color: white;
+            border: none;
+            padding: 1rem 2rem;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 1.1rem;
+            transition: all 0.3s ease;
+        }
+        
+        .save-btn:hover {
+            background: #ffd700;
+            color: #1a1a2e;
+        }
+        
+        .back-to-site {
+            position: fixed;
+            top: 2rem;
+            left: 2rem;
+            color: white;
+            text-decoration: none;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            background: rgba(0,0,0,0.5);
+            padding: 0.5rem 1rem;
+            border-radius: 25px;
+        }
+        
+        .back-to-site:hover {
+            color: #ffd700;
+        }
+    </style>
+</head>
+<body>
+    <a href="/index.html" class="back-to-site">
+        <i class="fas fa-arrow-left"></i>
+        Back to Site
+    </a>
+    
+    <div class="account-container">
+        <div class="account-content">
+            <div class="account-header">
+                <h1>My Account</h1>
+                <p>Welcome back, <span id="userName"></span>!</p>
+            </div>
+            
+            <div class="account-tabs">
+                <button class="account-tab active" onclick="switchTab('orders')">My Orders</button>
+                <button class="account-tab" onclick="switchTab('rewards')">Rewards</button>
+                <button class="account-tab" onclick="switchTab('profile')">Profile</button>
+            </div>
+            
+            <!-- Orders Tab -->
+            <div id="ordersTab" class="tab-content active">
+                <h2>Order History</h2>
+                <div id="ordersList">
+                    <!-- Orders will be loaded here -->
+                </div>
+            </div>
+            
+            <!-- Rewards Tab -->
+            <div id="rewardsTab" class="tab-content">
+                <h2>Rewards &amp; Discounts</h2>
+                <p style="margin-bottom: 1rem;">
+                    Thank you for shopping with Fiesta Liquor! Here’s how discounts work:
+                </p>
+                <div style="background:#f8f9fa; border-radius:10px; padding:1rem; border:1px solid #e0e0e0;">
+                    <h3 style="margin-top:0;">Single-Use Discount Codes</h3>
+                    <p style="margin:0.25rem 0;">
+                        Each discount code can be used <strong>once per account</strong>.
+                    </p>
+                    <p style="margin:0.25rem 0;">
+                        Enter your code in the <strong>Discount Code</strong> box on the checkout page to apply your savings.
+                    </p>
+                    <p style="margin:0.25rem 0; font-size:0.9rem; color:#666;">
+                        If you received a code from the store, make sure you’re logged in with this account when you apply it. Once you use a code successfully, it can’t be used again on your account.
+                    </p>
+                </div>
+            </div>
+            
+            <!-- Profile Tab -->
+            <div id="profileTab" class="tab-content">
+                <h2>Profile Information</h2>
+                <div class="profile-form">
+                    <form id="profileForm" onsubmit="updateProfile(event)">
+                        <div class="form-group">
+                            <label for="profileName">Full Name</label>
+                            <input type="text" id="profileName" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="profileEmail">Email</label>
+                            <input type="email" id="profileEmail" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="profilePhone">Phone</label>
+                            <input type="tel" id="profilePhone" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="profilePassword">New Password (leave blank to keep current)</label>
+                            <input type="password" id="profilePassword">
+                        </div>
+                        <button type="submit" class="save-btn">Save Changes</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+    <script src="firebase.js"></script>
+    <script src="firebase-auth.js"></script>
+    <script src="api.js"></script>
+    <script>
+        // Wait for api.js to load and expose API_BASE_URL
+        (function() {
+            // Ensure API_BASE_URL is available (from api.js)
+            if (typeof window.API_BASE_URL === 'undefined') {
+                window.API_BASE_URL = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+                    ? window.location.origin
+                    : 'https://fiesta-liquor-website-production.up.railway.app';
+            }
+        })();
+        
+        let currentUser = null;
+        
+        // Check authentication - SIMPLIFIED: Just check if user exists, don't redirect
+        async function checkAuth() {
+            console.log('🔍 checkAuth() called');
+            const token = getAuthToken();
+            const firebaseUser = JSON.parse(localStorage.getItem('firebaseUser') || 'null');
+            
+            console.log('Token exists:', !!token);
+            console.log('Firebase user exists:', !!firebaseUser);
+            if (firebaseUser) {
+                console.log('Firebase user email:', firebaseUser.email);
+            }
+            
+            // First, check if we already have a backend user in localStorage
+            const storedUser = getCurrentUser();
+            if (storedUser && storedUser.id) {
+                console.log('✅ Found existing backend user in localStorage');
+                currentUser = storedUser;
+                return true;
+            }
+            
+            // If we have Firebase user OR token, allow access IMMEDIATELY
+            if (firebaseUser || token) {
+                console.log('✅ User detected, allowing access immediately');
+                
+                // Set fallback user from Firebase immediately (don't block on backend)
+                if (firebaseUser) {
+                    currentUser = {
+                        name: firebaseUser.displayName || firebaseUser.email,
+                        email: firebaseUser.email,
+                        phone: firebaseUser.phone || '',
+                        uid: firebaseUser.uid,
+                        role: 'customer'
+                    };
+                    setCurrentUser(currentUser);
+                    console.log('✅ Set fallback user from Firebase:', currentUser.email);
+                }
+                
+                // Try to get/sync with backend in background (non-blocking)
+                // Don't await this - let it run in background
+                (async () => {
+                    try {
+                        if (firebaseUser) {
+                            // Check if we have a backend token - if so, get user from backend
+                            if (token) {
+                                try {
+                                    console.log('Getting user from backend with token...');
+                                    const backendUser = await authAPI.getCurrentUser();
+                                    if (backendUser && backendUser.id) {
+                                        console.log('✅ Got user from backend:', backendUser.email);
+                                        currentUser = backendUser;
+                                        setCurrentUser(currentUser);
+                                        loadUserInfo();
+                                        loadOrders();
+                                        return;
+                                    }
+                                } catch (err) {
+                                    console.error('Failed to get user from backend:', err);
+                                    // Continue with Firebase user data
+                                }
+                            }
+                            
+                            // Try to register with backend if we don't have backend user yet
+                            if (!currentUser || !currentUser.id) {
+                                console.log('Attempting backend registration...');
+                                if (typeof firebase !== 'undefined' && firebase.auth) {
+                                    const auth = firebase.auth();
+                                    let user = auth.currentUser;
+                                    
+                                    // Wait briefly for auth state to restore if needed
+                                    if (!user) {
+                                        console.log('Waiting for Firebase auth state...');
+                                        await new Promise((resolve) => {
+                                            const timeout = setTimeout(() => {
+                                                console.log('Auth state timeout, proceeding anyway');
+                                                resolve();
+                                            }, 2000);
+                                            const unsubscribe = auth.onAuthStateChanged((u) => {
+                                                if (u) {
+                                                    console.log('Firebase auth state restored');
+                                                    clearTimeout(timeout);
+                                                    unsubscribe();
+                                                    user = u;
+                                                    resolve();
+                                                }
+                                            });
+                                        });
+                                    }
+                                    
+                                    if (user) {
+                                        console.log('Firebase user found, registering with backend...');
+                                        const firebaseToken = await user.getIdToken();
+                                        const userData = {
+                                            name: firebaseUser.displayName || firebaseUser.email,
+                                            email: firebaseUser.email,
+                                            phone: firebaseUser.phone || '',
+                                            firebaseUid: firebaseUser.uid,
+                                            isFirebaseUser: true
+                                        };
+                                        
+                                        const response = await fetch(`${window.API_BASE_URL}/api/auth/firebase-register`, {
+                                            method: 'POST',
+                                            headers: { 'Content-Type': 'application/json' },
+                                            body: JSON.stringify(userData)
+                                        });
+                                        
+                                        if (response.ok) {
+                                            const data = await response.json();
+                                            if (data.token) {
+                                                setAuthToken(data.token);
+                                                if (data.user) {
+                                                    currentUser = data.user;
+                                                    setCurrentUser(currentUser);
+                                                    console.log('✅ Backend registration successful:', currentUser.email);
+                                                    // Reload user info and orders with backend data
+                                                    loadUserInfo();
+                                                    loadOrders();
+                                                }
+                                            }
+                                        } else {
+                                            const errorText = await response.text();
+                                            console.error('Backend registration failed:', response.status, errorText);
+                                        }
+                                    } else {
+                                        console.log('No Firebase auth user found');
+                                    }
+                                }
+                            }
+                        } else if (token) {
+                            // Try to get user from backend
+                            try {
+                                currentUser = await authAPI.getCurrentUser();
+                                if (currentUser && currentUser.role === 'admin') {
+                                    console.log('Admin user detected');
+                                }
+                                if (currentUser) {
+                                    setCurrentUser(currentUser);
+                                    loadUserInfo();
+                                    loadOrders();
+                                }
+                            } catch (err) {
+                                console.error('Failed to get user from backend:', err);
+                            }
+                        }
+                    } catch (error) {
+                        console.error('Error in background auth sync:', error);
+                        // Continue with Firebase user data - don't redirect
+                    }
+                })();
+                
+                // Return true immediately - don't wait for backend
+                console.log('✅ Returning true from checkAuth()');
+                return true;
+            }
+            
+            // No user at all - redirect to login (but only if we're sure)
+            const hasAnyUser = JSON.parse(localStorage.getItem('firebaseUser') || 'null') || getAuthToken() || getCurrentUser();
+            if (!hasAnyUser) {
+                console.log('❌ No user detected at all, redirecting to login');
+                window.location.href = '/auth.html';
+                return false;
+            } else {
+                // We have some user data, allow access even if check failed
+                console.log('⚠️ CheckAuth found some user data, allowing access');
+                return true;
+            }
+        }
+        
+        // Initialize account page - MOBILE-OPTIMIZED: Multiple retry attempts for iOS
+        document.addEventListener('DOMContentLoaded', async function() {
+            console.log('🚀 Account page initializing...');
+            
+            // Function to load data with retries (for mobile Safari)
+            async function loadAccountDataWithRetries(maxRetries = 3) {
+                for (let attempt = 1; attempt <= maxRetries; attempt++) {
+                    try {
+                        console.log(`📱 Loading account data (attempt ${attempt}/${maxRetries})...`);
+                        
+                        // IMMEDIATELY check for any user data - don't wait for anything
+                        const firebaseUser = JSON.parse(localStorage.getItem('firebaseUser') || 'null');
+                        const token = getAuthToken();
+                        const storedUser = getCurrentUser();
+                        
+                        console.log('User check:', {
+                            firebaseUser: !!firebaseUser,
+                            token: !!token,
+                            storedUser: !!storedUser,
+                            attempt: attempt
+                        });
+                        
+                        // If we have ANY user data, show the page immediately
+                        if (firebaseUser || token || storedUser) {
+                            console.log('✅ User data found, showing account page');
+                            
+                            // Set currentUser immediately from whatever we have
+                            if (!currentUser) {
+                                if (storedUser) {
+                                    currentUser = storedUser;
+                                    console.log('Using stored user:', currentUser.email);
+                                } else if (firebaseUser) {
+                                    currentUser = {
+                                        name: firebaseUser.displayName || firebaseUser.email,
+                                        email: firebaseUser.email,
+                                        phone: firebaseUser.phone || '',
+                                        uid: firebaseUser.uid,
+                                        role: 'customer'
+                                    };
+                                    setCurrentUser(currentUser);
+                                    console.log('Using Firebase user:', currentUser.email);
+                                }
+                            }
+                            
+                            // Load user info immediately (even if incomplete)
+                            if (currentUser) {
+                                loadUserInfo();
+                            } else {
+                                // Show placeholder if no user yet
+                                const userNameEl = document.getElementById('userName');
+                                if (userNameEl) {
+                                    userNameEl.textContent = 'User';
+                                }
+                            }
+                            
+                            // Show loading message for orders
+                            const ordersList = document.getElementById('ordersList');
+                            if (ordersList && ordersList.innerHTML === '') {
+                                ordersList.innerHTML = '<p>Loading orders...</p>';
+                            }
+                            
+                            // Try to authenticate and load data
+                            try {
+                                const isAuthenticated = await checkAuth();
+                                console.log('Background auth check result:', isAuthenticated);
+                                
+                                if (currentUser) {
+                                    loadUserInfo();
+                                    await loadOrders();
+                                    console.log('✅ Account data loaded successfully');
+                                    return; // Success, exit retry loop
+                                }
+                            } catch (authErr) {
+                                console.error('Background auth check error:', authErr);
+                                // Still try to load orders even if auth fails
+                                if (currentUser) {
+                                    try {
+                                        await loadOrders();
+                                        console.log('✅ Orders loaded despite auth error');
+                                        return; // Success loading orders
+                                    } catch (orderErr) {
+                                        console.error('Failed to load orders:', orderErr);
+                                    }
+                                }
+                            }
+                            
+                            // If we got here and have currentUser, show what we have
+                            if (currentUser) {
+                                loadUserInfo();
+                                return; // At least show user info
+                            }
+                        } else if (attempt === maxRetries) {
+                            // No user data at all - redirect to login (only on last attempt)
+                            console.log('❌ No user data found after all retries, redirecting to login');
+                            window.location.href = '/auth.html';
+                            return;
+                        }
+                        
+                        // Wait before retry (exponential backoff)
+                        if (attempt < maxRetries) {
+                            const delay = attempt * 1000; // 1s, 2s, 3s
+                            console.log(`⏳ Waiting ${delay}ms before retry...`);
+                            await new Promise(resolve => setTimeout(resolve, delay));
+                        }
+                    } catch (error) {
+                        console.error(`❌ Error on attempt ${attempt}:`, error);
+                        if (attempt === maxRetries) {
+                            // Show error message on last attempt
+                            const ordersList = document.getElementById('ordersList');
+                            if (ordersList) {
+                                ordersList.innerHTML = '<p>Unable to load account information. Please try refreshing the page.</p>';
+                            }
+                        }
+                    }
+                }
+            }
+            
+            // Start loading with retries
+            await loadAccountDataWithRetries(3);
+            
+            // Also set up periodic refresh for mobile (in case of slow network)
+            setTimeout(() => {
+                if (currentUser) {
+                    console.log('🔄 Periodic refresh: Reloading account data...');
+                    loadUserInfo();
+                    loadOrders().catch(err => console.error('Periodic refresh error:', err));
+                }
+            }, 5000);
+        });
+        
+        // Helper function to get first name from full name
+        function getFirstName(fullName) {
+            if (!fullName) return 'User';
+            const nameParts = fullName.trim().split(/\s+/);
+            return nameParts[0] || 'User';
+        }
+        
+        function loadUserInfo() {
+            console.log('📝 Loading user info...');
+            console.log('Current user:', currentUser);
+            
+            // Try to get user from multiple sources if currentUser is null
+            if (!currentUser) {
+                console.log('⚠️ currentUser is null, trying to restore from storage...');
+                const storedUser = getCurrentUser();
+                const firebaseUser = JSON.parse(localStorage.getItem('firebaseUser') || 'null');
+                
+                if (storedUser) {
+                    currentUser = storedUser;
+                    console.log('✅ Restored user from localStorage:', currentUser.email);
+                } else if (firebaseUser) {
+                    currentUser = {
+                        name: firebaseUser.displayName || firebaseUser.email,
+                        email: firebaseUser.email,
+                        phone: firebaseUser.phone || '',
+                        uid: firebaseUser.uid,
+                        role: 'customer'
+                    };
+                    setCurrentUser(currentUser);
+                    console.log('✅ Restored user from Firebase:', currentUser.email);
+                } else {
+                    console.error('❌ Cannot load user info: no user data available');
+                    // Still try to show something
+                    const userNameEl = document.getElementById('userName');
+                    if (userNameEl) {
+                        userNameEl.textContent = 'User';
+                    }
+                    return;
+                }
+            }
+            
+            const userNameEl = document.getElementById('userName');
+            const profileNameEl = document.getElementById('profileName');
+            const profileEmailEl = document.getElementById('profileEmail');
+            const profilePhoneEl = document.getElementById('profilePhone');
+            
+            // Update header name (there might be multiple userName elements)
+            const userNameElements = document.querySelectorAll('#userName');
+            userNameElements.forEach(el => {
+                el.textContent = getFirstName(currentUser.name || currentUser.email || 'User');
+            });
+            
+            if (userNameEl) {
+                userNameEl.textContent = getFirstName(currentUser.name || currentUser.email || 'User');
+                console.log('✅ Updated userName element:', userNameEl.textContent);
+            } else {
+                console.warn('⚠️ userName element not found');
+            }
+            
+            if (profileNameEl) {
+                profileNameEl.value = currentUser.name || currentUser.email || '';
+                console.log('✅ Updated profileName element');
+            }
+            
+            if (profileEmailEl) {
+                profileEmailEl.value = currentUser.email || '';
+                console.log('✅ Updated profileEmail element');
+            }
+            
+            if (profilePhoneEl) {
+                profilePhoneEl.value = currentUser.phone || '';
+                console.log('✅ Updated profilePhone element');
+            }
+            
+            console.log('✅ User info loaded successfully');
+        }
+        
+        async function loadOrders() {
+            const ordersList = document.getElementById('ordersList');
+            if (!ordersList) {
+                console.error('Orders list element not found!');
+                return;
+            }
+            
+            try {
+                console.log('🛒 Loading orders...');
+                console.log('Current user:', currentUser);
+                console.log('Auth token exists:', !!getAuthToken());
+                
+                const orders = await ordersAPI.getAll();
+                console.log('📦 Orders received from API:', orders);
+                console.log('Orders type:', typeof orders);
+                console.log('Is array:', Array.isArray(orders));
+                
+                if (!orders) {
+                    console.error('❌ Orders response is null or undefined');
+                    ordersList.innerHTML = '<p>No orders data received. Please try again later.</p>';
+                    return;
+                }
+                
+                if (!Array.isArray(orders)) {
+                    console.error('❌ Invalid orders response (not an array):', orders);
+                    ordersList.innerHTML = '<p>Invalid orders data format. Please contact support.</p>';
+                    return;
+                }
+                
+                // Filter orders for current user if needed (backend should already filter, but just in case)
+                const userOrders = orders.filter(order => {
+                    if (!currentUser) return false;
+                    // Check if order belongs to current user by email or user ID
+                    return order.customer?.email === currentUser.email || 
+                           order.userId === currentUser.id ||
+                           order.customerEmail === currentUser.email;
+                });
+                
+                console.log('👤 Filtered orders for user:', userOrders.length, 'out of', orders.length);
+                
+                // If no filtered orders but we have orders, show all (backend might already filter)
+                const ordersToShow = userOrders.length > 0 ? userOrders : orders;
+                
+                const sortedOrders = ordersToShow.sort((a, b) => {
+                    const dateA = new Date(a.orderDate || a.createdAt || 0);
+                    const dateB = new Date(b.orderDate || b.createdAt || 0);
+                    return dateB - dateA;
+                });
+                
+                if (sortedOrders.length === 0) {
+                    console.log('📭 No orders found');
+                    ordersList.innerHTML = '<p>No orders found. <a href="/index.html">Start shopping!</a></p>';
+                    return;
+                }
+                
+                console.log('✅ Displaying', sortedOrders.length, 'orders');
+                ordersList.innerHTML = sortedOrders.map(order => {
+                    console.log('Processing order:', order.id, order);
+                    
+                    // Use Stripe total if available (most accurate), otherwise use order.total, or calculate from components
+                    let displayTotal = order.stripeTotal || order.total;
+                    if (!displayTotal || displayTotal === 0) {
+                        // Calculate from components as fallback
+                        const subtotal = order.subtotal || (order.items || []).reduce((sum, item) => sum + ((item.price || 0) * (item.quantity || 1)), 0);
+                        const deliveryFee = order.deliveryFee || (order.orderType === 'delivery' ? 7.99 : 0);
+                        const tax = order.tax || parseFloat(((subtotal + deliveryFee) * 0.0825).toFixed(2));
+                        const stripeFee = order.stripeFee || 0;
+                        displayTotal = parseFloat((subtotal + deliveryFee + tax + stripeFee).toFixed(2));
+                    }
+
+                    // Cancellation window: allow cancel within 5 minutes of order creation if not delivered/completed/cancelled
+                    const createdAt = new Date(order.orderDate || order.createdAt || 0);
+                    const cancelDeadline = createdAt.getTime() + (5 * 60 * 1000); // 5 minutes
+                    const now = Date.now();
+                    const statusLower = (order.status || 'pending').toLowerCase();
+                    const isFinalStatus = ['delivered', 'completed', 'cancelled'].includes(statusLower);
+                    const canCancel = !isFinalStatus && now < cancelDeadline;
+                    
+                    return `
+                    <div class="order-card">
+                        <div class="order-header">
+                            <div>
+                                <div class="order-id">Order #${order.id}</div>
+                                <div class="order-date">${new Date(order.orderDate || order.createdAt).toLocaleDateString()}</div>
+                            </div>
+                            <div>
+                                <span class="order-status status-${(order.status || 'pending').toLowerCase()}">${order.status || 'pending'}</span>
+                            </div>
+                        </div>
+                        <div class="order-items">
+                            ${(order.items || []).map(item => `
+                                <div class="order-item">
+                                    <span>${item.name || 'Item'}${item.size ? ` (${item.size})` : item.selectedSize ? ` (${item.selectedSize.size || item.selectedSize})` : ''} × ${item.quantity || 1}</span>
+                                    <span>$${((item.price || 0) * (item.quantity || 1)).toFixed(2)}</span>
+                                </div>
+                            `).join('')}
+                            ${order.deliveryFee > 0 ? `
+                                <div class="order-item">
+                                    <span>Delivery Fee</span>
+                                    <span>$${order.deliveryFee.toFixed(2)}</span>
+                                </div>
+                            ` : ''}
+                            ${order.tax > 0 ? `
+                                <div class="order-item">
+                                    <span>Tax (8.25%)</span>
+                                    <span>$${order.tax.toFixed(2)}</span>
+                                </div>
+                            ` : ''}
+                            ${order.stripeFee > 0 ? `
+                                <div class="order-item">
+                                    <span>Payment Processing Fee</span>
+                                    <span>$${order.stripeFee.toFixed(2)}</span>
+                                </div>
+                            ` : ''}
+                        </div>
+                        <div class="order-total">Total: $${displayTotal.toFixed(2)}</div>
+                        <div style="background: #fff3cd; border-left: 4px solid #ffc107; padding: 0.75rem 1rem; margin: 1rem 0; border-radius: 4px;">
+                            <p style="margin: 0; font-size: 0.85rem; color: #856404; font-weight: 600;">
+                                <i class="fas fa-exclamation-triangle"></i> <strong>No Refund Policy:</strong> All alcohol sales are final. Alcohol cannot be returned or refunded. Period.
+                            </p>
+                        </div>
+                        ${canCancel ? `
+                        <div class="order-actions">
+                            <button class="cancel-btn" onclick="cancelOrder(${order.id})">Cancel Order</button>
+                            <div class="refund-policy">You can cancel within 5 minutes of purchase. After that, cancellations are disabled.</div>
+                        </div>
+                        ` : `
+                        <div class="order-actions">
+                            <button class="cancel-btn" disabled>Cancel Order</button>
+                            <div class="refund-policy">Cancellation window expired (5 minutes after purchase) or order status prevents cancellation.</div>
+                        </div>
+                        `}
+                    </div>
+                `;
+                }).join('');
+                
+                console.log('✅ Orders displayed successfully');
+            } catch (error) {
+                console.error('❌ Failed to load orders:', error);
+                console.error('Error details:', error.message, error.stack);
+                
+                // More helpful error messages for mobile
+                let errorMessage = 'Failed to load orders. ';
+                if (error.message && (error.message.includes('token') || error.message.includes('403'))) {
+                    errorMessage += 'Please try logging out and back in.';
+                } else if (error.message && (error.message.includes('network') || error.message.includes('fetch') || error.message.includes('Failed to fetch'))) {
+                    errorMessage += 'Please check your internet connection and try again.';
+                } else {
+                    errorMessage += 'Please try refreshing the page.';
+                }
+                
+                ordersList.innerHTML = `<p>${errorMessage}</p><button onclick="location.reload()" style="margin-top: 10px; padding: 8px 16px; background: #1a1a2e; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 14px;">Refresh Page</button>`;
+            }
+        }
+        
+        async function cancelOrder(orderId) {
+            try {
+                const response = await apiRequest(`/api/orders/${orderId}/cancel`, {
+                    method: 'POST'
+                });
+                alert(response.message || 'Order cancelled successfully');
+                await loadOrders();
+            } catch (error) {
+                alert(error.message || 'Failed to cancel order');
+            }
+        }
+        
+        async function updateProfile(event) {
+            event.preventDefault();
+            try {
+                const name = document.getElementById('profileName').value;
+                const email = document.getElementById('profileEmail').value;
+                const phone = document.getElementById('profilePhone').value;
+                const password = document.getElementById('profilePassword').value;
+                
+                const data = { name, email, phone };
+                if (password) data.password = password;
+                
+                const updated = await apiRequest('/api/users/profile', {
+                    method: 'PUT',
+                    body: JSON.stringify(data)
+                });
+                
+                alert('Profile updated successfully');
+                currentUser = updated;
+                loadUserInfo();
+            } catch (error) {
+                alert(error.message || 'Failed to update profile');
+            }
+        }
+        
+        // Switch between tabs - make it globally available
+        function switchTab(tab) {
+            try {
+                // Remove active class from all tabs
+                document.querySelectorAll('.account-tab').forEach(t => t.classList.remove('active'));
+                // Remove active class from all tab contents
+                document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+                // Add active class to clicked tab
+                const clickedTab = document.querySelector(`[onclick*="switchTab('${tab}')"]`);
+                if (clickedTab) {
+                    clickedTab.classList.add('active');
+                }
+                // Show corresponding tab content
+                const tabContent = document.getElementById(`${tab}Tab`);
+                if (tabContent) {
+                    tabContent.classList.add('active');
+                }
+            } catch (error) {
+                console.error('Error switching tab:', error);
+            }
+        }
+        
+        // Make switchTab available globally for onclick handlers
+        window.switchTab = switchTab;
+    </script>
+</body>
+</html>

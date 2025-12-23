@@ -1,0 +1,408 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta name="theme-color" content="#1a1a2e">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Fiesta Liquor">
+    <link rel="manifest" href="/manifest.json">
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'><rect fill='%231a1a2e' width='192' height='192'/><text x='50%' y='50%' font-size='80' font-weight='bold' fill='%23ffd700' text-anchor='middle' dy='.3em' font-family='Arial'>🍾</text></svg>">
+    <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 180 180'><rect fill='%231a1a2e' width='180' height='180' rx='40'/><text x='50%' y='50%' font-size='90' font-weight='bold' fill='%23ffd700' text-anchor='middle' dy='.3em' font-family='Arial'>🍾</text></svg>">
+    <title>Checkout - Fiesta Liquor</title>
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=Open+Sans:wght@300;400;600&display=swap" rel="stylesheet">
+    <style>
+        .checkout-page {
+            min-height: 100vh;
+            background: #f8f9fa;
+            padding: 2rem 0;
+        }
+        
+        .checkout-container {
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 0 1rem;
+        }
+        
+        .checkout-header {
+            background: white;
+            padding: 2rem;
+            border-radius: 15px;
+            margin-bottom: 2rem;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        .checkout-header h1 {
+            font-family: 'Playfair Display', serif;
+            color: #1a1a2e;
+            margin: 0;
+        }
+        
+        .checkout-content {
+            display: grid;
+            grid-template-columns: 1fr 400px;
+            gap: 2rem;
+        }
+        
+        @media (max-width: 768px) {
+            .checkout-content {
+                grid-template-columns: 1fr;
+            }
+        }
+        
+        .checkout-form-section {
+            background: white;
+            padding: 2rem;
+            border-radius: 15px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        .checkout-form-section h2 {
+            font-family: 'Playfair Display', serif;
+            color: #1a1a2e;
+            margin-bottom: 1.5rem;
+        }
+        
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+            color: #333;
+        }
+        
+        .form-group input,
+        .form-group select {
+            width: 100%;
+            padding: 0.8rem;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 1rem;
+            transition: border-color 0.3s ease;
+            box-sizing: border-box;
+        }
+        
+        .form-group input:focus,
+        .form-group select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        
+        .order-type-options {
+            display: flex;
+            gap: 1rem;
+        }
+        
+        .radio-option {
+            flex: 1;
+            padding: 1rem;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            cursor: pointer;
+            text-align: center;
+            transition: all 0.3s ease;
+        }
+        
+        .radio-option:hover {
+            border-color: #667eea;
+        }
+        
+        .radio-option input[type="radio"] {
+            display: none;
+        }
+        
+        .radio-option input[type="radio"]:checked + span {
+            color: #667eea;
+            font-weight: 600;
+        }
+        
+        .radio-option input[type="radio"]:checked ~ .radio-option {
+            border-color: #667eea;
+            background: #f0f4ff;
+        }
+        
+        .radio-option:has(input:checked) {
+            border-color: #667eea;
+            background: #f0f4ff;
+        }
+        
+        #addressField {
+            margin-top: 1.5rem;
+            padding-top: 1.5rem;
+            border-top: 2px solid #e0e0e0;
+        }
+        
+        #addressField h4 {
+            margin-bottom: 1rem;
+            color: #333;
+            font-size: 1.1rem;
+            font-weight: 600;
+        }
+        
+        .address-grid {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 1rem;
+        }
+        
+        #deliveryTimeEstimate {
+            margin-top: 1rem;
+            padding: 1rem;
+            background: #e8f5e9;
+            border-radius: 8px;
+            border-left: 4px solid #4CAF50;
+            color: #2e7d32;
+        }
+        
+        .order-summary-section {
+            background: white;
+            padding: 2rem;
+            border-radius: 15px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            height: fit-content;
+            position: sticky;
+            top: 2rem;
+        }
+        
+        .order-summary-section h2 {
+            font-family: 'Playfair Display', serif;
+            color: #1a1a2e;
+            margin-bottom: 1.5rem;
+        }
+        
+        .order-item-summary {
+            display: flex;
+            justify-content: space-between;
+            padding: 0.8rem 0;
+            border-bottom: 1px solid #e0e0e0;
+        }
+        
+        .order-item-summary:last-child {
+            border-bottom: none;
+        }
+        
+        .order-total-summary {
+            margin-top: 1.5rem;
+            padding-top: 1.5rem;
+            border-top: 2px solid #1a1a2e;
+            display: flex;
+            justify-content: space-between;
+            font-size: 1.3rem;
+            font-weight: bold;
+            color: #1a1a2e;
+        }
+        
+        .checkout-btn {
+            width: 100%;
+            background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
+            color: white;
+            border: none;
+            padding: 1.2rem;
+            border-radius: 8px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            cursor: pointer;
+            margin-top: 2rem;
+            transition: transform 0.2s;
+        }
+        
+        .checkout-btn:hover {
+            transform: translateY(-2px);
+        }
+        
+        .checkout-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+        
+        .back-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            color: #667eea;
+            text-decoration: none;
+            margin-bottom: 1rem;
+            font-weight: 600;
+        }
+        
+        .back-link:hover {
+            color: #764ba2;
+        }
+    </style>
+</head>
+<body>
+    <div class="checkout-page">
+        <div class="checkout-container">
+            <a href="/index.html" class="back-link">
+                <i class="fas fa-arrow-left"></i> Back to Shopping
+            </a>
+            
+            <div class="checkout-header">
+                <h1>Checkout</h1>
+            </div>
+            
+            <div class="checkout-content">
+                <div class="checkout-form-section">
+                    <h2>Customer Information</h2>
+                    <form id="checkoutForm">
+                        <div class="form-group">
+                            <label for="firstName">First Name *</label>
+                            <input type="text" id="firstName" placeholder="John" required autocomplete="given-name">
+                        </div>
+                        <div class="form-group">
+                            <label for="lastName">Last Name *</label>
+                            <input type="text" id="lastName" placeholder="Smith" required autocomplete="family-name">
+                        </div>
+                        <div class="form-group">
+                            <label for="email">Email *</label>
+                            <input type="email" id="email" placeholder="you@example.com" required pattern="[a-z0-9._%+\-]+@[a-z0-9.\-]+\.[a-z]{2,}$" title="Please enter a valid email address" autocomplete="email">
+                        </div>
+                        <div class="form-group">
+                            <label for="phone">Phone *</label>
+                            <input type="tel" id="phone" placeholder="+1234567890" required autocomplete="tel">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="orderType">Order Type *</label>
+                            <div class="order-type-options">
+                                <label class="radio-option">
+                                    <input type="radio" name="orderType" value="pickup" checked onchange="toggleAddressField()">
+                                    <span>Pickup at Store</span>
+                                </label>
+                                <label class="radio-option">
+                                    <input type="radio" name="orderType" value="delivery" onchange="toggleAddressField()">
+                                    <span>Delivery to Address</span>
+                                </label>
+                            </div>
+                        </div>
+                        
+                        <div id="addressField" style="display: none;">
+                            <h4>Delivery Address</h4>
+                            <div class="form-group">
+                                <label for="streetAddress">Street Address *</label>
+                                <input type="text" id="streetAddress" placeholder="123 Main Street" autocomplete="street-address">
+                            </div>
+                            <div class="form-group">
+                                <label for="apartment">Apartment, Suite, etc. (Optional)</label>
+                                <input type="text" id="apartment" placeholder="Apt 4B" autocomplete="address-line2">
+                            </div>
+                            <div class="address-grid">
+                                <div class="form-group">
+                                    <label for="city">City *</label>
+                                    <input type="text" id="city" placeholder="San Antonio" autocomplete="address-level2">
+                                </div>
+                                <div class="form-group">
+                                    <label for="state">State *</label>
+                                    <input type="text" id="state" placeholder="TX" maxlength="2" style="text-transform: uppercase;" autocomplete="address-level1">
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label for="zipCode">ZIP Code *</label>
+                                <input type="text" id="zipCode" placeholder="78240" pattern="[0-9]{5}" maxlength="5" autocomplete="postal-code">
+                            </div>
+                            <div id="deliveryTimeEstimate" style="display: none;">
+                                <i class="fas fa-clock"></i> <strong>Estimated Delivery Time:</strong> <span id="estimatedTime">Calculating...</span>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+                
+                <div class="order-summary-section">
+                    <h2>Order Summary</h2>
+                    <div id="orderSummaryItems">
+                        <!-- Order items will be loaded here -->
+                    </div>
+                    <div style="margin: 1rem 0;">
+                        <label for="promoCodeInput" style="display:block; font-weight:600; margin-bottom:0.5rem;">
+                            <i class="fas fa-gift"></i> Discount Code
+                        </label>
+                        <div style="display:flex; gap:0.5rem;">
+                            <input type="text" id="promoCodeInput" placeholder="Enter discount code" style="flex:1; padding:0.6rem 0.8rem; border:2px solid #e0e0e0; border-radius:8px; text-transform:uppercase;">
+                            <button type="button" onclick="applyPromoCode()" style="background:#1a1a2e; color:#fff; border:none; padding:0.6rem 1rem; border-radius:8px; cursor:pointer; font-weight:600;">
+                                Apply
+                            </button>
+                        </div>
+                        <small id="promoCodeMessage" style="display:block; margin-top:0.5rem; font-size:0.85rem; color:#666;"></small>
+                    </div>
+                    <div class="order-total-summary">
+                        <span>Total:</span>
+                        <span id="orderTotal">$0.00</span>
+                    </div>
+                    <div style="background: #fff3cd; border-left: 4px solid #ffc107; padding: 1rem; margin: 1rem 0; border-radius: 4px;">
+                        <p style="margin: 0; font-size: 0.9rem; color: #856404; font-weight: 600;">
+                            <i class="fas fa-exclamation-triangle"></i> <strong>No Refund Policy:</strong> All alcohol sales are final. Alcohol cannot be returned or refunded. Period.
+                        </p>
+                    </div>
+                    <button type="button" class="checkout-btn" onclick="proceedToPayment()">
+                        <i class="fas fa-lock"></i> Proceed to Payment
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Firebase SDK (Compat version) -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+    
+    <!-- Initialize Firebase -->
+    <script src="firebase.js"></script>
+    <script src="firebase-auth.js"></script>
+    
+    <!-- App scripts -->
+    <script src="api.js"></script>
+    <script src="checkout.js"></script>
+    <script>
+        // Suppress harmless third-party console errors (from Stripe checkout page)
+        // These errors don't affect functionality and can be safely ignored
+        (function() {
+            const originalError = console.error;
+            const originalWarn = console.warn;
+            
+            console.error = function() {
+                const args = Array.from(arguments);
+                const errorStr = args.join(' ');
+                // Filter out known harmless third-party errors
+                if (errorStr.includes("Cannot find module './en'") || 
+                    errorStr.includes("Cannot find module") && errorStr.includes("cs_test_")) {
+                    return; // Suppress these specific errors
+                }
+                originalError.apply(console, arguments);
+            };
+            
+            console.warn = function() {
+                const args = Array.from(arguments);
+                const warnStr = args.join(' ');
+                // Filter out known harmless third-party warnings
+                if (warnStr.includes("unsupported `as` value") || 
+                    warnStr.includes("rel=preload") && warnStr.includes("cs_test_")) {
+                    return; // Suppress these specific warnings
+                }
+                originalWarn.apply(console, arguments);
+            };
+        })();
+        
+        // Register Service Worker for PWA functionality
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('/service-worker.js')
+                .then(registration => {
+                    console.log('Service Worker registered successfully');
+                    setInterval(() => {
+                        registration.update();
+                    }, 60000);
+                })
+                .catch(error => {
+                    console.log('Service Worker registration failed:', error);
+                });
+        }
+    </script>
+</body>
+</html>
+

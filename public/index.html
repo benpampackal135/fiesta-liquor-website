@@ -1,0 +1,450 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta name="theme-color" content="#1a1a2e">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Fiesta Liquor">
+    <link rel="manifest" href="/manifest.json">
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'><rect fill='%231a1a2e' width='192' height='192'/><text x='50%' y='50%' font-size='80' font-weight='bold' fill='%23ffd700' text-anchor='middle' dy='.3em' font-family='Arial'>🍾</text></svg>">
+    <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 180 180'><rect fill='%231a1a2e' width='180' height='180' rx='40'/><text x='50%' y='50%' font-size='90' font-weight='bold' fill='%23ffd700' text-anchor='middle' dy='.3em' font-family='Arial'>🍾</text></svg>">
+    <title>Fiesta Liquor - Premium Spirits & More | Fast Delivery & Pickup</title>
+    <meta name="description" content="Shop premium spirits, beer, wine & more at Fiesta Liquor. Fast delivery & convenient pickup. Browse whiskey, tequila, vodka, gin, rum & seltzers.">
+    <meta name="keywords" content="liquor store, spirits, whiskey, tequila, vodka, gin, rum, beer, wine, alcohol delivery, liquor delivery">
+    <meta property="og:title" content="Fiesta Liquor - Premium Spirits & More">
+    <meta property="og:description" content="Your trusted local liquor store with fast delivery and pickup options.">
+    <meta property="og:type" content="website">
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=Open+Sans:wght@300;400;600&display=swap" rel="stylesheet">
+    <script src="https://js.stripe.com/v3/"></script>
+    <style>
+        /* Ensure checkbox is visible and large on mobile */
+        @media (max-width: 768px) {
+            #ageModal #confirmAge {
+                width: 36px !important;
+                height: 36px !important;
+                min-width: 36px !important;
+                min-height: 36px !important;
+                border-width: 3px !important;
+            }
+            #ageModal label {
+                font-size: 1.3rem !important;
+                gap: 1rem !important;
+                padding: 1rem !important;
+            }
+        }
+    </style>
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+    <script src="firebase.js"></script>
+    <script src="firebase-auth.js"></script>
+    <script src="api.js"></script>
+
+</head>
+<body>
+    <!-- Age Verification Modal -->
+    <div id="ageModal" style="position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.8);display:flex;justify-content:center;align-items:center;z-index:9999;">
+      <div style="background:white;padding:30px;border-radius:10px;text-align:center;max-width:90%;width:400px;">
+        <h2>Are you 21 or older?</h2>
+        <p>You must be 21+ to access this site.</p>
+        <label style="display:flex;align-items:center;justify-content:center;gap:0.75rem;cursor:pointer;font-size:1.1rem;font-weight:600;color:#1a1a2e;padding:0.5rem;margin:1rem 0;">
+          <input type="checkbox" id="confirmAge" style="width:28px;height:28px;min-width:28px;min-height:28px;cursor:pointer;accent-color:#ffd700;border:3px solid #1a1a2e;border-radius:4px;margin:0;flex-shrink:0;"> I am 21 or older
+        </label>
+        <br><br>
+        <button id="ageSubmit">Enter Site</button>
+      </div>
+    </div>
+
+    <!-- Header -->
+    <header class="header">
+        <div class="container">
+            <div class="header-content">
+                <div class="logo">
+                    <h1>Fiesta Liquor</h1>
+                    <p>Premium Spirits & More</p>
+                </div>
+                <nav class="nav">
+                    <ul>
+                        <li><a href="#home" onclick="scrollToSection('home')">Home</a></li>
+                        <li><a href="#whiskey" onclick="filterAndScroll('whiskey')">Whiskey</a></li>
+                        <li><a href="#tequila" onclick="filterAndScroll('tequila')">Tequila</a></li>
+                        <li><a href="#vodka" onclick="filterAndScroll('vodka')">Vodka</a></li>
+                        <li><a href="#gin" onclick="filterAndScroll('gin')">Gin</a></li>
+                        <li><a href="#rum" onclick="filterAndScroll('rum')">Rum</a></li>
+                        <li><a href="#beer-seltzers" onclick="filterAndScroll('beer-seltzers')">Beer</a></li>
+                        <li><a href="#wine" onclick="filterAndScroll('wine')">Wine</a></li>
+                    </ul>
+                </nav>
+                <div class="header-actions">
+                    <div class="search-box">
+                        <input type="text" placeholder="Search products..." id="searchInput">
+                        <i class="fas fa-search"></i>
+                    </div>
+                    <div class="user-actions">
+                        <div class="user-info" id="userInfo" style="display: none;">
+                            <span id="userName"></span>
+                            <a href="/account.html" class="account-link" id="accountLink">
+                                <i class="fas fa-user-circle"></i> Account
+                            </a>
+                            <button class="logout-btn" onclick="logout()">Logout</button>
+                        </div>
+                        <div class="login-btn" id="loginBtn">
+                            <a href="auth.html" class="login-link">
+                                <i class="fas fa-user"></i> Login
+                            </a>
+                        </div>
+                    </div>
+                    <div class="cart-icon" onclick="toggleCart()">
+                        <i class="fas fa-shopping-cart"></i>
+                        <span class="cart-count" id="cartCount">0</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Hero Section -->
+    <section class="hero" id="home">
+        <div class="hero-content">
+            <div class="hero-badge">Premium Spirits · Curated Picks · Family Owned</div>
+            <h2>Welcome to Fiesta Liquor</h2>
+            <p class="hero-tagline">Sip something extraordinary—rare bottles, everyday favorites, and fast pickup.</p>
+            <p class="address">15503 Babcock Road Unit 11 · Open late</p>
+            <div class="hero-actions">
+                <button class="cta-button" onclick="scrollToProducts()">Shop Now</button>
+                <button class="ghost-button" onclick="scrollToSection('bestSellers')">View Best Sellers</button>
+            </div>
+            <div class="hero-highlights">
+                <div class="highlight-chip"><i class="fas fa-bolt"></i> Fast pickup ready</div>
+                <div class="highlight-chip"><i class="fas fa-wine-glass-alt"></i> Handpicked selections</div>
+                <div class="highlight-chip"><i class="fas fa-shield-alt"></i> Secure checkout</div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Best Sellers Section -->
+    <section class="best-sellers" id="bestSellers">
+        <div class="container">
+            <h2>Best Sellers</h2>
+            <p class="section-subtitle">Our most popular premium selections</p>
+            <div class="products-grid" id="bestSellersGrid">
+                <!-- Best sellers will be dynamically loaded here -->
+            </div>
+        </div>
+    </section>
+
+    <!-- Products Section -->
+    <section class="products" id="products">
+        <div class="container">
+            <h2>Our Products</h2>
+            <div class="filter-tabs">
+                <button class="filter-btn active" onclick="filterProducts('all')">All Products</button>
+                <button class="filter-btn" onclick="filterProducts('whiskey')">Whiskey</button>
+                <button class="filter-btn" onclick="filterProducts('tequila')">Tequila</button>
+                <button class="filter-btn" onclick="filterProducts('vodka')">Vodka</button>
+                <button class="filter-btn" onclick="filterProducts('gin')">Gin</button>
+                <button class="filter-btn" onclick="filterProducts('rum')">Rum</button>
+                <button class="filter-btn" onclick="filterProducts('beer-seltzers')">Beer & Seltzers</button>
+                <button class="filter-btn" onclick="filterProducts('wine')">Wine</button>
+            </div>
+            <div class="products-grid" id="productsGrid">
+                <!-- Products will be dynamically loaded here -->
+            </div>
+        </div>
+    </section>
+
+    <!-- Shopping Cart Sidebar -->
+    <div class="cart-sidebar" id="cartSidebar">
+        <div class="cart-header">
+            <h3>Shopping Cart</h3>
+            <button class="close-cart" onclick="toggleCart()">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div class="cart-items" id="cartItems">
+            <!-- Cart items will be dynamically loaded here -->
+        </div>
+        <div class="cart-footer">
+    <div class="cart-total">
+        <span>Total: $<span id="cartTotal">0.00</span></span>
+    </div>
+    <!-- Checkout Button -->
+    <button id="checkout-button" class="checkout-button" onclick="goToCheckout()">
+        <i class="fas fa-shopping-bag"></i> Proceed to Checkout
+    </button>
+</div>
+
+    </div>
+
+    <!-- Fixed Mobile Checkout Button (shown when cart is open on mobile) -->
+    <div class="mobile-checkout-fixed" id="mobileCheckoutFixed" style="display: none !important; visibility: hidden !important; opacity: 0 !important; pointer-events: none !important;">
+        <div class="cart-total-mobile">
+            Total: $<span id="cartTotalMobile">0.00</span>
+        </div>
+        <button class="checkout-button" onclick="goToCheckout()">
+            <i class="fas fa-shopping-bag"></i> Proceed to Checkout
+        </button>
+    </div>
+
+    <!-- Checkout Modal -->
+    <div class="checkout-modal" id="checkoutModal">
+        <div class="checkout-content">
+            <div class="checkout-header">
+                <h2>Checkout</h2>
+                <button class="close-checkout" onclick="closeCheckout()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="checkout-body">
+                <div class="checkout-form">
+                    <h3>Customer Information</h3>
+                    <form id="checkoutForm">
+                        <div class="form-group">
+                            <label for="firstName">First Name</label>
+                            <input type="text" id="firstName" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="lastName">Last Name</label>
+                            <input type="text" id="lastName" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="email">Email</label>
+                            <input type="email" id="email" placeholder="you@example.com" required pattern="[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}$" title="Please enter a valid email address">
+                        </div>
+                        <div class="form-group">
+                            <label for="phone">Phone</label>
+                            <input type="tel" id="phone" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="orderType">Order Type</label>
+                            <div class="order-type-options">
+                                <label class="radio-option">
+                                    <input type="radio" name="orderType" value="pickup" checked onchange="toggleAddressField()">
+                                    <span>Pickup at Store</span>
+                                </label>
+                                <label class="radio-option">
+                                    <input type="radio" name="orderType" value="delivery" onchange="toggleAddressField()">
+                                    <span>Delivery to Address</span>
+                                </label>
+                            </div>
+                        </div>
+                        <div id="addressField" style="display: none;">
+                            <h4 style="margin-bottom: 1rem; color: #333;">Delivery Address</h4>
+                            <div class="form-group">
+                                <label for="streetAddress">Street Address *</label>
+                                <input type="text" id="streetAddress" placeholder="123 Main Street">
+                            </div>
+                            <div class="form-group">
+                                <label for="apartment">Apartment, Suite, etc. (Optional)</label>
+                                <input type="text" id="apartment" placeholder="Apt 4B">
+                            </div>
+                            <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 1rem;">
+                                <div class="form-group">
+                                    <label for="city">City *</label>
+                                    <input type="text" id="city" placeholder="San Antonio">
+                                </div>
+                                <div class="form-group">
+                                    <label for="state">State *</label>
+                                    <input type="text" id="state" placeholder="TX" maxlength="2" style="text-transform: uppercase;">
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label for="zipCode">ZIP Code *</label>
+                                <input type="text" id="zipCode" placeholder="78240" pattern="[0-9]{5}" maxlength="5">
+                            </div>
+                            <div id="deliveryTimeEstimate" style="display: none; margin-top: 1rem; padding: 1rem; background: #e8f5e9; border-radius: 8px; border-left: 4px solid #4CAF50;">
+                                <i class="fas fa-clock"></i> <strong>Estimated Delivery Time:</strong> <span id="estimatedTime">Calculating...</span>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="paymentMethod">Payment Method</label>
+                            <select id="paymentMethod" required>
+                                <option value="">Select Payment Method</option>
+                                <option value="cash">Cash on Pickup/Delivery</option>
+                                <option value="card">Credit/Debit Card</option>
+                            </select>
+                        </div>
+                    </form>
+                </div>
+                <div class="order-summary">
+                    <h3>Order Summary</h3>
+                    <div id="orderSummary">
+                        <!-- Order items will be displayed here -->
+                    </div>
+                    <div class="order-total">
+                        <strong>Total: $<span id="orderTotal">0.00</span></strong>
+                    </div>
+                </div>
+            </div>
+            <div class="checkout-footer">
+                <button class="place-order-btn" onclick="placeOrder()">Place Order</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Testimonials Section -->
+    <section class="testimonials-section">
+        <div class="container">
+            <h2>What Our Customers Say</h2>
+            <div class="testimonials-grid">
+                <div class="testimonial-card">
+                    <div class="stars">★★★★★</div>
+                    <p>"Best selection in town! Fast delivery and always great prices. My go-to liquor store."</p>
+                    <div class="testimonial-author">- Sarah M.</div>
+                </div>
+                <div class="testimonial-card">
+                    <div class="stars">★★★★★</div>
+                    <p>"Friendly staff and incredible variety. The online ordering makes it so convenient!"</p>
+                    <div class="testimonial-author">- Mike R.</div>
+                </div>
+                <div class="testimonial-card">
+                    <div class="stars">★★★★★</div>
+                    <p>"Family-owned and it shows. They really care about their customers. Highly recommend!"</p>
+                    <div class="testimonial-author">- Jennifer L.</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Newsletter Section -->
+    <section class="newsletter-section">
+        <div class="container">
+            <div class="newsletter-content">
+                <div class="newsletter-text">
+                    <h2><i class="fas fa-envelope"></i> Join Our Newsletter</h2>
+                    <p>Get exclusive deals, new arrivals, and special offers delivered to your inbox!</p>
+                </div>
+                <form class="newsletter-form" onsubmit="handleNewsletterSignup(event)">
+                    <input type="email" placeholder="Enter your email" required id="newsletterEmail">
+                    <button type="submit"><i class="fas fa-paper-plane"></i> Subscribe</button>
+                </form>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-section">
+                    <h3>Fiesta Liquor</h3>
+                    <p>Your trusted family-owned liquor store chain</p>
+                    <p>15503 Babcock Road Unit 11</p>
+                    <div class="social-links">
+                        <a href="#" aria-label="Facebook"><i class="fab fa-facebook"></i></a>
+                        <a href="#" aria-label="Instagram"><i class="fab fa-instagram"></i></a>
+                        <a href="#" aria-label="Twitter"><i class="fab fa-twitter"></i></a>
+                    </div>
+                </div>
+                <div class="footer-section">
+                    <h3>Policies</h3>
+                    <ul>
+                        <li><a href="/privacy.html">Privacy Policy</a></li>
+                        <li><a href="/refund-policy.html">Refund &amp; Cancellation Policy</a></li>
+                        <li><a href="/terms.html">Terms &amp; Conditions</a></li>
+                        <li style="color: #ffd700; font-weight: 600; margin-top: 0.5rem;">
+                            <i class="fas fa-exclamation-triangle"></i> 21+ Only: Valid ID required for alcohol purchase
+                        </li>
+                    </ul>
+                </div>
+                <div class="footer-section">
+                    <h3>Quick Links</h3>
+                    <ul>
+                        <li><a href="#home">Home</a></li>
+                        <li><a href="#whiskey">Whiskey</a></li>
+                        <li><a href="#tequila">Tequila</a></li>
+                        <li><a href="#vodka">Vodka</a></li>
+                        <li><a href="#gin">Gin</a></li>
+                        <li><a href="#rum">Rum</a></li>
+                        <li><a href="#beer-seltzers">Beer & Seltzers</a></li>
+                        <li><a href="#wine">Wine</a></li>
+                    </ul>
+                </div>
+                <div class="footer-section">
+                    <h3>Contact Info</h3>
+                    <p><i class="fas fa-phone"></i> (210)-541-0594</p>
+                    <p><i class="fas fa-envelope"></i> info@fiestaliquor.com</p>
+                    <p><i class="fas fa-clock"></i> Mon-Sat: 10AM-9PM, Sun: Closed</p>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p>&copy; 2024 Fiesta Liquor. All rights reserved.</p>
+                <p style="margin-top: 0.5rem; color: #ffd700; font-weight: 600;">
+                    <i class="fas fa-exclamation-triangle"></i> <strong>No Refund Policy:</strong> All alcohol sales are final. Alcohol cannot be returned or refunded. Period.
+                </p>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Floating Mobile Action Button -->
+    <button class="floating-action-btn" onclick="scrollToProducts()" aria-label="Shop Now">
+        <i class="fas fa-shopping-bag"></i>
+    </button>
+
+    <script src="script.js"></script>
+    <script src="js/age-verification.js"></script>
+    <script>
+        // Age gate logic: wait for DOM, then wire up and persist confirmation
+        document.addEventListener("DOMContentLoaded", () => {
+            const ageModal = document.getElementById("ageModal");
+
+            // Hide modal if already confirmed
+            if (localStorage.getItem("is21Confirmed") === "true") {
+                ageModal.style.display = "none";
+            }
+
+            document.getElementById("ageSubmit").addEventListener("click", () => {
+                const checkbox = document.getElementById("confirmAge");
+                if (checkbox.checked) {
+                    localStorage.setItem("is21Confirmed", "true");
+                    ageModal.style.display = "none";
+                } else {
+                    alert("You must confirm that you are 21 or older to continue.");
+                }
+            });
+        });
+
+        // Register Service Worker for PWA functionality
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('/service-worker.js')
+                .then(registration => {
+                    console.log('Service Worker registered successfully:', registration);
+                    
+                    // Force update service worker on page load to clear cache
+                    registration.update();
+                    
+                    // Check for updates periodically
+                    setInterval(() => {
+                        registration.update();
+                    }, 60000); // Check every minute
+                })
+                .catch(error => {
+                    console.log('Service Worker registration failed:', error);
+                });
+
+            // Handle service worker updates
+            let refreshing = false;
+            navigator.serviceWorker.addEventListener('controllerchange', () => {
+                if (refreshing) return;
+                refreshing = true;
+                console.log('Service Worker updated, reloading page...');
+                window.location.reload();
+            });
+        }
+
+        // Detect when app is installed
+        window.addEventListener('beforeinstallprompt', e => {
+            console.log('App install prompt available');
+        });
+
+        window.addEventListener('appinstalled', e => {
+            console.log('App successfully installed');
+        });
+    </script>
+</body>
+</html>

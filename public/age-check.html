@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Age Verification - Fiesta Liquor</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+        }
+        .age-check-container {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
+            padding: 20px;
+        }
+        .age-check-box {
+            background: white;
+            border-radius: 12px;
+            padding: 40px;
+            max-width: 500px;
+            text-align: center;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+        }
+        .age-check-box h1 {
+            color: #333;
+            margin-bottom: 20px;
+            font-size: 28px;
+        }
+        .age-check-box p {
+            color: #666;
+            margin-bottom: 30px;
+            line-height: 1.6;
+            font-size: 16px;
+        }
+        .age-check-box .warning {
+            background: #fff3cd;
+            border: 1px solid #ffc107;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 30px;
+            color: #856404;
+        }
+        .age-buttons {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+        .age-btn {
+            padding: 15px 40px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        .age-btn.confirm {
+            background: #28a745;
+            color: white;
+        }
+        .age-btn.confirm:hover {
+            background: #218838;
+            transform: translateY(-2px);
+        }
+        .age-btn.decline {
+            background: #dc3545;
+            color: white;
+        }
+        .age-btn.decline:hover {
+            background: #c82333;
+            transform: translateY(-2px);
+        }
+    </style>
+</head>
+<body>
+    <div class="age-check-container">
+        <div class="age-check-box">
+            <h1>🍷 Age Verification Required</h1>
+            <p>You must be 21 years of age or older to purchase alcoholic beverages.</p>
+            <div class="warning">
+                <strong>⚠️ Legal Notice</strong><br>
+                By clicking "I am 21+", you confirm that you are of legal drinking age in your jurisdiction.
+            </div>
+            <div class="age-buttons">
+                <button class="age-btn confirm" id="confirmAgeBtn">I am 21+</button>
+                <button class="age-btn decline" id="declineAgeBtn">I am under 21</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/age-check.js"></script>
+</body>
+</html>
+
+<!-- THIS FILE IS NO LONGER USED - Age verification now happens on index.html -->
+<!-- You can safely delete this file -->

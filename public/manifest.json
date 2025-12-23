@@ -1,0 +1,69 @@
+{
+  "name": "Fiesta Liquor",
+  "short_name": "Fiesta",
+  "description": "Your favorite liquor store - Fast delivery, great selection, best prices",
+  "start_url": "/index.html",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#ffffff",
+  "theme_color": "#1a1a2e",
+  "icons": [
+    {
+      "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'><rect fill='%231a1a2e' width='192' height='192'/><text x='50%' y='50%' font-size='80' font-weight='bold' fill='%23ffd700' text-anchor='middle' dy='.3em' font-family='Arial'>🍾</text></svg>",
+      "sizes": "192x192",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'><rect fill='%231a1a2e' width='512' height='512'/><text x='50%' y='50%' font-size='280' font-weight='bold' fill='%23ffd700' text-anchor='middle' dy='.3em' font-family='Arial'>🍾</text></svg>",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 180 180'><rect fill='%231a1a2e' width='180' height='180' rx='40'/><text x='50%' y='50%' font-size='90' font-weight='bold' fill='%23ffd700' text-anchor='middle' dy='.3em' font-family='Arial'>🍾</text></svg>",
+      "sizes": "180x180",
+      "type": "image/svg+xml",
+      "purpose": "maskable"
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 540 720'><rect fill='%23f8f9fa' width='540' height='720'/><rect fill='%231a1a2e' y='0' width='540' height='80'/><text x='20' y='50' font-size='28' fill='white' font-weight='bold' font-family='Arial'>Fiesta Liquor</text><text x='20' y='150' font-size='20' fill='%231a1a2e' font-weight='bold' font-family='Arial'>Fast Delivery</text><text x='20' y='180' font-size='16' fill='%23666' font-family='Arial'>Get your favorite drinks delivered</text></svg>",
+      "sizes": "540x720",
+      "type": "image/svg+xml",
+      "form_factor": "narrow"
+    }
+  ],
+  "categories": ["shopping", "lifestyle"],
+  "shortcuts": [
+    {
+      "name": "Shop Products",
+      "short_name": "Shop",
+      "description": "Browse and order products",
+      "url": "/index.html#shop",
+      "icons": [
+        {
+          "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 96 96'><rect fill='%23ffd700' width='96' height='96'/><text x='50%' y='50%' font-size='60' fill='%231a1a2e' text-anchor='middle' dy='.35em' font-family='Arial'>🛒</text></svg>",
+          "sizes": "96x96",
+          "type": "image/svg+xml"
+        }
+      ]
+    },
+    {
+      "name": "My Orders",
+      "short_name": "Orders",
+      "description": "Track your orders",
+      "url": "/index.html#orders",
+      "icons": [
+        {
+          "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 96 96'><rect fill='%2328a745' width='96' height='96'/><text x='50%' y='50%' font-size='60' fill='white' text-anchor='middle' dy='.35em' font-family='Arial'>📦</text></svg>",
+          "sizes": "96x96",
+          "type": "image/svg+xml"
+        }
+      ]
+    }
+  ],
+  "prefer_related_applications": false
+}

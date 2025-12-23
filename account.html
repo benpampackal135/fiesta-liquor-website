@@ -1,0 +1,582 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Account - Fiesta Liquor</title>
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=Open+Sans:wght@300;400;600&display=swap" rel="stylesheet">
+    <style>
+        .account-container {
+            min-height: 100vh;
+            background: #f8f9fa;
+            padding-top: 100px;
+        }
+        
+        .account-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+        
+        .account-header {
+            background: white;
+            padding: 2rem;
+            border-radius: 15px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+            margin-bottom: 2rem;
+            text-align: center;
+        }
+        
+        .account-header h1 {
+            color: #1a1a2e;
+            font-family: 'Playfair Display', serif;
+            margin-bottom: 0.5rem;
+        }
+        
+        .account-tabs {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 2rem;
+            background: white;
+            padding: 1rem;
+            border-radius: 15px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+        }
+        
+        .account-tab {
+            padding: 1rem 2rem;
+            background: #f8f9fa;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+        
+        .account-tab.active {
+            background: #1a1a2e;
+            color: white;
+        }
+        
+        .account-tab:hover:not(.active) {
+            background: #e9ecef;
+        }
+        
+        .tab-content {
+            display: none;
+        }
+        
+        .tab-content.active {
+            display: block;
+        }
+        
+        .order-card {
+            background: white;
+            padding: 1.5rem;
+            border-radius: 10px;
+            box-shadow: 0 3px 10px rgba(0,0,0,0.1);
+            margin-bottom: 1rem;
+        }
+        
+        .order-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+            padding-bottom: 1rem;
+            border-bottom: 1px solid #e0e0e0;
+        }
+        
+        .order-id {
+            font-weight: 600;
+            color: #1a1a2e;
+        }
+        
+        .order-date {
+            color: #666;
+        }
+        
+        .order-status {
+            padding: 0.3rem 0.8rem;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+        
+        .status-pending {
+            background: #fff3cd;
+            color: #856404;
+        }
+        
+        .status-completed {
+            background: #d4edda;
+            color: #155724;
+        }
+        
+        .status-processing {
+            background: #cce5ff;
+            color: #004085;
+        }
+        
+        .order-items {
+            margin-bottom: 1rem;
+        }
+        
+        .order-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 0.5rem 0;
+            border-bottom: 1px solid #f0f0f0;
+        }
+        
+        .order-item:last-child {
+            border-bottom: none;
+        }
+        
+        .order-total {
+            font-weight: 600;
+            color: #1a1a2e;
+            font-size: 1.1rem;
+        }
+
+        .order-actions {
+            display: flex;
+            gap: 1rem;
+            margin-top: 1rem;
+            padding-top: 1rem;
+            border-top: 1px solid #e0e0e0;
+        }
+
+        .cancel-btn {
+            background: #dc3545;
+            color: white;
+            border: none;
+            padding: 0.6rem 1.2rem;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 0.9rem;
+            transition: all 0.3s ease;
+        }
+
+        .cancel-btn:hover {
+            background: #c82333;
+        }
+
+        .cancel-btn:disabled {
+            background: #cccccc;
+            cursor: not-allowed;
+        }
+
+        .refund-policy {
+            background: #fff3cd;
+            border-left: 4px solid #ffc107;
+            padding: 0.75rem 1rem;
+            margin-top: 0.75rem;
+            border-radius: 4px;
+            font-size: 0.85rem;
+            color: #856404;
+        }
+
+        .status-delivered {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .status-cancelled {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        
+        .profile-form {
+            background: white;
+            padding: 2rem;
+            border-radius: 15px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+        }
+        
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+            color: #333;
+        }
+        
+        .form-group input {
+            width: 100%;
+            padding: 0.8rem;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 1rem;
+            transition: border-color 0.3s ease;
+        }
+        
+        .form-group input:focus {
+            outline: none;
+            border-color: #ffd700;
+        }
+        
+        .save-btn {
+            background: #1a1a2e;
+            color: white;
+            border: none;
+            padding: 1rem 2rem;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 1.1rem;
+            transition: all 0.3s ease;
+        }
+        
+        .save-btn:hover {
+            background: #ffd700;
+            color: #1a1a2e;
+        }
+        
+        .back-to-site {
+            position: fixed;
+            top: 2rem;
+            left: 2rem;
+            color: white;
+            text-decoration: none;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            background: rgba(0,0,0,0.5);
+            padding: 0.5rem 1rem;
+            border-radius: 25px;
+        }
+        
+        .back-to-site:hover {
+            color: #ffd700;
+        }
+    </style>
+</head>
+<body>
+    <a href="/index.html" class="back-to-site">
+        <i class="fas fa-arrow-left"></i>
+        Back to Site
+    </a>
+    
+    <div class="account-container">
+        <div class="account-content">
+            <div class="account-header">
+                <h1>My Account</h1>
+                <p>Welcome back, <span id="userName"></span>!</p>
+            </div>
+            
+            <div class="account-tabs">
+                <button class="account-tab active" onclick="switchTab('orders')">My Orders</button>
+                <button class="account-tab" onclick="switchTab('profile')">Profile</button>
+            </div>
+            
+            <!-- Orders Tab -->
+            <div id="ordersTab" class="tab-content active">
+                <h2>Order History</h2>
+                <div id="ordersList">
+                    <!-- Orders will be loaded here -->
+                </div>
+            </div>
+            
+            <!-- Profile Tab -->
+            <div id="profileTab" class="tab-content">
+                <h2>Profile Information</h2>
+                <div class="profile-form">
+                    <form id="profileForm" onsubmit="updateProfile(event)">
+                        <div class="form-group">
+                            <label for="profileName">Full Name</label>
+                            <input type="text" id="profileName" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="profileEmail">Email</label>
+                            <input type="email" id="profileEmail" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="profilePhone">Phone</label>
+                            <input type="tel" id="profilePhone" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="profilePassword">New Password (leave blank to keep current)</label>
+                            <input type="password" id="profilePassword">
+                        </div>
+                        <button type="submit" class="save-btn">Save Changes</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+    <script src="firebase.js"></script>
+    <script src="firebase-auth.js"></script>
+    <script src="api.js"></script>
+    <script>
+        let currentUser = null;
+        
+        // Check authentication
+        async function checkAuth() {
+            const token = getAuthToken();
+            const firebaseUser = JSON.parse(localStorage.getItem('firebaseUser') || 'null');
+            
+            if (firebaseUser) {
+                // User logged in with Firebase
+                currentUser = {
+                    name: firebaseUser.displayName || firebaseUser.email,
+                    email: firebaseUser.email,
+                    phone: '',
+                    uid: firebaseUser.uid,
+                    role: 'customer'
+                };
+                return true;
+            } else if (!token) {
+                window.location.href = 'auth.html';
+                return false;
+            }
+            
+            try {
+                currentUser = await authAPI.getCurrentUser();
+                // If user is admin, redirect to admin dashboard
+                if (currentUser && currentUser.role === 'admin') {
+                    window.location.href = '/admin-dashboard.html';
+                    return false;
+                }
+                // Only customers can access this page
+                if (!currentUser || currentUser.role !== 'customer') {
+                    window.location.href = '/auth.html';
+                    return false;
+                }
+                return true;
+            } catch (error) {
+                window.location.href = '/auth.html';
+                return false;
+            }
+        }
+        
+        // Initialize account page
+        document.addEventListener('DOMContentLoaded', async function() {
+            const isAuthenticated = await checkAuth();
+            if (isAuthenticated) {
+                loadUserInfo();
+                await loadOrders();
+            }
+        });
+        
+        function loadUserInfo() {
+            document.getElementById('userName').textContent = currentUser.name;
+            document.getElementById('profileName').value = currentUser.name;
+            document.getElementById('profileEmail').value = currentUser.email;
+            document.getElementById('profilePhone').value = currentUser.phone || '';
+        }
+        
+        async function loadOrders() {
+            try {
+                const orders = await ordersAPI.getAll();
+                const sortedOrders = orders.sort((a, b) => new Date(b.orderDate) - new Date(a.orderDate));
+                
+                const ordersList = document.getElementById('ordersList');
+                
+                if (sortedOrders.length === 0) {
+                    ordersList.innerHTML = '<p>No orders found. <a href="/index.html">Start shopping!</a></p>';
+                    return;
+                }
+                
+                ordersList.innerHTML = sortedOrders.map(order => `
+                    <div class="order-card">
+                        <div class="order-header">
+                            <div>
+                                <div class="order-id">Order #${order.id}</div>
+                                <div class="order-date">${new Date(order.orderDate).toLocaleDateString()}</div>
+                            </div>
+                            <div>
+                                <span class="order-status status-${order.status || 'pending'}">${order.status || 'pending'}</span>
+                                ${order.customerConfirmed ? `<span class="order-confirmed-tag">Confirmed by you</span>` : ''}
+                            </div>
+                        </div>
+                        <div class="order-items">
+                            ${order.items.map(item => `
+                                <div class="order-item">
+                                    <span>${item.name} ${item.size ? `(${item.size})` : ''} x${item.quantity}</span>
+                                    <span>$${(item.price * item.quantity).toFixed(2)}</span>
+                                </div>
+                            `).join('')}
+                        </div>
+                        <div class="order-total">
+                            Total: $${order.total.toFixed(2)} (${order.orderType})
+                        </div>
+                        <div class="order-actions">
+                            ${order.status !== 'delivered' && order.status !== 'cancelled' ? `
+                                <button class="cancel-btn" onclick="cancelOrder(${order.id})">Cancel Order</button>
+                            ` : ''}
+                            ${!order.customerConfirmed && (order.status === 'delivered' || order.status === 'ready' || order.status === 'out_for_delivery') ? `
+                                <button class="confirm-btn" onclick="confirmOrderReceived(${order.id})">Confirm Received</button>
+                            ` : ''}
+                        </div>
+                        ${order.status === 'cancelled' ? `
+                            <div class="refund-policy">
+                                <i class="fas fa-ban"></i> This order has been cancelled.
+                            </div>
+                        ` : `
+                            <div class="refund-policy">
+                                <i class="fas fa-info-circle"></i> No refunds or returns after delivery.
+                            </div>
+                        `}
+                    </div>
+                `).join('');
+            } catch (error) {
+                console.error('Failed to load orders:', error);
+                document.getElementById('ordersList').innerHTML = '<p>Failed to load orders. Please try again later.</p>';
+            }
+        }
+        
+        async function cancelOrder(orderId) {
+            // Get the order to show fee information
+            const orders = await ordersAPI.getAll();
+            const order = orders.find(o => o.id === orderId);
+            
+            if (!order) {
+                alert('Order not found');
+                return;
+            }
+            
+            // Calculate cancellation fee (10% of subtotal)
+            const cancellationFee = parseFloat((order.subtotal * 0.10).toFixed(2));
+            const refundAmount = parseFloat((order.subtotal - cancellationFee).toFixed(2));
+            
+            const confirmMessage = `Are you sure you want to cancel this order?\n\nOrder Subtotal: $${order.subtotal.toFixed(2)}\nCancellation Fee (15%): -$${cancellationFee.toFixed(2)}\nYou will receive: $${refundAmount.toFixed(2)}\n\nOnce delivered, cancellations are not allowed.`;
+            
+            if (!confirm(confirmMessage)) {
+                return;
+            }
+            
+            // Check if user is authenticated
+            const token = localStorage.getItem('authToken') || localStorage.getItem('token');
+            if (!token) {
+                alert('You must be logged in to cancel an order. Please log in and try again.');
+                window.location.href = '/auth.html';
+                return;
+            }
+            
+            try {
+                const response = await ordersAPI.cancel(orderId);
+                alert(`Order cancelled successfully!\n\nCancellation Fee: $${response.cancellationFee.toFixed(2)}\nRefund Amount: $${response.refundAmount.toFixed(2)}`);
+                await loadOrders(); // Reload orders to show updated status
+            } catch (error) {
+                console.error('Failed to cancel order:', error);
+                let errorMessage = 'Failed to cancel order. Please try again or contact support.';
+                
+                // Extract error message from various possible sources
+                if (error && error.message) {
+                    errorMessage = error.message;
+                }
+                
+                alert(errorMessage);
+            }
+        }
+        
+        async function confirmOrderReceived(orderId) {
+            if (!confirm('Please confirm that you have picked up or received this order. This cannot be undone.')) {
+                return;
+            }
+            
+            // Check if user is authenticated
+            const token = localStorage.getItem('authToken') || localStorage.getItem('token');
+            if (!token) {
+                alert('You must be logged in to confirm an order. Please log in and try again.');
+                window.location.href = '/auth.html';
+                return;
+            }
+            
+            try {
+                const response = await apiRequest(`/api/orders/${orderId}/confirm-received`, {
+                    method: 'POST'
+                });
+                if (response && response.success) {
+                    alert('Thank you! Your order has been marked as received.');
+                }
+                await loadOrders(); // Reload orders to show updated status / confirmation tag
+            } catch (error) {
+                console.error('Failed to confirm order received:', error);
+                let errorMessage = 'Failed to confirm order. Please try again or contact support.';
+                if (error && error.message) {
+                    errorMessage = error.message;
+                }
+                alert(errorMessage);
+            }
+        }
+        
+        function switchTab(tab) {
+            // Update tabs
+            document.querySelectorAll('.account-tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+            
+            if (tab === 'orders') {
+                document.querySelector('.account-tab:first-child').classList.add('active');
+                document.getElementById('ordersTab').classList.add('active');
+            } else {
+                document.querySelector('.account-tab:last-child').classList.add('active');
+                document.getElementById('profileTab').classList.add('active');
+            }
+        }
+        
+        async function updateProfile(event) {
+            event.preventDefault();
+            
+            const newName = document.getElementById('profileName').value;
+            const newPhone = document.getElementById('profilePhone').value;
+            const newPassword = document.getElementById('profilePassword').value;
+            
+            try {
+                const updateData = { name: newName, phone: newPhone };
+                if (newPassword) {
+                    updateData.password = newPassword;
+                }
+                
+                const updatedUser = await usersAPI.updateProfile(updateData);
+                currentUser = updatedUser;
+                setCurrentUser(updatedUser);
+                
+                alert('Profile updated successfully!');
+            } catch (error) {
+                console.error('Failed to update profile:', error);
+                alert('Failed to update profile. Please try again.');
+            }
+        }
+        
+        // After successful login in your existing login handler:
+        async function handleLogin(email, password) {
+            // ...existing login code...
+            
+            // After receiving response and storing token:
+            localStorage.setItem('token', data.token);
+            localStorage.setItem('user', JSON.stringify(data.user));
+            
+            // Update UI
+            if (window.authUI) {
+                window.authUI.updateAuthUI();
+            }
+        }
+
+        // After successful registration in your existing register handler:
+        async function handleRegister(name, email, phone, password) {
+            // ...existing registration code...
+            
+            // After receiving response and storing token:
+            localStorage.setItem('token', data.token);
+            localStorage.setItem('user', JSON.stringify(data.user));
+            
+            // Update UI
+            if (window.authUI) {
+                window.authUI.updateAuthUI();
+            }
+        }
+    </script>
+</body>
+</html>

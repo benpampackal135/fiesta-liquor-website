@@ -1,0 +1,2264 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard - Fiesta Liquor</title>
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=Open+Sans:wght@300;400;600&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        .admin-container {
+            min-height: 100vh;
+            background: #f8f9fa;
+        }
+        
+        .admin-header {
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            color: white;
+            padding: 1rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        .admin-header h1 {
+            font-family: 'Playfair Display', serif;
+            margin: 0;
+        }
+        
+        .admin-nav {
+            display: flex;
+            gap: 1rem;
+        }
+        
+        .admin-nav a {
+            color: white;
+            text-decoration: none;
+            padding: 0.5rem 1rem;
+            border-radius: 5px;
+            transition: background 0.3s ease;
+        }
+        
+        .admin-nav a:hover {
+            background: rgba(255,255,255,0.1);
+        }
+        
+        .admin-content {
+            padding: 2rem;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 2rem;
+            margin-bottom: 3rem;
+        }
+        
+        .stat-card {
+            background: white;
+            padding: 2rem;
+            border-radius: 15px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+        
+        .stat-card h3 {
+            color: #1a1a2e;
+            margin-bottom: 1rem;
+            font-size: 2rem;
+        }
+        
+        .stat-card p {
+            color: #666;
+            margin: 0;
+        }
+        
+        .stat-card .icon {
+            font-size: 3rem;
+            color: #ffd700;
+            margin-bottom: 1rem;
+        }
+        
+        .dashboard-section {
+            background: white;
+            padding: 2rem;
+            border-radius: 15px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+            margin-bottom: 2rem;
+        }
+        
+        .dashboard-section h2 {
+            color: #1a1a2e;
+            margin-bottom: 2rem;
+            font-family: 'Playfair Display', serif;
+        }
+        
+        .chart-container {
+            position: relative;
+            height: 400px;
+            margin-bottom: 2rem;
+        }
+        
+        .table-container {
+            overflow-x: auto;
+        }
+
+        /* Product stock badge alignment */
+        .stock-cell {
+            text-align: center;
+        }
+        .stock-pill {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 120px;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 1rem;
+        }
+        
+        th, td {
+            padding: 1rem;
+            text-align: left;
+            border-bottom: 1px solid #e0e0e0;
+        }
+        
+        th {
+            background: #f8f9fa;
+            font-weight: 600;
+            color: #1a1a2e;
+        }
+        
+        .status-badge {
+            padding: 0.3rem 0.8rem;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+        
+        .status-completed {
+            background: #d4edda;
+            color: #155724;
+        }
+        
+        .status-pending {
+            background: #fff3cd;
+            color: #856404;
+        }
+        
+        .status-processing {
+            background: #cce5ff;
+            color: #004085;
+        }
+        
+        .filter-controls {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 2rem;
+            flex-wrap: wrap;
+        }
+        
+        .filter-controls select, .filter-controls input {
+            padding: 0.5rem;
+            border: 2px solid #e0e0e0;
+            border-radius: 5px;
+        }
+        
+        .export-btn {
+            background: #28a745;
+            color: white;
+            border: none;
+            padding: 0.8rem 1.5rem;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: 600;
+            margin-left: auto;
+        }
+        
+        .export-btn:hover {
+            background: #218838;
+        }
+        
+        .logout-btn {
+            background: #dc3545;
+            color: white;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: 600;
+        }
+        
+        .logout-btn:hover {
+            background: #c82333;
+        }
+    </style>
+</head>
+<body>
+    <div class="admin-container">
+        <div class="admin-header">
+            <h1><i class="fas fa-crown"></i> Master Admin Dashboard</h1>
+            <div class="admin-nav">
+                <a href="#overview" onclick="scrollToSection('overview')">Overview</a>
+                <a href="#orders" onclick="scrollToSection('orders')">Orders</a>
+                <a href="#products" onclick="scrollToSection('products')">Products</a>
+                <a href="#customers" onclick="scrollToSection('customers')">Customers</a>
+                <a href="/index.html">View Site</a>
+                <button class="logout-btn" onclick="logout()">Logout</button>
+            </div>
+        </div>
+        
+        <div class="admin-content">
+            <!-- Overview Stats -->
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="icon"><i class="fas fa-shopping-cart"></i></div>
+                    <h3 id="totalOrders">0</h3>
+                    <p>Total Orders</p>
+                </div>
+                <div class="stat-card">
+                    <div class="icon"><i class="fas fa-dollar-sign"></i></div>
+                    <h3 id="totalRevenue">$0.00</h3>
+                    <p>Total Revenue</p>
+                </div>
+                <div class="stat-card">
+                    <div class="icon"><i class="fas fa-users"></i></div>
+                    <h3 id="totalCustomers">0</h3>
+                    <p>Total Customers</p>
+                </div>
+                <div class="stat-card">
+                    <div class="icon"><i class="fas fa-box"></i></div>
+                    <h3 id="totalProducts">0</h3>
+                    <p>Products in Stock</p>
+                </div>
+            </div>
+            
+            <!-- Sales Chart -->
+            <div class="dashboard-section">
+                <h2><i class="fas fa-chart-line"></i> Sales Analytics</h2>
+                <div class="chart-container">
+                    <canvas id="salesChart"></canvas>
+                </div>
+            </div>
+            
+            <!-- Newsletter Subscribers -->
+            <div class="dashboard-section">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+                    <h2><i class="fas fa-envelope"></i> Newsletter Subscribers</h2>
+                    <div style="display: flex; gap: 0.5rem;">
+                        <button onclick="copyAllEmails()" class="btn" style="background: #667eea; color: white; border: none; padding: 0.8rem 1.5rem; border-radius: 5px; cursor: pointer; font-weight: 600;">
+                            <i class="fas fa-copy"></i> Copy All Emails
+                        </button>
+                        <button onclick="exportNewsletterCSV()" class="btn" style="background: #28a745; color: white; border: none; padding: 0.8rem 1.5rem; border-radius: 5px; cursor: pointer; font-weight: 600;">
+                            <i class="fas fa-download"></i> Export CSV
+                        </button>
+                    </div>
+                </div>
+                <div style="margin-bottom: 1.5rem;">
+                    <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 1.5rem; border-radius: 10px; color: white;">
+                        <div style="font-size: 2rem; font-weight: bold;" id="subscriberCount">0</div>
+                        <div style="opacity: 0.9; margin-top: 0.5rem;">Total Subscribers</div>
+                    </div>
+                </div>
+                <div class="table-container">
+                    <table id="subscribersTable">
+                        <thead>
+                            <tr>
+                                <th>Email</th>
+                                <th>Subscribed Date</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody id="subscribersTableBody">
+                            <tr>
+                                <td colspan="3" style="text-align: center; padding: 2rem;">Loading subscribers...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            
+            <!-- Recent Orders -->
+            <div class="dashboard-section">
+                <h2><i class="fas fa-receipt"></i> Recent Orders</h2>
+                <div class="filter-controls">
+                    <select id="statusFilter" onchange="filterOrders()">
+                        <option value="">All Status</option>
+                        <option value="completed">Completed</option>
+                        <option value="pending">Pending</option>
+                        <option value="processing">Processing</option>
+                    </select>
+                    <select id="typeFilter" onchange="filterOrders()">
+                        <option value="">All Types</option>
+                        <option value="delivery">Delivery</option>
+                        <option value="pickup">Pickup</option>
+                    </select>
+                    <input type="date" id="dateFilter" onchange="filterOrders()">
+                    <button class="export-btn" onclick="exportOrders()">
+                        <i class="fas fa-download"></i> Export Orders
+                    </button>
+                </div>
+                <div class="table-container">
+                    <table id="ordersTable">
+                        <thead>
+                            <tr>
+                                <th>Order ID</th>
+                                <th>Customer</th>
+                                <th>Type</th>
+                                <th>Delivery Address</th>
+                                <th>Est. Time</th>
+                                <th>Items</th>
+                                <th>Total</th>
+                                <th>Status</th>
+                                <th>Date</th>
+                            </tr>
+                        </thead>
+                        <tbody id="ordersTableBody">
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            
+            <!-- Top Products -->
+            <div class="dashboard-section">
+                <h2><i class="fas fa-star"></i> Top Selling Products</h2>
+                <div class="table-container">
+                    <table id="productsTable">
+                        <thead>
+                            <tr>
+                                <th>Product</th>
+                                <th>Category</th>
+                                <th>Units Sold</th>
+                                <th>Revenue</th>
+                                <th>Avg. Price</th>
+                            </tr>
+                        </thead>
+                        <tbody id="productsTableBody">
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            
+            <!-- Customer Analytics -->
+            <div class="dashboard-section">
+                <h2><i class="fas fa-user-chart"></i> Customer Analytics</h2>
+                <div class="chart-container">
+                    <canvas id="customerChart"></canvas>
+                </div>
+            </div>
+            
+            <!-- User Management -->
+            <div class="dashboard-section">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+                    <h2><i class="fas fa-users"></i> User Management</h2>
+                    <button onclick="loadUsers()" class="btn" style="background: #667eea; color: white; border: none; padding: 0.8rem 1.5rem; border-radius: 5px; cursor: pointer; font-weight: 600;">
+                        <i class="fas fa-refresh"></i> Refresh
+                    </button>
+                </div>
+                <div class="table-container">
+                    <table id="usersTable">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Name</th>
+                                <th>Email</th>
+                                <th>Phone</th>
+                                <th>Role</th>
+                                <th>Status</th>
+                                <th>Orders</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="usersTableBody">
+                            <tr><td colspan="8" style="text-align: center; padding: 2rem;">Loading users...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            
+            <!-- Promo Codes Management -->
+            <div class="dashboard-section">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+                    <h2><i class="fas fa-tags"></i> Promo Codes</h2>
+                    <button onclick="showAddPromoModal()" class="btn" style="background: #28a745; color: white; border: none; padding: 0.8rem 1.5rem; border-radius: 5px; cursor: pointer; font-weight: 600;">
+                        <i class="fas fa-plus"></i> Add Promo Code
+                    </button>
+                </div>
+                <div class="table-container">
+                    <table id="promoCodesTable">
+                        <thead>
+                            <tr>
+                                <th>Code</th>
+                                <th>Type</th>
+                                <th>Value</th>
+                                <th>Min Order</th>
+                                <th>Usage</th>
+                                <th>Expires</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="promoCodesTableBody">
+                            <tr><td colspan="8" style="text-align: center; padding: 2rem;">Loading promo codes...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            
+            <!-- System Settings -->
+            <div class="dashboard-section">
+                <h2><i class="fas fa-cog"></i> System Settings</h2>
+                
+                <!-- Pricing Settings -->
+                <div style="background: #f8f9fa; padding: 1.5rem; border-radius: 10px; margin-bottom: 1.5rem;">
+                    <h3 style="margin-top: 0; color: #1a1a2e;"><i class="fas fa-dollar-sign"></i> Pricing & Fees</h3>
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1rem;">
+                        <div>
+                            <label style="display: block; margin-bottom: 0.5rem; font-weight: 600;">Delivery Fee ($)</label>
+                            <input type="number" id="settingsDeliveryFee" step="0.01" min="0" style="width: 100%; padding: 0.8rem; border: 2px solid #e0e0e0; border-radius: 8px;">
+                        </div>
+                        <div>
+                            <label style="display: block; margin-bottom: 0.5rem; font-weight: 600;">Minimum Order ($)</label>
+                            <input type="number" id="settingsMinimumOrder" step="0.01" min="0" style="width: 100%; padding: 0.8rem; border: 2px solid #e0e0e0; border-radius: 8px;">
+                        </div>
+                        <div>
+                            <label style="display: block; margin-bottom: 0.5rem; font-weight: 600;">Tax Rate (%)</label>
+                            <input type="number" id="settingsTaxRate" step="0.01" min="0" max="100" style="width: 100%; padding: 0.8rem; border: 2px solid #e0e0e0; border-radius: 8px;">
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Business Hours -->
+                <div style="background: #f8f9fa; padding: 1.5rem; border-radius: 10px; margin-bottom: 1.5rem;">
+                    <h3 style="margin-top: 0; color: #1a1a2e;"><i class="fas fa-clock"></i> Business Hours</h3>
+                    <div id="businessHoursContainer" style="display: grid; gap: 1rem;">
+                        <!-- Will be populated by JavaScript -->
+                    </div>
+                </div>
+                
+                <button onclick="saveSettings()" style="background: #1a1a2e; color: white; border: none; padding: 1rem 2rem; border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 1rem;">
+                    <i class="fas fa-save"></i> Save All Settings
+                </button>
+            </div>
+            
+            <!-- Product Management -->
+            <div class="dashboard-section">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+                    <h2><i class="fas fa-box"></i> Product Management</h2>
+                    <div style="display: flex; gap: 1rem;">
+                        <button onclick="loadProductsManagement()" class="btn" style="background: #e74c3c; color: white; border: none; padding: 0.5rem 1rem; border-radius: 5px; cursor: pointer;">
+                            <i class="fas fa-refresh"></i> Refresh
+                        </button>
+                    </div>
+                </div>
+                    <div>
+                        <a href="/product-import.html" style="background: #28a745; color: white; padding: 0.8rem 1.5rem; border-radius: 5px; text-decoration: none; font-weight: 600; margin-right: 1rem;">
+                            <i class="fas fa-upload"></i> Import Products
+                        </a>
+                        <button onclick="showAddProductModal()" style="background: #1a1a2e; color: white; border: none; padding: 0.8rem 1.5rem; border-radius: 5px; cursor: pointer; font-weight: 600;">
+                            <i class="fas fa-plus"></i> Add Product
+                        </button>
+                    </div>
+                </div>
+                <div class="table-container">
+                    <table id="productsManagementTable">
+                        <thead>
+                            <tr>
+                                <th>Name</th>
+                                <th>Category</th>
+                                <th>Price</th>
+                                <th>Stock</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="productsManagementTableBody">
+                            <tr><td colspan="5" style="text-align: center; padding: 2rem;">Loading products...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Add/Edit Product Modal -->
+    <div id="productModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 2000; align-items: center; justify-content: center;">
+        <div style="background: white; padding: 2rem; border-radius: 15px; max-width: 600px; width: 90%; max-height: 90vh; overflow-y: auto;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+                <h2 id="modalTitle">Add Product</h2>
+                <button onclick="closeProductModal()" style="background: none; border: none; font-size: 1.5rem; cursor: pointer;">&times;</button>
+            </div>
+            <form id="productForm" onsubmit="saveProduct(event)">
+                <input type="hidden" id="productId">
+                <div style="margin-bottom: 1rem;">
+                    <label style="display: block; margin-bottom: 0.5rem; font-weight: 600;">Product Name *</label>
+                    <input type="text" id="productName" required style="width: 100%; padding: 0.8rem; border: 2px solid #e0e0e0; border-radius: 8px;">
+                </div>
+                <div style="margin-bottom: 1rem;">
+                    <label style="display: block; margin-bottom: 0.5rem; font-weight: 600;">Category *</label>
+                    <select id="productCategory" required style="width: 100%; padding: 0.8rem; border: 2px solid #e0e0e0; border-radius: 8px;">
+                        <option value="">Select Category</option>
+                        <option value="whiskey">Whiskey</option>
+                        <option value="tequila">Tequila</option>
+                        <option value="vodka">Vodka</option>
+                        <option value="gin">Gin</option>
+                        <option value="rum">Rum</option>
+                        <option value="beer-seltzers">Beer & Seltzers</option>
+                        <option value="wine">Wine</option>
+                    </select>
+                </div>
+                <div style="margin-bottom: 1rem;">
+                    <label style="display: block; margin-bottom: 0.5rem; font-weight: 600;">Description *</label>
+                    <textarea id="productDescription" required rows="3" style="width: 100%; padding: 0.8rem; border: 2px solid #e0e0e0; border-radius: 8px;"></textarea>
+                </div>
+                <div id="productPriceContainer" style="margin-bottom: 1rem;">
+                    <label style="display: block; margin-bottom: 0.5rem; font-weight: 600;">Price ($)</label>
+                    <input type="number" id="productPrice" step="0.01" min="0" style="width: 100%; padding: 0.8rem; border: 2px solid #e0e0e0; border-radius: 8px;">
+                    <small style="display:block; margin-top:0.4rem; color:#666;">Shown only when no sizes are configured.</small>
+                </div>
+                <div style="margin-bottom: 1rem;">
+                    <label style="display: block; margin-bottom: 0.5rem; font-weight: 600;">Sizes</label>
+                    <!-- Interactive Sizes Editor -->
+                    <div id="sizesEditor" style="margin-top: 0.8rem;">
+                        <div style="display:flex; justify-content: space-between; align-items:center; margin-bottom:0.5rem;">
+                            <strong>Sizes Editor</strong>
+                            <button type="button" onclick="addSizeRow()" style="background:#e74c3c; color:#fff; border:none; padding:0.4rem 0.8rem; border-radius:6px; cursor:pointer; font-weight:600;">
+                                <i class="fas fa-plus"></i> Add Size
+                            </button>
+                        </div>
+                        <div id="sizesEditorList" style="display:flex; flex-direction:column; gap:0.5rem;"></div>
+                    </div>
+                </div>
+                <div style="margin-bottom: 1rem;">
+                    <label style="display: block; margin-bottom: 0.5rem; font-weight: 600;">Product Image</label>
+                    
+                    <!-- Upload Option -->
+                    <div style="margin-bottom: 1rem; padding: 1rem; background: #f8f9fa; border-radius: 8px; border: 2px dashed #e0e0e0;">
+                        <label style="display: block; margin-bottom: 0.5rem; font-weight: 600; color: #1a1a2e;">
+                            <i class="fas fa-cloud-upload-alt"></i> Upload Image to Firebase Storage
+                        </label>
+                        <input type="file" id="productImageFile" accept="image/*" style="width: 100%; padding: 0.5rem; border: 2px solid #e0e0e0; border-radius: 8px; margin-bottom: 0.5rem;" onchange="handleImageUpload(event)">
+                        <button type="button" id="uploadImageBtn" onclick="uploadImageToFirebase()" style="background: #1a1a2e; color: white; border: none; padding: 0.6rem 1.2rem; border-radius: 8px; cursor: pointer; font-weight: 600; width: 100%;" disabled>
+                            <i class="fas fa-upload"></i> Upload Image
+                        </button>
+                        <div id="uploadStatus" style="margin-top: 0.5rem; font-size: 0.9rem; display: none;"></div>
+                    </div>
+                    
+                    <!-- Manual URL Option -->
+                    <div style="margin-top: 1rem;">
+                        <label style="display: block; margin-bottom: 0.5rem; font-weight: 600;">Or Enter Image URL/Path</label>
+                        <input type="text" id="productImage" placeholder="images/product_1.svg or https://..." style="width: 100%; padding: 0.8rem; border: 2px solid #e0e0e0; border-radius: 8px;" oninput="previewProductImage(this.value)">
+                        <small style="color: #666; display: block; margin-top: 0.5rem;">
+                            Format: <code>images/filename.png</code> (local) or <code>https://...</code> (Firebase Storage URL)
+                        </small>
+                    </div>
+                    
+                    <!-- Preview -->
+                    <div id="imagePreview" style="margin-top: 1rem; display: none;">
+                        <label style="display: block; margin-bottom: 0.5rem; font-weight: 600;">Preview:</label>
+                        <img id="previewImg" src="" alt="Preview" style="max-width: 200px; max-height: 200px; border: 2px solid #e0e0e0; border-radius: 8px; padding: 0.5rem; background: #f8f9fa;" onerror="this.parentElement.style.display='none'; document.getElementById('imageError').style.display='block';" onload="document.getElementById('imageError').style.display='none';">
+                        <div id="imageError" style="display: none; color: #dc3545; margin-top: 0.5rem;">
+                            <i class="fas fa-exclamation-triangle"></i> Image not found. Please check the path.
+                        </div>
+                    </div>
+                </div>
+                <div style="margin-bottom: 1rem;">
+                    <label style="display: flex; align-items: center; gap: 0.5rem;">
+                        <input type="checkbox" id="productInStock" checked>
+                        <span>In Stock</span>
+                    </label>
+                </div>
+                <div style="display: flex; gap: 1rem; margin-top: 2rem;">
+                    <button type="submit" style="flex: 1; background: #1a1a2e; color: white; border: none; padding: 1rem; border-radius: 8px; cursor: pointer; font-weight: 600;">Save Product</button>
+                    <button type="button" onclick="closeProductModal()" style="flex: 1; background: #6c757d; color: white; border: none; padding: 1rem; border-radius: 8px; cursor: pointer; font-weight: 600;">Cancel</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <!-- User Details Modal -->
+    <div id="userDetailsModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 2000; align-items: center; justify-content: center;">
+        <div style="background: white; padding: 2rem; border-radius: 15px; max-width: 700px; width: 90%; max-height: 90vh; overflow-y: auto;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+                <h2>User Details</h2>
+                <button onclick="closeUserDetailsModal()" style="background: none; border: none; font-size: 1.5rem; cursor: pointer;">&times;</button>
+            </div>
+            <div id="userDetailsContent">
+                <p style="text-align: center; padding: 2rem;">Loading...</p>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Add/Edit Promo Code Modal -->
+    <div id="promoModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 2000; align-items: center; justify-content: center;">
+        <div style="background: white; padding: 2rem; border-radius: 15px; max-width: 600px; width: 90%; max-height: 90vh; overflow-y: auto;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+                <h2 id="promoModalTitle">Add Promo Code</h2>
+                <button onclick="closePromoModal()" style="background: none; border: none; font-size: 1.5rem; cursor: pointer;">&times;</button>
+            </div>
+            <form id="promoForm" onsubmit="savePromoCode(event)">
+                <input type="hidden" id="promoId">
+                <div style="margin-bottom: 1rem;">
+                    <label style="display: block; margin-bottom: 0.5rem; font-weight: 600;">Promo Code *</label>
+                    <input type="text" id="promoCode" required placeholder="SUMMER20" style="width: 100%; padding: 0.8rem; border: 2px solid #e0e0e0; border-radius: 8px; text-transform: uppercase;">
+                </div>
+                <div style="margin-bottom: 1rem;">
+                    <label style="display: block; margin-bottom: 0.5rem; font-weight: 600;">Discount Type *</label>
+                    <select id="promoType" required onchange="updatePromoTypeHint()" style="width: 100%; padding: 0.8rem; border: 2px solid #e0e0e0; border-radius: 8px;">
+                        <option value="percentage">Percentage (e.g., 10% off)</option>
+                        <option value="fixed">Fixed Amount (e.g., $5 off)</option>
+                    </select>
+                </div>
+                <div style="margin-bottom: 1rem;">
+                    <label style="display: block; margin-bottom: 0.5rem; font-weight: 600;">Discount Value *</label>
+                    <input type="number" id="promoValue" required step="0.01" min="0" placeholder="10" style="width: 100%; padding: 0.8rem; border: 2px solid #e0e0e0; border-radius: 8px;">
+                    <small id="promoValueHint" style="color: #666;">Enter percentage (e.g., 10 for 10% off)</small>
+                </div>
+                <div style="margin-bottom: 1rem;">
+                    <label style="display: block; margin-bottom: 0.5rem; font-weight: 600;">Minimum Order ($)</label>
+                    <input type="number" id="promoMinOrder" step="0.01" min="0" placeholder="0" style="width: 100%; padding: 0.8rem; border: 2px solid #e0e0e0; border-radius: 8px;">
+                    <small style="color: #666;">Leave 0 for no minimum</small>
+                </div>
+                <div style="margin-bottom: 1rem;">
+                    <label style="display: block; margin-bottom: 0.5rem; font-weight: 600;">Max Discount ($)</label>
+                    <input type="number" id="promoMaxDiscount" step="0.01" min="0" placeholder="Optional" style="width: 100%; padding: 0.8rem; border: 2px solid #e0e0e0; border-radius: 8px;">
+                    <small style="color: #666;">For percentage discounts only</small>
+                </div>
+                <div style="margin-bottom: 1rem;">
+                    <label style="display: block; margin-bottom: 0.5rem; font-weight: 600;">Usage Limit</label>
+                    <input type="number" id="promoUsageLimit" min="1" placeholder="Unlimited" style="width: 100%; padding: 0.8rem; border: 2px solid #e0e0e0; border-radius: 8px;">
+                    <small style="color: #666;">Leave empty for unlimited uses</small>
+                </div>
+                <div style="margin-bottom: 1rem;">
+                    <label style="display: block; margin-bottom: 0.5rem; font-weight: 600;">Expiration Date</label>
+                    <input type="datetime-local" id="promoExpiresAt" style="width: 100%; padding: 0.8rem; border: 2px solid #e0e0e0; border-radius: 8px;">
+                    <small style="color: #666;">Leave empty for no expiration</small>
+                </div>
+                <div style="margin-bottom: 1rem;">
+                    <label style="display: flex; align-items: center; gap: 0.5rem;">
+                        <input type="checkbox" id="promoActive" checked>
+                        <span>Active</span>
+                    </label>
+                </div>
+                <div style="display: flex; gap: 1rem; margin-top: 2rem;">
+                    <button type="submit" style="flex: 1; background: #28a745; color: white; border: none; padding: 1rem; border-radius: 8px; cursor: pointer; font-weight: 600;">Save Promo Code</button>
+                    <button type="button" onclick="closePromoModal()" style="flex: 1; background: #6c757d; color: white; border: none; padding: 1rem; border-radius: 8px; cursor: pointer; font-weight: 600;">Cancel</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-storage-compat.js"></script>
+    <script src="firebase.js"></script>
+    <script src="api.js"></script>
+    <script>
+        // Get API base URL (same logic as api.js)
+        const API_BASE_URL = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+            ? window.location.origin
+            : 'https://fiesta-liquor-website-production.up.railway.app';
+        
+        // Wait for Firebase to be ready
+        async function waitForFirebase() {
+            let attempts = 0;
+            while (typeof firebase === 'undefined' || !firebase.apps || firebase.apps.length === 0) {
+                if (attempts++ > 50) {
+                    console.warn('Firebase initialization timeout');
+                    return false;
+                }
+                await new Promise(resolve => setTimeout(resolve, 100));
+            }
+            return true;
+        }
+        
+        // Helper function to ensure we have a valid backend JWT token
+        async function ensureValidToken() {
+            const token = getAuthToken();
+            const firebaseUser = JSON.parse(localStorage.getItem('firebaseUser') || 'null');
+            
+            // If we have a token, try to validate it first
+            if (token) {
+                try {
+                    const testResponse = await fetch(`${API_BASE_URL}/api/auth/me`, {
+                        headers: {
+                            'Authorization': `Bearer ${token}`
+                        }
+                    });
+                    if (testResponse.ok) {
+                        console.log('✅ Existing token is valid');
+                        return token;
+                    } else {
+                        console.log('❌ Token validation failed (status:', testResponse.status, '), will refresh');
+                    }
+                } catch (error) {
+                    console.log('❌ Token validation error:', error.message, '- will refresh');
+                }
+            }
+            
+            // If no valid token and we have Firebase user, refresh it
+            if (firebaseUser) {
+                console.log('🔄 Firebase user found, attempting token refresh...');
+                const firebaseReady = await waitForFirebase();
+                console.log('🔥 Firebase ready:', firebaseReady);
+                
+                if (firebaseReady && typeof firebase !== 'undefined' && firebase.auth) {
+                    try {
+                        const auth = firebase.auth();
+                        let currentFirebaseUser = auth.currentUser;
+                        console.log('👤 Current Firebase user:', currentFirebaseUser ? currentFirebaseUser.email : 'null');
+                        
+                        // If currentUser is null, wait for auth state to restore
+                        if (!currentFirebaseUser) {
+                            console.log('⏳ Waiting for Firebase auth state to restore...');
+                            await new Promise((resolve) => {
+                                let resolved = false;
+                                const unsubscribe = auth.onAuthStateChanged((user) => {
+                                    if (!resolved) {
+                                        resolved = true;
+                                        currentFirebaseUser = user;
+                                        console.log('👤 Auth state restored:', user ? user.email : 'null');
+                                        unsubscribe();
+                                        resolve();
+                                    }
+                                });
+                                setTimeout(() => {
+                                    if (!resolved) {
+                                        resolved = true;
+                                        unsubscribe();
+                                        console.log('⏰ Auth state restore timeout');
+                                        resolve();
+                                    }
+                                }, 3000);
+                            });
+                        }
+                        
+                        if (currentFirebaseUser) {
+                            console.log('🔑 Getting fresh Firebase ID token...');
+                            const firebaseToken = await currentFirebaseUser.getIdToken(true);
+                            console.log('✅ Got Firebase token');
+                            
+                            const userData = {
+                                name: firebaseUser.displayName || firebaseUser.email,
+                                email: firebaseUser.email,
+                                phone: firebaseUser.phone || '',
+                                firebaseUid: firebaseUser.uid,
+                                isFirebaseUser: true
+                            };
+                            
+                            console.log('🔄 Exchanging Firebase token for backend JWT...');
+                            const response = await fetch(`${API_BASE_URL}/api/auth/firebase-register`, {
+                                method: 'POST',
+                                headers: {
+                                    'Content-Type': 'application/json'
+                                },
+                                body: JSON.stringify(userData)
+                            });
+                            
+                            console.log('📡 Backend response status:', response.status);
+                            
+                            if (response.ok) {
+                                const data = await response.json();
+                                console.log('✅ Backend registration response received');
+                                
+                                if (data.token) {
+                                    setAuthToken(data.token);
+                                    console.log('✅ Backend JWT token refreshed and stored');
+                                    await new Promise(resolve => setTimeout(resolve, 50));
+                                    const verifyToken = getAuthToken();
+                                    console.log('✅ Token verification:', verifyToken ? 'Token stored correctly' : 'Token NOT stored!');
+                                    return data.token;
+                                }
+                            } else {
+                                const errorText = await response.text();
+                                console.error('❌ Backend registration failed:', response.status, errorText);
+                            }
+                        } else {
+                            console.error('❌ No current Firebase user found after waiting');
+                        }
+                    } catch (error) {
+                        console.error('❌ Error refreshing Firebase token:', error);
+                    }
+                }
+            }
+            
+            console.log('❌ Could not obtain valid token');
+            return null;
+        }
+        
+        let currentUser = null;
+        let orders = [];
+        let allUsers = [];
+        let allPromoCodes = [];
+        let systemSettings = null;
+        let users = [];
+        let products = [];
+        
+        // =============== Sizes Editor Helpers ===============
+        function addSizeRow(size = '', price = '', inStock = true) {
+            const list = document.getElementById('sizesEditorList');
+            const row = document.createElement('div');
+            row.className = 'size-row';
+            row.style.display = 'grid';
+            row.style.gridTemplateColumns = '2fr 1fr auto auto';
+            row.style.gap = '0.5rem';
+            row.style.alignItems = 'center';
+
+            row.innerHTML = `
+                <input type="text" placeholder="Size (e.g., 750ml)" value="${size}" style="padding:0.6rem; border:2px solid #e0e0e0; border-radius:8px;" />
+                <input type="number" step="0.01" min="0" placeholder="Price" value="${price !== '' ? Number(price).toFixed(2) : ''}" style="padding:0.6rem; border:2px solid #e0e0e0; border-radius:8px;" />
+                <label style="display:flex; align-items:center; gap:0.4rem;">
+                    <input type="checkbox" ${inStock ? 'checked' : ''} /> In Stock
+                </label>
+                <button type="button" onclick="removeSizeRow(this)" style="background:#dc3545; color:#fff; border:none; padding:0.4rem 0.8rem; border-radius:6px; cursor:pointer;">
+                    <i class="fas fa-trash"></i>
+                </button>
+            `;
+            list.appendChild(row);
+            updatePriceVisibility();
+        }
+
+        function renderSizes(sizes) {
+            const list = document.getElementById('sizesEditorList');
+            list.innerHTML = '';
+            if (Array.isArray(sizes) && sizes.length) {
+                sizes.forEach(s => addSizeRow(s.size || '', s.price || 0, s.inStock !== false));
+            }
+            updatePriceVisibility();
+        }
+
+        function collectSizesFromEditor() {
+            const rows = Array.from(document.querySelectorAll('#sizesEditorList .size-row'));
+            const parsed = rows.map(row => {
+                const inputs = row.querySelectorAll('input');
+                const size = (inputs[0].value || '').trim();
+                const priceVal = inputs[1].value;
+                const price = parseFloat(priceVal);
+                const inStock = inputs[2].checked;
+                if (!size || isNaN(price)) return null;
+                return { size, price: parseFloat(price.toFixed(2)), inStock };
+            }).filter(Boolean);
+            return parsed;
+        }
+
+        function removeSizeRow(btn) {
+            const row = btn.parentElement;
+            row.remove();
+            updatePriceVisibility();
+        }
+
+        function updatePriceVisibility() {
+            const hasSizes = document.querySelectorAll('#sizesEditorList .size-row').length > 0;
+            const priceContainer = document.getElementById('productPriceContainer');
+            if (priceContainer) {
+                priceContainer.style.display = hasSizes ? 'none' : 'block';
+                const priceInput = document.getElementById('productPrice');
+                if (hasSizes && priceInput) priceInput.required = false;
+                if (!hasSizes && priceInput) priceInput.required = true;
+            }
+        }
+
+        // Check authentication
+        async function checkAuth() {
+            const token = getAuthToken();
+            const firebaseUser = JSON.parse(localStorage.getItem('firebaseUser') || 'null');
+            
+            // If no token and no Firebase user, redirect to login
+            if (!token && !firebaseUser) {
+                window.location.href = 'auth.html';
+                return false;
+            }
+            
+            // Ensure we have a valid backend JWT token
+            const validToken = await ensureValidToken();
+            if (!validToken) {
+                console.error('❌ No valid token available');
+                window.location.href = '/auth.html';
+                return false;
+            }
+            
+            try {
+                currentUser = await authAPI.getCurrentUser();
+                if (!currentUser || currentUser.role !== 'admin') {
+                    console.log('❌ User is not an admin, redirecting...');
+                    window.location.href = '/auth.html';
+                    return false;
+                }
+                console.log('✅ Admin authenticated:', currentUser.email);
+                return true;
+            } catch (error) {
+                console.error('❌ Error checking auth:', error);
+                window.location.href = '/auth.html';
+                return false;
+            }
+        }
+        
+        // Load all data
+        async function loadData() {
+            try {
+                [orders, users, products] = await Promise.all([
+                    ordersAPI.getAll(),
+                    usersAPI.getAll(),
+                    productsAPI.getAll()
+                ]);
+            } catch (error) {
+                console.error('Failed to load data:', error);
+                alert('Failed to load dashboard data. Please refresh the page.');
+            }
+        }
+        
+        // Initialize dashboard
+        document.addEventListener('DOMContentLoaded', async function() {
+            const isAuthenticated = await checkAuth();
+            if (isAuthenticated) {
+                await loadData();
+                await loadOverviewStats();
+                loadRecentOrders();
+                loadTopProducts();
+                await loadProductsManagement();
+                await loadNewsletterSubscribers();
+                await loadUsers();
+                await loadPromoCodes();
+                await loadSettings();
+                createSalesChart();
+                createCustomerChart();
+            }
+        });
+        
+        // Load products for management
+        async function loadProductsManagement() {
+            try {
+                const tbody = document.getElementById('productsManagementTableBody');
+                tbody.innerHTML = '<tr><td colspan="5" style="text-align: center; padding: 2rem;">Loading...</td></tr>';
+                
+                const allProducts = await productsAPI.getAll();
+                
+                if (allProducts.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="5" style="text-align: center; padding: 2rem;">No products found. <a href="/product-import.html">Import products</a> or add one manually.</td></tr>';
+                    return;
+                }
+                
+                tbody.innerHTML = allProducts.map(product => {
+                    const price = product.sizes && product.sizes.length > 0
+                        ? product.sizes.map(s => `${s.size}: $${s.price.toFixed(2)}`).join(', ')
+                        : `$${product.price.toFixed(2)}`;
+                    
+                    return `
+                        <tr>
+                            <td>${product.name}</td>
+                            <td>${product.category}</td>
+                            <td>${price}</td>
+                            <td class="stock-cell">
+                                <span class="stock-pill" style="padding: 0.3rem 0.8rem; border-radius: 20px; font-size: 0.8rem; font-weight: 600; background: ${product.inStock !== false ? '#d4edda' : '#f8d7da'}; color: ${product.inStock !== false ? '#155724' : '#721c24'};">
+                                    ${product.inStock !== false ? 'In Stock' : 'Out of Stock'}
+                                </span>
+                            </td>
+                            <td>
+                                <button onclick="editProduct(${product.id})" style="background: #ffd700; color: #1a1a2e; border: none; padding: 0.4rem 0.8rem; border-radius: 4px; cursor: pointer; margin-right: 0.5rem; font-weight: 600;">
+                                    <i class="fas fa-edit"></i> Edit
+                                </button>
+                                <button onclick="deleteProduct(${product.id}, '${product.name}')" style="background: #dc3545; color: white; border: none; padding: 0.4rem 0.8rem; border-radius: 4px; cursor: pointer; font-weight: 600;">
+                                    <i class="fas fa-trash"></i> Delete
+                                </button>
+                            </td>
+                        </tr>
+                    `;
+                }).join('');
+            } catch (error) {
+                console.error('Failed to load products:', error);
+                document.getElementById('productsManagementTableBody').innerHTML = '<tr><td colspan="5" style="text-align: center; padding: 2rem; color: #dc3545;">Failed to load products. Please refresh.</td></tr>';
+            }
+        }
+        
+        // Show add product modal
+        function showAddProductModal() {
+            document.getElementById('modalTitle').textContent = 'Add Product';
+            document.getElementById('productForm').reset();
+            document.getElementById('productId').value = '';
+            document.getElementById('sizesEditorList').innerHTML = '';
+            document.getElementById('imagePreview').style.display = 'none';
+            document.getElementById('imageError').style.display = 'none';
+            document.getElementById('productImageFile').value = '';
+            document.getElementById('uploadImageBtn').disabled = true;
+            document.getElementById('uploadStatus').style.display = 'none';
+            selectedImageFile = null;
+            updatePriceVisibility();
+            document.getElementById('productModal').style.display = 'flex';
+        }
+        
+        // Handle image file selection
+        let selectedImageFile = null;
+        function handleImageUpload(event) {
+            const file = event.target.files[0];
+            if (file) {
+                selectedImageFile = file;
+                document.getElementById('uploadImageBtn').disabled = false;
+                document.getElementById('uploadStatus').style.display = 'block';
+                document.getElementById('uploadStatus').innerHTML = `<span style="color: #666;"><i class="fas fa-file-image"></i> Selected: ${file.name} (${(file.size / 1024).toFixed(2)} KB)</span>`;
+                
+                // Show preview of selected file
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const previewDiv = document.getElementById('imagePreview');
+                    const previewImg = document.getElementById('previewImg');
+                    previewDiv.style.display = 'block';
+                    previewImg.src = e.target.result;
+                    previewImg.style.display = 'block';
+                    document.getElementById('imageError').style.display = 'none';
+                };
+                reader.readAsDataURL(file);
+            }
+        }
+        
+        // Upload image to Firebase Storage
+        async function uploadImageToFirebase() {
+            if (!selectedImageFile) {
+                alert('Please select an image file first');
+                return;
+            }
+            
+            const uploadBtn = document.getElementById('uploadImageBtn');
+            const uploadStatus = document.getElementById('uploadStatus');
+            
+            try {
+                // Check if Firebase is initialized
+                if (typeof firebase === 'undefined' || !firebase.apps.length) {
+                    throw new Error('Firebase is not initialized. Please refresh the page.');
+                }
+                
+                uploadBtn.disabled = true;
+                uploadBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Uploading...';
+                uploadStatus.innerHTML = '<span style="color: #666;"><i class="fas fa-spinner fa-spin"></i> Uploading image...</span>';
+                
+                // Initialize Firebase Storage
+                const storage = firebase.storage();
+                const storageRef = storage.ref();
+                
+                // Create unique filename
+                const timestamp = Date.now();
+                const fileName = `products/${timestamp}-${selectedImageFile.name}`;
+                const imageRef = storageRef.child(fileName);
+                
+                // Upload file
+                const snapshot = await imageRef.put(selectedImageFile);
+                
+                // Get download URL
+                const downloadURL = await snapshot.ref.getDownloadURL();
+                
+                // Update the image input field with the Firebase URL
+                document.getElementById('productImage').value = downloadURL;
+                
+                // Show success
+                uploadStatus.innerHTML = `<span style="color: #28a745;"><i class="fas fa-check-circle"></i> Upload successful! URL copied to field below.</span>`;
+                uploadBtn.innerHTML = '<i class="fas fa-check"></i> Uploaded';
+                
+                // Preview the uploaded image
+                previewProductImage(downloadURL);
+                
+                // Clear file input
+                document.getElementById('productImageFile').value = '';
+                selectedImageFile = null;
+                
+                setTimeout(() => {
+                    uploadBtn.disabled = false;
+                    uploadBtn.innerHTML = '<i class="fas fa-upload"></i> Upload Image';
+                }, 2000);
+                
+            } catch (error) {
+                console.error('Upload error:', error);
+                uploadStatus.innerHTML = `<span style="color: #dc3545;"><i class="fas fa-exclamation-triangle"></i> Upload failed: ${error.message}</span>`;
+                uploadBtn.disabled = false;
+                uploadBtn.innerHTML = '<i class="fas fa-upload"></i> Upload Image';
+                alert('Failed to upload image: ' + error.message);
+            }
+        }
+        
+        // Preview product image
+        function previewProductImage(imagePath) {
+            const previewDiv = document.getElementById('imagePreview');
+            const previewImg = document.getElementById('previewImg');
+            const imageError = document.getElementById('imageError');
+            
+            if (!imagePath || imagePath.trim() === '') {
+                previewDiv.style.display = 'none';
+                return;
+            }
+            
+            // Ensure path starts with 'images/' if it doesn't already (for local paths only)
+            let path = imagePath.trim();
+            if (!path.startsWith('images/') && !path.startsWith('/images/') && !path.startsWith('http')) {
+                path = 'images/' + path;
+            }
+            
+            previewDiv.style.display = 'block';
+            previewImg.src = path;
+            previewImg.onerror = function() {
+                imageError.style.display = 'block';
+                previewImg.style.display = 'none';
+            };
+            previewImg.onload = function() {
+                imageError.style.display = 'none';
+                previewImg.style.display = 'block';
+            };
+        }
+        
+        // Edit product
+        async function editProduct(id) {
+            try {
+                const product = await productsAPI.getById(id);
+                document.getElementById('modalTitle').textContent = 'Edit Product';
+                document.getElementById('productId').value = product.id;
+                document.getElementById('productName').value = product.name;
+                document.getElementById('productCategory').value = product.category;
+                document.getElementById('productDescription').value = product.description || '';
+                document.getElementById('productPrice').value = product.price || (product.sizes && product.sizes.length > 0 ? product.sizes[0].price : 0);
+                const imageValue = product.image || '';
+                document.getElementById('productImage').value = imageValue;
+                document.getElementById('productImageFile').value = '';
+                document.getElementById('uploadImageBtn').disabled = true;
+                document.getElementById('uploadStatus').style.display = 'none';
+                selectedImageFile = null;
+                if (imageValue) {
+                    previewProductImage(imageValue);
+                } else {
+                    document.getElementById('imagePreview').style.display = 'none';
+                }
+                document.getElementById('productInStock').checked = product.inStock !== false;
+                renderSizes(product.sizes || []);
+                document.getElementById('productModal').style.display = 'flex';
+            } catch (error) {
+                console.error('Failed to load product:', error);
+                alert('Failed to load product. Please try again.');
+            }
+        }
+        
+        // Save product
+        async function saveProduct(event) {
+            event.preventDefault();
+            
+            const id = document.getElementById('productId').value;
+            const parsedSizes = collectSizesFromEditor();
+
+            // Get and validate image path
+            let imagePath = document.getElementById('productImage').value.trim();
+            if (imagePath && !imagePath.startsWith('images/') && !imagePath.startsWith('/images/') && !imagePath.startsWith('http')) {
+                // Auto-add 'images/' prefix if not present
+                imagePath = 'images/' + imagePath;
+            }
+            if (!imagePath) {
+                imagePath = 'images/product_placeholder.svg';
+            }
+            
+            const productData = {
+                name: document.getElementById('productName').value,
+                category: document.getElementById('productCategory').value,
+                description: document.getElementById('productDescription').value,
+                price: parsedSizes.length ? parsedSizes[0].price : parseFloat(document.getElementById('productPrice').value),
+                image: imagePath,
+                inStock: document.getElementById('productInStock').checked,
+                sizes: parsedSizes
+            };
+            
+            try {
+                if (id) {
+                    await productsAPI.update(id, productData);
+                    alert('Product updated successfully!');
+                } else {
+                    await productsAPI.create(productData);
+                    alert('Product added successfully!');
+                }
+                closeProductModal();
+                await loadProductsManagement();
+                await loadData();
+                await loadOverviewStats();
+            } catch (error) {
+                console.error('Failed to save product:', error);
+                alert('Failed to save product. Please try again.');
+            }
+        }
+        
+        // Delete product
+        async function deleteProduct(id, name) {
+            if (!confirm(`Are you sure you want to delete "${name}"? This cannot be undone.`)) {
+                return;
+            }
+            
+            try {
+                await productsAPI.delete(id);
+                alert('Product deleted successfully!');
+                await loadProductsManagement();
+                await loadData();
+                await loadOverviewStats();
+            } catch (error) {
+                console.error('Failed to delete product:', error);
+                alert('Failed to delete product. Please try again.');
+            }
+        }
+        
+        // Close product modal
+        function closeProductModal() {
+            document.getElementById('productModal').style.display = 'none';
+            document.getElementById('sizesEditorList').innerHTML = '';
+        }
+        
+        async function loadOverviewStats() {
+            try {
+                const stats = await statsAPI.getStats();
+                document.getElementById('totalOrders').textContent = stats.totalOrders;
+                document.getElementById('totalRevenue').textContent = `$${stats.totalRevenue.toFixed(2)}`;
+                document.getElementById('totalCustomers').textContent = stats.totalCustomers;
+                document.getElementById('totalProducts').textContent = stats.totalProducts;
+            } catch (error) {
+                console.error('Failed to load stats:', error);
+                // Fallback to local data
+                const totalOrders = orders.length;
+                const totalRevenue = orders.reduce((sum, order) => sum + order.total, 0);
+                const totalCustomers = users.filter(u => u.role === 'customer').length;
+                const totalProducts = products.length;
+                
+                document.getElementById('totalOrders').textContent = totalOrders;
+                document.getElementById('totalRevenue').textContent = `$${totalRevenue.toFixed(2)}`;
+                document.getElementById('totalCustomers').textContent = totalCustomers;
+                document.getElementById('totalProducts').textContent = totalProducts;
+            }
+        }
+        
+        function formatAddress(address) {
+            if (!address || address === 'Store Pickup') {
+                return '<span style="color: #999;">Store Pickup</span>';
+            }
+            
+            // Handle both old string format and new object format
+            if (typeof address === 'string') {
+                return address;
+            }
+            
+            // New structured format
+            let addressStr = address.street || '';
+            if (address.apartment) {
+                addressStr += `, ${address.apartment}`;
+            }
+            if (address.city) {
+                addressStr += `, ${address.city}`;
+            }
+            if (address.state) {
+                addressStr += `, ${address.state}`;
+            }
+            if (address.zipCode) {
+                addressStr += ` ${address.zipCode}`;
+            }
+            
+            // Create Google Maps link
+            const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(addressStr)}`;
+            return `<a href="${mapsUrl}" target="_blank" style="color: #e74c3c; text-decoration: none;" title="Open in Google Maps"><i class="fas fa-map-marker-alt"></i> ${addressStr}</a>`;
+        }
+        
+        function formatDeliveryTime(order) {
+            if (order.orderType !== 'delivery') {
+                return '<span style="color: #999;">N/A</span>';
+            }
+            
+            if (!order.deliveryTimeEstimate) {
+                return '<span style="color: #999;">Not calculated</span>';
+            }
+            
+            const minutes = order.deliveryTimeEstimate;
+            let timeText;
+            if (minutes <= 30) {
+                timeText = '20-30 min';
+            } else if (minutes <= 45) {
+                timeText = '30-45 min';
+            } else if (minutes <= 60) {
+                timeText = '45-60 min';
+            } else {
+                timeText = '60-90 min';
+            }
+            
+            return `<span style="color: #4CAF50; font-weight: 600;"><i class="fas fa-clock"></i> ${timeText}</span>`;
+        }
+        
+        function loadRecentOrders() {
+            const tbody = document.getElementById('ordersTableBody');
+            const sortedOrders = orders.sort((a, b) => new Date(b.orderDate) - new Date(a.orderDate));
+            
+            tbody.innerHTML = sortedOrders.slice(0, 20).map(order => {
+                const customer = users.find(u => u.email === order.customer.email);
+                const customerName = customer ? customer.name : order.customer.firstName + ' ' + order.customer.lastName;
+                const status = getOrderStatus(order);
+                
+                return `
+                    <tr>
+                        <td>#${order.id || 'N/A'}</td>
+                        <td>${customerName}</td>
+                        <td><span style="text-transform: capitalize;">${order.orderType}</span></td>
+                        <td style="max-width: 250px; font-size: 0.9rem;">${formatAddress(order.customer.address)}</td>
+                        <td>${formatDeliveryTime(order)}</td>
+                        <td>${order.items.length} items</td>
+                        <td>$${order.total.toFixed(2)}</td>
+                        <td><span class="status-badge status-${status}">${status}</span></td>
+                        <td>${new Date(order.orderDate).toLocaleDateString()}</td>
+                        <td>
+                            ${status !== 'delivered' && status !== 'cancelled' ? `<button onclick="markOrderDelivered(${order.id})" style="background:#4CAF50; color:#fff; border:none; padding:0.3rem 0.6rem; border-radius:4px; cursor:pointer; font-size:0.8rem;">Mark Delivered</button>` : ''}
+                            ${status === 'delivered' ? `<button onclick="undoDelivered(${order.id})" style="background:#FFC107; color:#000; border:none; padding:0.3rem 0.6rem; border-radius:4px; cursor:pointer; font-size:0.8rem;">Undo Delivered</button>` : ''}
+                            ${status !== 'cancelled' && status !== 'delivered' ? `<button onclick="cancelOrder(${order.id})" style="background:#dc3545; color:#fff; border:none; padding:0.3rem 0.6rem; border-radius:4px; cursor:pointer; font-size:0.8rem; margin-left:0.3rem;">Cancel</button>` : ''}
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
+        
+        function loadTopProducts() {
+            const productSales = {};
+            
+            orders.forEach(order => {
+                order.items.forEach(item => {
+                    if (!productSales[item.name]) {
+                        productSales[item.name] = {
+                            name: item.name,
+                            category: getProductCategory(item.name),
+                            unitsSold: 0,
+                            revenue: 0
+                        };
+                    }
+                    productSales[item.name].unitsSold += item.quantity;
+                    productSales[item.name].revenue += item.price * item.quantity;
+                });
+            });
+            
+            const topProducts = Object.values(productSales)
+                .sort((a, b) => b.revenue - a.revenue)
+                .slice(0, 10);
+            
+            const tbody = document.getElementById('productsTableBody');
+            tbody.innerHTML = topProducts.map(product => `
+                <tr>
+                    <td>${product.name}</td>
+                    <td>${product.category}</td>
+                    <td>${product.unitsSold}</td>
+                    <td>$${product.revenue.toFixed(2)}</td>
+                    <td>$${(product.revenue / product.unitsSold).toFixed(2)}</td>
+                </tr>
+            `).join('');
+        }
+        
+        function createSalesChart() {
+            const ctx = document.getElementById('salesChart').getContext('2d');
+            
+            // Get last 7 days of sales
+            const last7Days = [];
+            for (let i = 6; i >= 0; i--) {
+                const date = new Date();
+                date.setDate(date.getDate() - i);
+                last7Days.push(date.toISOString().split('T')[0]);
+            }
+            
+            const dailySales = last7Days.map(date => {
+                return orders
+                    .filter(order => order.orderDate.startsWith(date))
+                    .reduce((sum, order) => sum + order.total, 0);
+            });
+            
+            new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: last7Days.map(date => new Date(date).toLocaleDateString()),
+                    datasets: [{
+                        label: 'Daily Sales',
+                        data: dailySales,
+                        borderColor: '#ffd700',
+                        backgroundColor: 'rgba(255, 215, 0, 0.1)',
+                        tension: 0.4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                callback: function(value) {
+                                    return '$' + value.toFixed(2);
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+        
+        function createCustomerChart() {
+            const ctx = document.getElementById('customerChart').getContext('2d');
+            
+            const customerData = {
+                new: users.filter(u => u.role === 'customer' && isNewCustomer(u.joinDate)).length,
+                returning: users.filter(u => u.role === 'customer' && !isNewCustomer(u.joinDate)).length
+            };
+            
+            new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['New Customers', 'Returning Customers'],
+                    datasets: [{
+                        data: [customerData.new, customerData.returning],
+                        backgroundColor: ['#ffd700', '#1a1a2e'],
+                        borderWidth: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom'
+                        }
+                    }
+                }
+            });
+        }
+        
+        function getOrderStatus(order) {
+            return order.status || 'pending';
+        }
+        
+        function getProductCategory(productName) {
+            // Simple category mapping - in real app, this would be from product data
+            const categories = {
+                'Macallan': 'whiskey',
+                'Johnnie Walker': 'whiskey',
+                'Jack Daniel': 'whiskey',
+                'Woodford': 'whiskey',
+                'Don Julio': 'tequila',
+                'Patrón': 'tequila',
+                'Casa Noble': 'tequila',
+                'Herradura': 'tequila',
+                'Grey Goose': 'vodka',
+                'Beluga': 'vodka',
+                'Tito': 'vodka',
+                'Ketel One': 'vodka',
+                'Hendrick': 'gin',
+                'Bombay': 'gin',
+                'Tanqueray': 'gin',
+                'Beefeater': 'gin',
+                'Bacardi': 'rum',
+                'Captain Morgan': 'rum',
+                'Mount Gay': 'rum',
+                'Appleton': 'rum',
+                'White Claw': 'beer-seltzers',
+                'Truly': 'beer-seltzers',
+                'Corona': 'beer-seltzers',
+                'Bud Light': 'beer-seltzers',
+                'Heineken': 'beer-seltzers',
+                'Stella': 'beer-seltzers',
+                'Dom Pérignon': 'wine',
+                'Caymus': 'wine',
+                'Kendall-Jackson': 'wine',
+                'Moët': 'wine'
+            };
+            
+            for (const [key, category] of Object.entries(categories)) {
+                if (productName.includes(key)) return category;
+            }
+            return 'other';
+        }
+        
+        function isNewCustomer(joinDate) {
+            const join = new Date(joinDate);
+            const now = new Date();
+            const daysDiff = (now - join) / (1000 * 60 * 60 * 24);
+            return daysDiff <= 30;
+        }
+        
+        function filterOrders() {
+            const statusFilter = document.getElementById('statusFilter').value;
+            const typeFilter = document.getElementById('typeFilter').value;
+            const dateFilter = document.getElementById('dateFilter').value;
+            
+            let filteredOrders = orders;
+            
+            if (statusFilter) {
+                filteredOrders = filteredOrders.filter(order => getOrderStatus(order) === statusFilter);
+            }
+            
+            if (typeFilter) {
+                filteredOrders = filteredOrders.filter(order => order.orderType === typeFilter);
+            }
+            
+            if (dateFilter) {
+                filteredOrders = filteredOrders.filter(order => order.orderDate.startsWith(dateFilter));
+            }
+            
+            // Update table
+            const tbody = document.getElementById('ordersTableBody');
+            tbody.innerHTML = filteredOrders.slice(0, 20).map(order => {
+                const customer = users.find(u => u.email === order.customer.email);
+                const customerName = customer ? customer.name : order.customer.firstName + ' ' + order.customer.lastName;
+                const status = getOrderStatus(order);
+                
+                return `
+                    <tr>
+                        <td>#${order.id || 'N/A'}</td>
+                        <td>${customerName}</td>
+                        <td><span style="text-transform: capitalize;">${order.orderType}</span></td>
+                        <td style="max-width: 250px; font-size: 0.9rem;">${formatAddress(order.customer.address)}</td>
+                        <td>${formatDeliveryTime(order)}</td>
+                        <td>${order.items.length} items</td>
+                        <td>$${order.total.toFixed(2)}</td>
+                        <td><span class="status-badge status-${status}">${status}</span></td>
+                        <td>${new Date(order.orderDate).toLocaleDateString()}</td>
+                    </tr>
+                `;
+            }).join('');
+        }
+        
+        function exportOrders() {
+            const csvContent = "data:text/csv;charset=utf-8," + 
+                "Order ID,Customer,Type,Items,Total,Status,Date\n" +
+                orders.map(order => {
+                    const customer = users.find(u => u.email === order.customer.email);
+                    const customerName = customer ? customer.name : order.customer.firstName + ' ' + order.customer.lastName;
+                    const status = getOrderStatus(order);
+                    return `${order.id || 'N/A'},${customerName},${order.orderType},${order.items.length},${order.total},${status},${new Date(order.orderDate).toLocaleDateString()}`;
+                }).join("\n");
+            
+            const encodedUri = encodeURI(csvContent);
+            const link = document.createElement("a");
+            link.setAttribute("href", encodedUri);
+            link.setAttribute("download", "fiesta_orders_export.csv");
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+        
+        function logout() {
+            authAPI.logout();
+            window.location.href = '/auth.html';
+        }
+        
+        // Mark order as delivered
+        async function markOrderDelivered(orderId) {
+            if (!confirm('Mark this order as delivered?')) {
+                return;
+            }
+            
+            try {
+                const token = getAuthToken();
+                const response = await fetch(`/api/orders/${orderId}/status`, {
+                    method: 'PUT',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ status: 'delivered' })
+                });
+                
+                if (response.ok) {
+                    alert('Order marked as delivered! Click "Undo Delivered" if this was a mistake.');
+                    await loadData();
+                    loadRecentOrders();
+                } else {
+                    alert('Failed to update order status.');
+                }
+            } catch (error) {
+                console.error('Error marking order delivered:', error);
+                alert('Failed to mark order as delivered.');
+            }
+        }
+        
+        // Undo delivered status
+        async function undoDelivered(orderId) {
+            if (!confirm('Revert this order back to processing status?')) {
+                return;
+            }
+            
+            try {
+                const token = getAuthToken();
+                const response = await fetch(`/api/orders/${orderId}/status`, {
+                    method: 'PUT',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ status: 'processing' })
+                });
+                
+                if (response.ok) {
+                    alert('Delivered status undone. Order reverted to processing.');
+                    await loadData();
+                    loadRecentOrders();
+                } else {
+                    alert('Failed to undo delivered status.');
+                }
+            } catch (error) {
+                console.error('Error undoing delivered status:', error);
+                alert('Failed to undo delivered status.');
+            }
+        }
+        
+        // Cancel order (admin)
+        async function cancelOrder(orderId) {
+            if (!confirm('Cancel this order?')) {
+                return;
+            }
+            
+            try {
+                const token = getAuthToken();
+                const response = await fetch(`/api/orders/${orderId}/status`, {
+                    method: 'PUT',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ status: 'cancelled' })
+                });
+                
+                if (response.ok) {
+                    alert('Order cancelled!');
+                    await loadData();
+                    loadRecentOrders();
+                } else {
+                    alert('Failed to cancel order.');
+                }
+            } catch (error) {
+                console.error('Error cancelling order:', error);
+                alert('Failed to cancel order.');
+            }
+        }
+        
+        // =============== NEWSLETTER FUNCTIONS ===============
+        
+        // Load newsletter subscribers
+        async function loadNewsletterSubscribers() {
+            try {
+                const token = getAuthToken();
+                const response = await fetch('/api/newsletter/subscribers', {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+                
+                if (!response.ok) {
+                    throw new Error('Failed to load subscribers');
+                }
+                
+                const subscribers = await response.json();
+                
+                // Update count
+                const activeSubscribers = subscribers.filter(s => s.active !== false);
+                document.getElementById('subscriberCount').textContent = activeSubscribers.length;
+                
+                // Update table
+                const tbody = document.getElementById('subscribersTableBody');
+                
+                if (subscribers.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="3" style="text-align: center; padding: 2rem;">No subscribers yet.</td></tr>';
+                    return;
+                }
+                
+                tbody.innerHTML = subscribers.map(sub => {
+                    const date = new Date(sub.subscribedAt).toLocaleDateString('en-US', { 
+                        year: 'numeric', 
+                        month: 'short', 
+                        day: 'numeric' 
+                    });
+                    
+                    const statusBadge = sub.active !== false 
+                        ? '<span class="status-badge status-completed">Active</span>'
+                        : '<span class="status-badge status-cancelled">Unsubscribed</span>';
+                    
+                    return `
+                        <tr>
+                            <td>${sub.email}</td>
+                            <td>${date}</td>
+                            <td>${statusBadge}</td>
+                        </tr>
+                    `;
+                }).join('');
+                
+            } catch (error) {
+                console.error('Error loading newsletter subscribers:', error);
+                document.getElementById('subscribersTableBody').innerHTML = 
+                    '<tr><td colspan="3" style="text-align: center; padding: 2rem; color: #dc3545;">Failed to load subscribers.</td></tr>';
+            }
+        }
+        
+        // Export newsletter subscribers as CSV
+        async function exportNewsletterCSV() {
+            try {
+                const token = getAuthToken();
+                const response = await fetch('/api/newsletter/export', {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+                
+                if (!response.ok) {
+                    throw new Error('Failed to export subscribers');
+                }
+                
+                const blob = await response.blob();
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `newsletter-subscribers-${new Date().toISOString().split('T')[0]}.csv`;
+                document.body.appendChild(a);
+                a.click();
+                window.URL.revokeObjectURL(url);
+                document.body.removeChild(a);
+                
+                alert('Newsletter subscribers exported successfully!');
+                
+            } catch (error) {
+                console.error('Error exporting newsletter:', error);
+                alert('Failed to export subscribers. Please try again.');
+            }
+        }
+        
+        // Copy all active subscriber emails to clipboard
+        async function copyAllEmails() {
+            try {
+                const token = getAuthToken();
+                const response = await fetch('/api/newsletter/subscribers', {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+                
+                if (!response.ok) {
+                    throw new Error('Failed to load subscribers');
+                }
+                
+                const subscribers = await response.json();
+                const activeEmails = subscribers
+                    .filter(s => s.active !== false)
+                    .map(s => s.email)
+                    .join(', ');
+                
+                if (!activeEmails) {
+                    alert('No active subscribers to copy.');
+                    return;
+                }
+                
+                // Copy to clipboard
+                await navigator.clipboard.writeText(activeEmails);
+                
+                const emailCount = activeEmails.split(', ').length;
+                alert(`✓ Copied ${emailCount} email addresses to clipboard!\n\nYou can now paste them into:\n• Gmail BCC field\n• Outlook BCC field\n• Mailchimp\n• Any email client`);
+                
+            } catch (error) {
+                console.error('Error copying emails:', error);
+                alert('Failed to copy emails. Please try again.');
+            }
+        }
+        
+        // =============== USER MANAGEMENT FUNCTIONS ===============
+        
+        async function loadUsers() {
+            try {
+                const token = getAuthToken();
+                const response = await fetch('/api/users', {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                
+                if (!response.ok) throw new Error('Failed to load users');
+                
+                allUsers = await response.json();
+                const tbody = document.getElementById('usersTableBody');
+                
+                if (allUsers.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="8" style="text-align: center; padding: 2rem;">No users found.</td></tr>';
+                    return;
+                }
+                
+                tbody.innerHTML = allUsers.map(user => {
+                    const status = user.status || 'active';
+                    const statusBadge = status === 'active' 
+                        ? '<span class="status-badge status-completed">Active</span>'
+                        : status === 'disabled'
+                        ? '<span class="status-badge status-pending">Disabled</span>'
+                        : '<span class="status-badge status-cancelled">Banned</span>';
+                    
+                    const roleBadge = user.role === 'admin'
+                        ? '<span style="background: #ffd700; color: #1a1a2e; padding: 0.3rem 0.8rem; border-radius: 20px; font-size: 0.8rem; font-weight: 600;">Admin</span>'
+                        : '<span style="background: #e0e0e0; color: #333; padding: 0.3rem 0.8rem; border-radius: 20px; font-size: 0.8rem; font-weight: 600;">Customer</span>';
+                    
+                    return `
+                        <tr>
+                            <td>${user.id}</td>
+                            <td>${user.name}</td>
+                            <td>${user.email}</td>
+                            <td>${user.phone || 'N/A'}</td>
+                            <td>${roleBadge}</td>
+                            <td>${statusBadge}</td>
+                            <td>${user.orders?.length || 0}</td>
+                            <td>
+                                <button onclick="viewUserDetails(${user.id})" style="background: #667eea; color: white; border: none; padding: 0.4rem 0.8rem; border-radius: 4px; cursor: pointer; margin-right: 0.5rem; font-weight: 600;">
+                                    <i class="fas fa-eye"></i> View
+                                </button>
+                                ${user.role !== 'admin' ? `
+                                    <button onclick="changeUserRole(${user.id}, 'admin')" 
+                                            style="background: #ffd700; color: #1a1a2e; border: none; padding: 0.4rem 0.8rem; border-radius: 4px; cursor: pointer; margin-right: 0.5rem; font-weight: 600;">
+                                        <i class="fas fa-crown"></i> Make Admin
+                                    </button>
+                                    <button onclick="changeUserStatus(${user.id}, '${status === 'active' ? 'disabled' : 'active'}')" 
+                                            style="background: ${status === 'active' ? '#ffc107' : '#28a745'}; color: white; border: none; padding: 0.4rem 0.8rem; border-radius: 4px; cursor: pointer; margin-right: 0.5rem; font-weight: 600;">
+                                        <i class="fas fa-${status === 'active' ? 'ban' : 'check'}"></i> ${status === 'active' ? 'Disable' : 'Enable'}
+                                    </button>
+                                ` : `
+                                    <button onclick="changeUserRole(${user.id}, 'customer')" 
+                                            style="background: #6c757d; color: white; border: none; padding: 0.4rem 0.8rem; border-radius: 4px; cursor: pointer; margin-right: 0.5rem; font-weight: 600;">
+                                        <i class="fas fa-user"></i> Make Customer
+                                    </button>
+                                `}
+                            </td>
+                        </tr>
+                    `;
+                }).join('');
+            } catch (error) {
+                console.error('Error loading users:', error);
+                document.getElementById('usersTableBody').innerHTML = 
+                    '<tr><td colspan="8" style="text-align: center; padding: 2rem; color: #dc3545;">Failed to load users.</td></tr>';
+            }
+        }
+        
+        async function viewUserDetails(userId) {
+            try {
+                const token = getAuthToken();
+                const response = await fetch(`/api/admin/users/${userId}`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                
+                if (!response.ok) throw new Error('Failed to load user details');
+                
+                const user = await response.json();
+                
+                const ordersHtml = user.recentOrders && user.recentOrders.length > 0
+                    ? user.recentOrders.map(order => `
+                        <tr>
+                            <td>#${order.id}</td>
+                            <td>${new Date(order.orderDate).toLocaleDateString()}</td>
+                            <td>$${order.total.toFixed(2)}</td>
+                            <td><span class="status-badge status-${order.status}">${order.status}</span></td>
+                        </tr>
+                    `).join('')
+                    : '<tr><td colspan="4" style="text-align: center; padding: 1rem;">No orders yet</td></tr>';
+                
+                const content = `
+                    <div style="background: #f8f9fa; padding: 1.5rem; border-radius: 10px; margin-bottom: 1.5rem;">
+                        <h3 style="margin-top: 0; color: #1a1a2e;">Customer Information</h3>
+                        <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 1rem;">
+                            <div><strong>Name:</strong> ${user.name}</div>
+                            <div><strong>Email:</strong> ${user.email}</div>
+                            <div><strong>Phone:</strong> ${user.phone || 'N/A'}</div>
+                            <div><strong>Status:</strong> <span class="status-badge status-${user.status === 'active' ? 'completed' : 'cancelled'}">${user.status || 'active'}</span></div>
+                            <div><strong>Role:</strong> ${user.role}</div>
+                            <div><strong>Joined:</strong> ${new Date(user.joinDate).toLocaleDateString()}</div>
+                        </div>
+                    </div>
+                    
+                    <div style="background: #f8f9fa; padding: 1.5rem; border-radius: 10px; margin-bottom: 1.5rem;">
+                        <h3 style="margin-top: 0; color: #1a1a2e;">Statistics</h3>
+                        <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 1rem;">
+                            <div><strong>Total Orders:</strong> ${user.stats.totalOrders}</div>
+                            <div><strong>Total Spent:</strong> $${user.stats.totalSpent.toFixed(2)}</div>
+                            <div><strong>Average Order:</strong> $${user.stats.averageOrderValue.toFixed(2)}</div>
+                            <div><strong>Cancelled:</strong> ${user.stats.cancelledOrders}</div>
+                        </div>
+                    </div>
+                    
+                    <h3 style="color: #1a1a2e;">Recent Orders</h3>
+                    <table style="width: 100%; border-collapse: collapse;">
+                        <thead>
+                            <tr style="background: #f8f9fa;">
+                                <th style="padding: 0.8rem; text-align: left;">Order ID</th>
+                                <th style="padding: 0.8rem; text-align: left;">Date</th>
+                                <th style="padding: 0.8rem; text-align: left;">Total</th>
+                                <th style="padding: 0.8rem; text-align: left;">Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${ordersHtml}
+                        </tbody>
+                    </table>
+                    
+                    ${user.role !== 'admin' ? `
+                        <div style="margin-top: 2rem; padding-top: 1.5rem; border-top: 2px solid #e0e0e0; display: flex; gap: 1rem;">
+                            <button onclick="changeUserStatus(${user.id}, 'banned')" style="flex: 1; background: #dc3545; color: white; border: none; padding: 1rem; border-radius: 8px; cursor: pointer; font-weight: 600;">
+                                <i class="fas fa-ban"></i> Ban User
+                            </button>
+                            <button onclick="if(confirm('Delete this user permanently?')) deleteUser(${user.id})" style="flex: 1; background: #6c757d; color: white; border: none; padding: 1rem; border-radius: 8px; cursor: pointer; font-weight: 600;">
+                                <i class="fas fa-trash"></i> Delete User
+                            </button>
+                        </div>
+                    ` : ''}
+                `;
+                
+                document.getElementById('userDetailsContent').innerHTML = content;
+                document.getElementById('userDetailsModal').style.display = 'flex';
+            } catch (error) {
+                console.error('Error loading user details:', error);
+                alert('Failed to load user details.');
+            }
+        }
+        
+        async function changeUserRole(userId, newRole) {
+            if (!confirm(`Are you sure you want to change this user's role to ${newRole}?`)) {
+                return;
+            }
+            
+            try {
+                const token = getAuthToken();
+                const response = await fetch(`/api/admin/users/${userId}/role`, {
+                    method: 'PUT',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ role: newRole })
+                });
+                
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.error || 'Failed to update user role');
+                }
+                
+                alert(`User role updated to ${newRole} successfully!`);
+                await loadUsers();
+            } catch (error) {
+                console.error('Error changing user role:', error);
+                alert('Failed to update user role: ' + error.message);
+            }
+        }
+        
+        async function changeUserStatus(userId, newStatus) {
+            try {
+                const token = getAuthToken();
+                const response = await fetch(`/api/admin/users/${userId}/status`, {
+                    method: 'PUT',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ status: newStatus })
+                });
+                
+                if (!response.ok) {
+                    const data = await response.json();
+                    throw new Error(data.error || 'Failed to update user status');
+                }
+                
+                alert(`User ${newStatus} successfully!`);
+                closeUserDetailsModal();
+                await loadUsers();
+            } catch (error) {
+                console.error('Error changing user status:', error);
+                alert(error.message);
+            }
+        }
+        
+        async function deleteUser(userId) {
+            try {
+                const token = getAuthToken();
+                const response = await fetch(`/api/admin/users/${userId}`, {
+                    method: 'DELETE',
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                
+                if (!response.ok) {
+                    const data = await response.json();
+                    throw new Error(data.error || 'Failed to delete user');
+                }
+                
+                alert('User deleted successfully!');
+                closeUserDetailsModal();
+                await loadUsers();
+            } catch (error) {
+                console.error('Error deleting user:', error);
+                alert(error.message);
+            }
+        }
+        
+        function closeUserDetailsModal() {
+            document.getElementById('userDetailsModal').style.display = 'none';
+        }
+        
+        // =============== PROMO CODE FUNCTIONS ===============
+        
+        async function loadPromoCodes() {
+            try {
+                const token = getAuthToken();
+                const response = await fetch('/api/admin/promo-codes', {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                
+                if (!response.ok) throw new Error('Failed to load promo codes');
+                
+                allPromoCodes = await response.json();
+                const tbody = document.getElementById('promoCodesTableBody');
+                
+                if (allPromoCodes.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="8" style="text-align: center; padding: 2rem;">No promo codes yet. Create one to get started!</td></tr>';
+                    return;
+                }
+                
+                tbody.innerHTML = allPromoCodes.map(promo => {
+                    const typeDisplay = promo.type === 'percentage' ? `${promo.value}%` : `$${promo.value}`;
+                    const minOrderDisplay = promo.minOrder ? `$${promo.minOrder}` : '-';
+                    const usageDisplay = promo.usageLimit ? `${promo.usageCount}/${promo.usageLimit}` : `${promo.usageCount}/∞`;
+                    const expiresDisplay = promo.expiresAt 
+                        ? new Date(promo.expiresAt).toLocaleDateString()
+                        : 'Never';
+                    const statusBadge = promo.active
+                        ? '<span class="status-badge status-completed">Active</span>'
+                        : '<span class="status-badge status-cancelled">Inactive</span>';
+                    
+                    return `
+                        <tr>
+                            <td><strong>${promo.code}</strong></td>
+                            <td>${promo.type === 'percentage' ? 'Percentage' : 'Fixed'}</td>
+                            <td>${typeDisplay}</td>
+                            <td>${minOrderDisplay}</td>
+                            <td>${usageDisplay}</td>
+                            <td>${expiresDisplay}</td>
+                            <td>${statusBadge}</td>
+                            <td>
+                                <button onclick="editPromoCode(${promo.id})" style="background: #ffd700; color: #1a1a2e; border: none; padding: 0.4rem 0.8rem; border-radius: 4px; cursor: pointer; margin-right: 0.5rem; font-weight: 600;">
+                                    <i class="fas fa-edit"></i> Edit
+                                </button>
+                                <button onclick="if(confirm('Delete promo code ${promo.code}?')) deletePromoCode(${promo.id})" style="background: #dc3545; color: white; border: none; padding: 0.4rem 0.8rem; border-radius: 4px; cursor: pointer; font-weight: 600;">
+                                    <i class="fas fa-trash"></i> Delete
+                                </button>
+                            </td>
+                        </tr>
+                    `;
+                }).join('');
+            } catch (error) {
+                console.error('Error loading promo codes:', error);
+                document.getElementById('promoCodesTableBody').innerHTML = 
+                    '<tr><td colspan="8" style="text-align: center; padding: 2rem; color: #dc3545;">Failed to load promo codes.</td></tr>';
+            }
+        }
+        
+        function showAddPromoModal() {
+            document.getElementById('promoModalTitle').textContent = 'Add Promo Code';
+            document.getElementById('promoForm').reset();
+            document.getElementById('promoId').value = '';
+            document.getElementById('promoActive').checked = true;
+            updatePromoTypeHint();
+            document.getElementById('promoModal').style.display = 'flex';
+        }
+        
+        function editPromoCode(id) {
+            const promo = allPromoCodes.find(p => p.id === id);
+            if (!promo) return;
+            
+            document.getElementById('promoModalTitle').textContent = 'Edit Promo Code';
+            document.getElementById('promoId').value = promo.id;
+            document.getElementById('promoCode').value = promo.code;
+            document.getElementById('promoType').value = promo.type;
+            document.getElementById('promoValue').value = promo.value;
+            document.getElementById('promoMinOrder').value = promo.minOrder || '';
+            document.getElementById('promoMaxDiscount').value = promo.maxDiscount || '';
+            document.getElementById('promoUsageLimit').value = promo.usageLimit || '';
+            
+            if (promo.expiresAt) {
+                const date = new Date(promo.expiresAt);
+                const localDate = new Date(date.getTime() - date.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+                document.getElementById('promoExpiresAt').value = localDate;
+            } else {
+                document.getElementById('promoExpiresAt').value = '';
+            }
+            
+            document.getElementById('promoActive').checked = promo.active;
+            updatePromoTypeHint();
+            document.getElementById('promoModal').style.display = 'flex';
+        }
+        
+        function updatePromoTypeHint() {
+            const type = document.getElementById('promoType').value;
+            const hint = document.getElementById('promoValueHint');
+            hint.textContent = type === 'percentage' 
+                ? 'Enter percentage (e.g., 10 for 10% off)'
+                : 'Enter dollar amount (e.g., 5 for $5 off)';
+        }
+        
+        async function savePromoCode(event) {
+            event.preventDefault();
+            
+            const id = document.getElementById('promoId').value;
+            const data = {
+                code: document.getElementById('promoCode').value.toUpperCase(),
+                type: document.getElementById('promoType').value,
+                value: parseFloat(document.getElementById('promoValue').value),
+                minOrder: parseFloat(document.getElementById('promoMinOrder').value) || 0,
+                maxDiscount: parseFloat(document.getElementById('promoMaxDiscount').value) || null,
+                usageLimit: parseInt(document.getElementById('promoUsageLimit').value) || null,
+                expiresAt: document.getElementById('promoExpiresAt').value || null,
+                active: document.getElementById('promoActive').checked
+            };
+            
+            try {
+                const token = getAuthToken();
+                const url = id ? `/api/admin/promo-codes/${id}` : '/api/admin/promo-codes';
+                const method = id ? 'PUT' : 'POST';
+                
+                const response = await fetch(url, {
+                    method,
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(data)
+                });
+                
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.error || 'Failed to save promo code');
+                }
+                
+                alert(`Promo code ${id ? 'updated' : 'created'} successfully!`);
+                closePromoModal();
+                await loadPromoCodes();
+            } catch (error) {
+                console.error('Error saving promo code:', error);
+                alert(error.message);
+            }
+        }
+        
+        async function deletePromoCode(id) {
+            try {
+                const token = getAuthToken();
+                const response = await fetch(`/api/admin/promo-codes/${id}`, {
+                    method: 'DELETE',
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                
+                if (!response.ok) throw new Error('Failed to delete promo code');
+                
+                alert('Promo code deleted successfully!');
+                await loadPromoCodes();
+            } catch (error) {
+                console.error('Error deleting promo code:', error);
+                alert('Failed to delete promo code.');
+            }
+        }
+        
+        function closePromoModal() {
+            document.getElementById('promoModal').style.display = 'none';
+        }
+        
+        // =============== SETTINGS FUNCTIONS ===============
+        
+        async function loadSettings() {
+            try {
+                const token = getAuthToken();
+                const response = await fetch('/api/admin/settings', {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                
+                if (!response.ok) throw new Error('Failed to load settings');
+                
+                systemSettings = await response.json();
+                
+                // Populate pricing fields
+                document.getElementById('settingsDeliveryFee').value = systemSettings.deliveryFee || 0;
+                document.getElementById('settingsMinimumOrder').value = systemSettings.minimumOrder || 0;
+                document.getElementById('settingsTaxRate').value = (systemSettings.taxRate * 100).toFixed(2) || 0;
+                
+                // Populate business hours
+                const days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
+                const container = document.getElementById('businessHoursContainer');
+                
+                container.innerHTML = days.map(day => {
+                    const hours = systemSettings.businessHours?.[day] || { open: '10:00', close: '20:30', enabled: true };
+                    return `
+                        <div style="display: flex; align-items: center; gap: 1rem; padding: 0.8rem; background: white; border-radius: 8px;">
+                            <label style="flex: 0 0 120px; font-weight: 600; text-transform: capitalize;">${day}</label>
+                            <input type="checkbox" id="hours_${day}_enabled" ${hours.enabled ? 'checked' : ''} onchange="toggleDayHours('${day}')">
+                            <input type="time" id="hours_${day}_open" value="${hours.open}" ${!hours.enabled ? 'disabled' : ''} style="padding: 0.5rem; border: 2px solid #e0e0e0; border-radius: 5px;">
+                            <span>to</span>
+                            <input type="time" id="hours_${day}_close" value="${hours.close}" ${!hours.enabled ? 'disabled' : ''} style="padding: 0.5rem; border: 2px solid #e0e0e0; border-radius: 5px;">
+                        </div>
+                    `;
+                }).join('');
+            } catch (error) {
+                console.error('Error loading settings:', error);
+                alert('Failed to load settings.');
+            }
+        }
+        
+        function toggleDayHours(day) {
+            const enabled = document.getElementById(`hours_${day}_enabled`).checked;
+            document.getElementById(`hours_${day}_open`).disabled = !enabled;
+            document.getElementById(`hours_${day}_close`).disabled = !enabled;
+        }
+        
+        async function saveSettings() {
+            try {
+                const days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
+                const businessHours = {};
+                
+                days.forEach(day => {
+                    businessHours[day] = {
+                        enabled: document.getElementById(`hours_${day}_enabled`).checked,
+                        open: document.getElementById(`hours_${day}_open`).value,
+                        close: document.getElementById(`hours_${day}_close`).value
+                    };
+                });
+                
+                const updatedSettings = {
+                    ...systemSettings,
+                    deliveryFee: parseFloat(document.getElementById('settingsDeliveryFee').value),
+                    minimumOrder: parseFloat(document.getElementById('settingsMinimumOrder').value),
+                    taxRate: parseFloat(document.getElementById('settingsTaxRate').value) / 100,
+                    businessHours
+                };
+                
+                const token = getAuthToken();
+                const response = await fetch('/api/admin/settings', {
+                    method: 'PUT',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(updatedSettings)
+                });
+                
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.error || 'Failed to save settings');
+                }
+                
+                alert('Settings saved successfully!');
+                await loadSettings();
+            } catch (error) {
+                console.error('Error saving settings:', error);
+                alert(error.message);
+            }
+        }
+        
+        function scrollToSection(section) {
+            const sections = {
+                'overview': document.querySelector('.stats-grid'),
+                'orders': document.querySelectorAll('.dashboard-section')[1],
+                'products': document.querySelectorAll('.dashboard-section')[3],
+                'customers': document.querySelectorAll('.dashboard-section')[2]
+            };
+            
+            if (sections[section]) {
+                sections[section].scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+        }
+    </script>
+</body>
+</html>
