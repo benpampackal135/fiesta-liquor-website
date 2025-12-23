@@ -320,7 +320,8 @@ app.get('/cart.html', (req, res) => {
 });
 
 // Data storage files
-const DATA_DIR = path.join(__dirname, 'data');
+// Use DATA_DIR env var if set (for Railway volumes), otherwise use local 'data' directory
+const DATA_DIR = process.env.DATA_DIR || path.join(__dirname, 'data');
 const PRODUCTS_FILE = path.join(DATA_DIR, 'products.json');
 const USERS_FILE = path.join(DATA_DIR, 'users.json');
 const ORDERS_FILE = path.join(DATA_DIR, 'orders.json');
@@ -335,8 +336,39 @@ if (!fs.existsSync(DATA_DIR)) {
 
 // Initialize data files if they don't exist
 function initDataFiles() {
-    // Seed products immediately - no empty placeholder
-    if (!fs.existsSync(PRODUCTS_FILE)) {
+    // Seed products ONLY if file doesn't exist AND is empty
+    // NEVER overwrite existing products to preserve user changes
+    const productsExist = fs.existsSync(PRODUCTS_FILE);
+    let shouldSeedProducts = false;
+    
+    if (!productsExist) {
+        shouldSeedProducts = true;
+        console.log('📦 Products file not found, will seed default products...');
+    } else {
+        // Check if file is empty or invalid
+        try {
+            const existingProducts = JSON.parse(fs.readFileSync(PRODUCTS_FILE, 'utf8'));
+            if (!Array.isArray(existingProducts) || existingProducts.length === 0) {
+                shouldSeedProducts = true;
+                console.log('📦 Products file is empty, will seed default products...');
+            } else {
+                console.log(`✅ Found ${existingProducts.length} existing products, preserving them`);
+            }
+        } catch (error) {
+            // File exists but is corrupted, backup and reseed
+            console.log('⚠️ Products file corrupted, backing up and reseeding...');
+            const backupPath = PRODUCTS_FILE + '.backup.' + Date.now();
+            try {
+                fs.copyFileSync(PRODUCTS_FILE, backupPath);
+                console.log('✅ Backed up corrupted file to:', backupPath);
+            } catch (backupError) {
+                console.error('Failed to backup:', backupError);
+            }
+            shouldSeedProducts = true;
+        }
+    }
+    
+    if (shouldSeedProducts) {
         console.log('📦 Seeding all 25 products on startup...');
         const seedProducts = JSON.parse(`[
   {"id":3,"name":"Jack Daniel's","category":"whiskey","description":"The iconic, original Tennessee Whiskey, charcoal mellowed through sugar maple, creating a smooth character with vanilla, caramel, and a hint of fruit.","image":"images/jackdaniel.png","price":14.99,"inStock":true,"sizes":[{"size":"375ml","price":14.99,"inStock":true},{"size":"750ml","price":27.99,"inStock":true},{"size":"1L","price":36.99,"inStock":true},{"size":"1.75L","price":52.99,"inStock":true}]},
