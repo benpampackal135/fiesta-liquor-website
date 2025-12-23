@@ -65,12 +65,12 @@ document.addEventListener('DOMContentLoaded', async function() {
     }
     
     // IMMEDIATE CHECK: Change Account button to Admin Dashboard if admin email
-    const adminEmail = 'admin@fiestaliquor.com';
+    const adminEmails = ['admin@fiestaliquor.com', 'bensonpampackal548@gmail.com', 'bensonpampackal456@gmail.com'];
     const storedUser = JSON.parse(localStorage.getItem('currentUser') || 'null');
     const firebaseUser = JSON.parse(localStorage.getItem('firebaseUser') || 'null');
     const userEmail = storedUser?.email || firebaseUser?.email;
     
-    if (userEmail && userEmail.toLowerCase() === adminEmail.toLowerCase()) {
+    if (userEmail && adminEmails.includes(userEmail.toLowerCase())) {
         const accountLink = document.getElementById('accountLink');
         if (accountLink) {
             accountLink.href = '/admin-dashboard.html';
@@ -1801,9 +1801,9 @@ async function checkUserAuth() {
                     setCurrentUser(currentUser);
                     
                     // Simple: Change Account button to Admin Dashboard if admin email
-                    const adminEmail = 'admin@fiestaliquor.com';
+                    const adminEmails = ['admin@fiestaliquor.com', 'bensonpampackal548@gmail.com', 'bensonpampackal456@gmail.com'];
                     const accountLink = document.getElementById('accountLink');
-                    if (accountLink && currentUser.email && currentUser.email.toLowerCase() === adminEmail.toLowerCase()) {
+                    if (accountLink && currentUser.email && adminEmails.includes(currentUser.email.toLowerCase())) {
                         accountLink.href = '/admin-dashboard.html';
                         accountLink.innerHTML = '<i class="fas fa-tachometer-alt"></i> Admin Dashboard';
                         console.log('✅ Account button changed to Admin Dashboard for:', currentUser.email);
@@ -1814,7 +1814,7 @@ async function checkUserAuth() {
                     
                 } else {
                     // Fallback if API call fails - but still check email for admin
-                    const adminEmails = ['admin@fiestaliquor.com', 'bensonpampackal548@gmail.com'];
+                    const adminEmails = ['admin@fiestaliquor.com', 'bensonpampackal548@gmail.com', 'bensonpampackal456@gmail.com'];
                     const userEmail = storedUser?.email || firebaseUser?.email;
                     const isAdminByEmail = adminEmails.includes(userEmail?.toLowerCase());
                     
@@ -2017,7 +2017,7 @@ async function checkUserAuth() {
         updateHeaderName(fullName);
         
         // Show admin dashboard link if user is admin (check by role and email)
-        const adminEmails = ['admin@fiestaliquor.com', 'bensonpampackal548@gmail.com'];
+        const adminEmails = ['admin@fiestaliquor.com', 'bensonpampackal548@gmail.com', 'bensonpampackal456@gmail.com'];
         const isAdminByEmail = adminEmails.includes(currentUser.email?.toLowerCase());
         const isAdminByRole = currentUser.role === 'admin';
         
