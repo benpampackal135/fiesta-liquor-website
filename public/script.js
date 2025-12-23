@@ -64,14 +64,18 @@ document.addEventListener('DOMContentLoaded', async function() {
         mobileCheckoutFixed.style.pointerEvents = 'none';
     }
     
-    // IMMEDIATE CHECK: Change Account button to Admin Dashboard if stored user is admin
+    // IMMEDIATE CHECK: Change Account button to Admin Dashboard if admin email
+    const adminEmails = ['admin@fiestaliquor.com', 'bensonpampackal548@gmail.com', 'bensonpampackal456@gmail.com'];
     const storedUser = JSON.parse(localStorage.getItem('currentUser') || 'null');
-    if (storedUser && storedUser.role === 'admin') {
+    const firebaseUser = JSON.parse(localStorage.getItem('firebaseUser') || 'null');
+    const userEmail = storedUser?.email || firebaseUser?.email;
+    
+    if (userEmail && adminEmails.includes(userEmail.toLowerCase())) {
         const accountLink = document.getElementById('accountLink');
         if (accountLink) {
             accountLink.href = '/admin-dashboard.html';
             accountLink.innerHTML = '<i class="fas fa-tachometer-alt"></i> Admin Dashboard';
-            console.log('✅ IMMEDIATE: Account button changed to Admin Dashboard for stored admin');
+            console.log('✅ IMMEDIATE: Account button changed to Admin Dashboard for:', userEmail);
         }
     }
     
@@ -1796,9 +1800,10 @@ async function checkUserAuth() {
                     // Update stored user with fresh role
                     setCurrentUser(currentUser);
                     
-                    // Simple: Change Account button to Admin Dashboard if role is admin
+                    // Simple: Change Account button to Admin Dashboard if admin email
+                    const adminEmails = ['admin@fiestaliquor.com', 'bensonpampackal548@gmail.com', 'bensonpampackal456@gmail.com'];
                     const accountLink = document.getElementById('accountLink');
-                    if (accountLink && currentUser.role === 'admin') {
+                    if (accountLink && currentUser.email && adminEmails.includes(currentUser.email.toLowerCase())) {
                         accountLink.href = '/admin-dashboard.html';
                         accountLink.innerHTML = '<i class="fas fa-tachometer-alt"></i> Admin Dashboard';
                         console.log('✅ Account button changed to Admin Dashboard for:', currentUser.email);
@@ -1808,9 +1813,10 @@ async function checkUserAuth() {
                     }
                     
                 } else {
-                    // Fallback if API call fails - use stored role if available
+                    // Fallback if API call fails - but still check email for admin
+                    const adminEmails = ['admin@fiestaliquor.com', 'bensonpampackal548@gmail.com', 'bensonpampackal456@gmail.com'];
                     const userEmail = storedUser?.email || firebaseUser?.email;
-                    const isAdminByRole = (storedUser?.role === 'admin');
+                    const isAdminByEmail = adminEmails.includes(userEmail?.toLowerCase());
                     
                     currentUser = {
                         name: fullName,
@@ -1818,13 +1824,13 @@ async function checkUserAuth() {
                         email: userEmail,
                         uid: firebaseUser?.uid,
                         id: storedUser?.id,
-                        role: isAdminByRole ? 'admin' : (storedUser?.role || 'customer')
+                        role: isAdminByEmail ? 'admin' : (storedUser?.role || 'customer')
                     };
                     setCurrentUser(currentUser);
                     
-                    // Change Account button if admin role
+                    // Change Account button if admin email
                     const accountLink = document.getElementById('accountLink');
-                    if (accountLink && isAdminByRole) {
+                    if (accountLink && isAdminByEmail) {
                         accountLink.href = '/admin-dashboard.html';
                         accountLink.innerHTML = '<i class="fas fa-tachometer-alt"></i> Admin Dashboard';
                         console.log('✅ Account button changed to Admin Dashboard (fallback) for:', userEmail);
@@ -1990,12 +1996,13 @@ async function checkUserAuth() {
                 currentUser.role = 'customer';
             }
             
-            // Change Account button to Admin Dashboard if admin role
+            // Change Account button to Admin Dashboard if admin email
+            const adminEmail = 'admin@fiestaliquor.com';
             const accountLink = document.getElementById('accountLink');
-            if (accountLink && currentUser.role === 'admin') {
+            if (accountLink && currentUser.email && currentUser.email.toLowerCase() === adminEmail.toLowerCase()) {
                 accountLink.href = '/admin-dashboard.html';
                 accountLink.innerHTML = '<i class="fas fa-tachometer-alt"></i> Admin Dashboard';
-                console.log('✅ Account button changed to Admin Dashboard (Firebase) for role admin:', currentUser.email);
+                console.log('✅ Account button changed to Admin Dashboard (Firebase) for:', currentUser.email);
             } else if (accountLink) {
                 accountLink.href = '/account.html';
                 accountLink.innerHTML = '<i class="fas fa-user-circle"></i> Account';
@@ -2009,17 +2016,19 @@ async function checkUserAuth() {
         document.getElementById('loginBtn').style.display = 'none';
         updateHeaderName(fullName);
         
-        // Show admin dashboard link if user is admin (by role)
+        // Show admin dashboard link if user is admin (check by role and email)
+        const adminEmails = ['admin@fiestaliquor.com', 'bensonpampackal548@gmail.com', 'bensonpampackal456@gmail.com'];
+        const isAdminByEmail = adminEmails.includes(currentUser.email?.toLowerCase());
         const isAdminByRole = currentUser.role === 'admin';
         
         const adminLink = document.getElementById('adminDashboardLink');
         if (adminLink) {
-            if (isAdminByRole) {
+            if (isAdminByRole || isAdminByEmail) {
                 adminLink.style.display = 'flex';
                 adminLink.style.visibility = 'visible';
                 adminLink.style.opacity = '1';
                 adminLink.style.pointerEvents = 'auto';
-                console.log('✅ Admin dashboard link shown for admin user, role:', currentUser.role, 'email:', currentUser.email);
+                console.log('✅ Admin dashboard link shown for Firebase admin user, role:', currentUser.role, 'email:', currentUser.email);
             } else {
                 adminLink.style.display = 'none';
                 console.log('❌ Admin link hidden, user role:', currentUser.role, 'email:', currentUser.email);
