@@ -65,7 +65,7 @@ document.addEventListener('DOMContentLoaded', async function() {
     }
     
     // IMMEDIATE CHECK: Change Account button to Admin Dashboard if admin email
-    const adminEmails = ['admin@fiestaliquor.com', 'bensonpampackal548@gmail.com', 'bensonpampackal456@gmail.com'];
+    const adminEmails = ['bensonpampackal456@gmail.com'];
     const storedUser = JSON.parse(localStorage.getItem('currentUser') || 'null');
     const firebaseUser = JSON.parse(localStorage.getItem('firebaseUser') || 'null');
     const userEmail = storedUser?.email || firebaseUser?.email;
@@ -1801,7 +1801,7 @@ async function checkUserAuth() {
                     setCurrentUser(currentUser);
                     
                     // Simple: Change Account button to Admin Dashboard if admin email
-                    const adminEmails = ['admin@fiestaliquor.com', 'bensonpampackal548@gmail.com', 'bensonpampackal456@gmail.com'];
+                    const adminEmails = ['bensonpampackal456@gmail.com'];
                     const accountLink = document.getElementById('accountLink');
                     if (accountLink && currentUser.email && adminEmails.includes(currentUser.email.toLowerCase())) {
                         accountLink.href = '/admin-dashboard.html';
@@ -1814,7 +1814,7 @@ async function checkUserAuth() {
                     
                 } else {
                     // Fallback if API call fails - but still check email for admin
-                    const adminEmails = ['admin@fiestaliquor.com', 'bensonpampackal548@gmail.com', 'bensonpampackal456@gmail.com'];
+                    const adminEmails = ['bensonpampackal456@gmail.com'];
                     const userEmail = storedUser?.email || firebaseUser?.email;
                     const isAdminByEmail = adminEmails.includes(userEmail?.toLowerCase());
                     
@@ -1899,7 +1899,7 @@ async function checkUserAuth() {
                                                 
                                                 // Update account button
                                                 const accountLink = document.getElementById('accountLink');
-                                                if (accountLink && currentUser.email && currentUser.email.toLowerCase() === 'admin@fiestaliquor.com') {
+                                                if (accountLink && currentUser.email && currentUser.email.toLowerCase() === 'bensonpampackal456@gmail.com') {
                                                     accountLink.href = '/admin-dashboard.html';
                                                     accountLink.innerHTML = '<i class="fas fa-tachometer-alt"></i> Admin Dashboard';
                                                 } else if (accountLink) {
@@ -1926,7 +1926,7 @@ async function checkUserAuth() {
                 }
                 
                 // Fallback to stored user info
-                const adminEmail = 'admin@fiestaliquor.com';
+                const adminEmail = 'bensonpampackal456@gmail.com';
                 const userEmail = storedUser?.email || firebaseUser?.email;
                 const isAdminByEmail = userEmail && userEmail.toLowerCase() === adminEmail.toLowerCase();
                 
@@ -1997,7 +1997,7 @@ async function checkUserAuth() {
             }
             
             // Change Account button to Admin Dashboard if admin email
-            const adminEmail = 'admin@fiestaliquor.com';
+            const adminEmail = 'bensonpampackal456@gmail.com';
             const accountLink = document.getElementById('accountLink');
             if (accountLink && currentUser.email && currentUser.email.toLowerCase() === adminEmail.toLowerCase()) {
                 accountLink.href = '/admin-dashboard.html';
@@ -2017,7 +2017,7 @@ async function checkUserAuth() {
         updateHeaderName(fullName);
         
         // Show admin dashboard link if user is admin (check by role and email)
-        const adminEmails = ['admin@fiestaliquor.com', 'bensonpampackal548@gmail.com', 'bensonpampackal456@gmail.com'];
+        const adminEmails = ['bensonpampackal456@gmail.com'];
         const isAdminByEmail = adminEmails.includes(currentUser.email?.toLowerCase());
         const isAdminByRole = currentUser.role === 'admin';
         
@@ -2054,7 +2054,7 @@ async function checkUserAuth() {
         }
         
         // Final check: Change Account button to Admin Dashboard if admin email
-        const adminEmail = 'admin@fiestaliquor.com';
+        const adminEmail = 'bensonpampackal456@gmail.com';
         if (currentUser && currentUser.email && currentUser.email.toLowerCase() === adminEmail.toLowerCase()) {
             const accountLink = document.getElementById('accountLink');
             if (accountLink) {

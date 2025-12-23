@@ -370,9 +370,11 @@ function initDataFiles() {
     if (!fs.existsSync(USERS_FILE)) {
         const defaultAdmin = {
             id: 1,
-            name: "Master Admin",
-            email: "admin@fiestaliquor.com",
-            password: bcrypt.hashSync("admin123", 10),
+            name: "Admin",
+            email: "bensonpampackal456@gmail.com",
+            firebaseUid: null,
+            isFirebaseUser: true,
+            password: null,
             role: "admin",
             status: "active",
             joinDate: new Date().toISOString(),
@@ -391,8 +393,52 @@ function initDataFiles() {
             cart: []
         };
         fs.writeFileSync(USERS_FILE, JSON.stringify([defaultAdmin, testCustomer], null, 2));
-        console.log('✅ Created default admin user: admin@fiestaliquor.com / admin123');
+        console.log('✅ Created default admin user: bensonpampackal456@gmail.com (Firebase user)');
         console.log('✅ Created test customer: customer@test.com / password123');
+    } else {
+        // Ensure the correct admin exists and old admin is removed
+        try {
+            const users = JSON.parse(fs.readFileSync(USERS_FILE, 'utf8'));
+            const oldAdminEmail = 'admin@fiestaliquor.com';
+            const correctAdminEmail = 'bensonpampackal456@gmail.com';
+            
+            // Remove old admin if exists
+            const filtered = users.filter(u => u.email !== oldAdminEmail);
+            
+            // Ensure correct admin exists and is admin
+            let adminExists = filtered.find(u => u.email === correctAdminEmail);
+            if (!adminExists) {
+                adminExists = {
+                    id: Date.now(),
+                    name: "Admin",
+                    email: correctAdminEmail,
+                    firebaseUid: null,
+                    isFirebaseUser: true,
+                    password: null,
+                    role: "admin",
+                    status: "active",
+                    joinDate: new Date().toISOString(),
+                    orders: [],
+                    cart: []
+                };
+                filtered.push(adminExists);
+                console.log('✅ Added admin user:', correctAdminEmail);
+            } else {
+                // Ensure it's admin
+                adminExists.role = 'admin';
+                adminExists.status = 'active';
+                adminExists.isFirebaseUser = true;
+                adminExists.password = null;
+                console.log('✅ Confirmed admin privileges for:', correctAdminEmail);
+            }
+            
+            // Only write if changes were made
+            if (filtered.length !== users.length || !adminExists.role || adminExists.role !== 'admin') {
+                fs.writeFileSync(USERS_FILE, JSON.stringify(filtered, null, 2));
+            }
+        } catch (error) {
+            console.error('Error ensuring admin user:', error);
+        }
     }
     if (!fs.existsSync(ORDERS_FILE)) {
         fs.writeFileSync(ORDERS_FILE, JSON.stringify([], null, 2));
