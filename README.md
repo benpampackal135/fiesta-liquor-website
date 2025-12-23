@@ -37,8 +37,7 @@ npm start
 
 ### 3. Login as Admin
 - Go to: http://localhost:4242/auth.html
-- **Email:** `admin@fiestaliquor.com`
-- **Password:** `admin123`
+
 
 ### 4. Start Managing!
 - **Customer Website:** http://localhost:4242
