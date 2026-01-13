@@ -8,12 +8,14 @@ Think of it like your own Shopify/Square - but simpler and customized for your l
 
 ### **For You (Admin) - Manage Everything Online:**
 - 📦 **Product Management** - Add, edit, delete products through web interface
-- 📥 **CSV Import** - Bulk upload products from Excel/CSV files
+- 📥 **CSV/Google Sheets Import** - Bulk upload products from Excel/CSV files or Google Sheets
+- 📱 **Barcode Scanner** - Scan barcodes to auto-fill product information
 - 💰 **Price Updates** - Change prices with one click
 - 📊 **Inventory Control** - Mark items in/out of stock instantly
 - 📋 **Order Management** - View, filter, and export all orders
 - 📈 **Analytics Dashboard** - See sales, revenue, and customer stats
 - 👥 **Customer Management** - View all customer accounts
+- 🔔 **Webhook Integration** - Automatic order confirmations via Stripe webhooks
 
 ### **For Customers:**
 - 🛍️ **Browse Products** - Filter by category (Whiskey, Tequila, Vodka, etc.)

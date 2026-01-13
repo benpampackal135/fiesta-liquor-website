@@ -953,7 +953,7 @@ app.get("/api/products/:id", (req, res) => {
 // Create product (Admin only)
 app.post("/api/products", authenticateToken, requireAdmin, (req, res) => {
     try {
-        const { name, category, description, image, price, sizes, inStock } = req.body;
+        const { name, category, description, image, price, sizes, inStock, barcode } = req.body;
 
         if (!name || !category || !description) {
             return res.status(400).json({ error: "Name, category, and description are required" });
@@ -971,6 +971,11 @@ app.post("/api/products", authenticateToken, requireAdmin, (req, res) => {
             inStock: inStock !== undefined ? inStock : true,
             createdAt: new Date().toISOString()
         };
+
+        // Add barcode if provided
+        if (barcode) {
+            newProduct.barcode = barcode;
+        }
 
         products.push(newProduct);
         writeData(PRODUCTS_FILE, products);
@@ -1713,6 +1718,7 @@ app.post('/create-checkout-session', async (req, res) => {
 // Allows us to see the real processing fees charged by Stripe
 
 app.post('/webhook/stripe', express.raw({ type: 'application/json' }), async (req, res) => {
+  console.log('📥 Stripe webhook received at:', new Date().toISOString());
   const sig = req.headers['stripe-signature'];
   const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
 
@@ -1722,116 +1728,155 @@ app.post('/webhook/stripe', express.raw({ type: 'application/json' }), async (re
     if (!webhookSecret) {
       console.log('⚠️ Stripe webhook secret not configured. Skipping webhook verification.');
       // In development, you might want to parse without verification
-      event = JSON.parse(req.body);
+      try {
+        event = JSON.parse(req.body);
+      } catch (parseError) {
+        console.error('❌ Failed to parse webhook body:', parseError.message);
+        // Return 200 to acknowledge receipt even if parsing fails
+        return res.status(200).json({ received: true, error: 'Failed to parse webhook' });
+      }
     } else {
-      event = stripe.webhooks.constructEvent(req.body, sig, webhookSecret);
+      if (!sig) {
+        console.error('❌ Missing stripe-signature header');
+        return res.status(200).json({ received: true, error: 'Missing signature' });
+      }
+      try {
+        event = stripe.webhooks.constructEvent(req.body, sig, webhookSecret);
+      } catch (err) {
+        console.error('❌ Webhook signature verification failed:', err.message);
+        // Return 200 to acknowledge receipt (Stripe will retry if needed)
+        // But log the error for debugging
+        return res.status(200).json({ received: true, error: 'Signature verification failed', message: err.message });
+      }
     }
   } catch (err) {
-    console.error('❌ Webhook signature verification failed:', err.message);
-    return res.status(400).send(`Webhook Error: ${err.message}`);
+    console.error('❌ Unexpected webhook error:', err.message);
+    // Always return 200 to acknowledge receipt
+    return res.status(200).json({ received: true, error: 'Unexpected error', message: err.message });
   }
 
-  // Handle the event
-  switch (event.type) {
-    case 'checkout.session.completed':
-      const session = event.data.object;
-      const stripeTotal = session.amount_total / 100; // Convert from cents to dollars
-      
-      console.log('✅ Payment successful:', {
-        sessionId: session.id,
-        amountTotal: stripeTotal,
-        customerEmail: session.customer_email
-      });
-      
-      // Update the order with the actual Stripe total
-      // Find the most recent pending order for this customer email
-      try {
-        const orders = readData(ORDERS_FILE);
-        const customerEmail = session.customer_email;
+  // Handle the event - wrap in try-catch to ensure we always return 200
+  try {
+    switch (event.type) {
+      case 'checkout.session.completed':
+        const session = event.data.object;
+        const stripeTotal = session.amount_total / 100; // Convert from cents to dollars
         
-        // Find order by session ID first, then by email and status
-        let recentOrder = orders.find(order => order.stripeSessionId === session.id);
+        console.log('✅ Payment successful:', {
+          sessionId: session.id,
+          amountTotal: stripeTotal,
+          customerEmail: session.customer_email
+        });
         
-        // If not found by session ID, find by email and status
-        if (!recentOrder) {
-          recentOrder = orders
-            .filter(order => 
-              (order.customer?.email === customerEmail || order.customerEmail === customerEmail) &&
-              (order.status === 'pending' || order.status === 'processing') &&
-              !order.stripeTotal // Only update if not already set
-            )
-            .sort((a, b) => new Date(b.orderDate || b.createdAt) - new Date(a.orderDate || a.createdAt))[0];
-        }
-        
-        if (recentOrder) {
-          const orderIndex = orders.findIndex(o => o.id === recentOrder.id);
-          if (orderIndex !== -1) {
-            // Update order with actual Stripe total
-            orders[orderIndex].stripeTotal = stripeTotal;
-            orders[orderIndex].stripeSessionId = session.id;
-            // Also update the total field to match Stripe's total
-            orders[orderIndex].total = stripeTotal;
-            writeData(ORDERS_FILE, orders);
-            console.log(`✅ Updated order #${recentOrder.id} with Stripe total: $${stripeTotal}`);
-            
-            // Send order confirmation email immediately after payment
-            const updatedOrder = orders[orderIndex];
-            if (updatedOrder && customerEmail) {
-              console.log(`📧 Sending order confirmation email to ${customerEmail} for order #${updatedOrder.id}...`);
-              sendCustomerOrderEmail(updatedOrder).catch(err => {
-                console.error('❌ Failed to send order confirmation email:', err.message);
-              });
-            }
-          }
-        } else {
-          console.log('⚠️ No matching pending order found for customer:', customerEmail);
-        }
-      } catch (error) {
-        console.error('Error updating order with Stripe total:', error);
-      }
-      
-      // Retrieve payment intent to get actual Stripe fees
-      if (session.payment_intent) {
+        // Update the order with the actual Stripe total
+        // Find the most recent pending order for this customer email
         try {
-          const paymentIntent = await stripe.paymentIntents.retrieve(session.payment_intent);
-          const charges = await stripe.charges.list({ payment_intent: session.payment_intent });
+          const orders = readData(ORDERS_FILE);
+          const customerEmail = session.customer_email;
           
-          if (charges.data.length > 0) {
-            const charge = charges.data[0];
-            const balanceTransaction = await stripe.balanceTransactions.retrieve(charge.balance_transaction);
-            
-            // Log actual Stripe fees
-            const stripeFee = balanceTransaction.fee / 100; // Convert from cents
-            const netAmount = balanceTransaction.net / 100; // Convert from cents
-            const cardType = charge.card?.country !== 'US' ? 'international' : 'domestic';
-            const isManualEntry = charge.payment_method_details?.card?.three_d_secure?.authenticated === false;
-            
-            console.log('💰 Actual Stripe fees:', {
-              grossAmount: stripeTotal,
-              stripeFee: stripeFee,
-              netAmount: netAmount,
-              cardType: cardType,
-              isManualEntry: isManualEntry,
-              cardCountry: charge.card?.country,
-              currency: charge.currency
-            });
+          // Find order by session ID first, then by email and status
+          let recentOrder = orders.find(order => order.stripeSessionId === session.id);
+          
+          // If not found by session ID, find by email and status
+          if (!recentOrder) {
+            recentOrder = orders
+              .filter(order => 
+                (order.customer?.email === customerEmail || order.customerEmail === customerEmail) &&
+                (order.status === 'pending' || order.status === 'processing') &&
+                !order.stripeTotal // Only update if not already set
+              )
+              .sort((a, b) => new Date(b.orderDate || b.createdAt) - new Date(a.orderDate || a.createdAt))[0];
+          }
+          
+          if (recentOrder) {
+            const orderIndex = orders.findIndex(o => o.id === recentOrder.id);
+            if (orderIndex !== -1) {
+              // Update order with actual Stripe total
+              orders[orderIndex].stripeTotal = stripeTotal;
+              orders[orderIndex].stripeSessionId = session.id;
+              // Also update the total field to match Stripe's total
+              orders[orderIndex].total = stripeTotal;
+              writeData(ORDERS_FILE, orders);
+              console.log(`✅ Updated order #${recentOrder.id} with Stripe total: $${stripeTotal}`);
+              
+              // Send order confirmation email immediately after payment
+              const updatedOrder = orders[orderIndex];
+              if (updatedOrder && customerEmail) {
+                console.log(`📧 Sending order confirmation email to ${customerEmail} for order #${updatedOrder.id}...`);
+                sendCustomerOrderEmail(updatedOrder).catch(err => {
+                  console.error('❌ Failed to send order confirmation email:', err.message);
+                });
+              }
+            }
+          } else {
+            console.log('⚠️ No matching pending order found for customer:', customerEmail);
           }
         } catch (error) {
-          console.error('Error retrieving payment details:', error);
+          console.error('Error updating order with Stripe total:', error);
+          // Don't throw - continue processing
         }
-      }
-      break;
-      
-    case 'payment_intent.succeeded':
-      const paymentIntent = event.data.object;
-      console.log('✅ Payment intent succeeded:', paymentIntent.id);
-      break;
-      
-    default:
-      console.log(`Unhandled event type: ${event.type}`);
-  }
+        
+        // Retrieve payment intent to get actual Stripe fees
+        if (session.payment_intent) {
+          try {
+            const paymentIntent = await stripe.paymentIntents.retrieve(session.payment_intent);
+            const charges = await stripe.charges.list({ payment_intent: session.payment_intent });
+            
+            if (charges.data.length > 0) {
+              const charge = charges.data[0];
+              const balanceTransaction = await stripe.balanceTransactions.retrieve(charge.balance_transaction);
+              
+              // Log actual Stripe fees
+              const stripeFee = balanceTransaction.fee / 100; // Convert from cents
+              const netAmount = balanceTransaction.net / 100; // Convert from cents
+              const cardType = charge.card?.country !== 'US' ? 'international' : 'domestic';
+              const isManualEntry = charge.payment_method_details?.card?.three_d_secure?.authenticated === false;
+              
+              console.log('💰 Actual Stripe fees:', {
+                grossAmount: stripeTotal,
+                stripeFee: stripeFee,
+                netAmount: netAmount,
+                cardType: cardType,
+                isManualEntry: isManualEntry,
+                cardCountry: charge.card?.country,
+                currency: charge.currency
+              });
+            }
+          } catch (error) {
+            console.error('Error retrieving payment details:', error);
+            // Don't throw - continue processing
+          }
+        }
+        break;
+        
+      case 'payment_intent.succeeded':
+        const paymentIntent = event.data.object;
+        console.log('✅ Payment intent succeeded:', paymentIntent.id);
+        break;
+        
+      default:
+        console.log(`Unhandled event type: ${event.type}`);
+    }
 
-  res.json({ received: true });
+    // Always return 200 to acknowledge receipt
+    res.status(200).json({ received: true, eventType: event.type });
+  } catch (error) {
+    // Log the error but still return 200 to acknowledge receipt
+    // This prevents Stripe from retrying indefinitely
+    console.error('❌ Error processing webhook event:', error);
+    console.error('Event type:', event?.type);
+    console.error('Error details:', error.message);
+    res.status(200).json({ received: true, error: 'Error processing event', message: error.message });
+  }
+});
+
+// Health check endpoint for webhook verification
+app.get('/webhook/stripe', (req, res) => {
+  res.status(200).json({ 
+    status: 'ok', 
+    message: 'Stripe webhook endpoint is active',
+    timestamp: new Date().toISOString()
+  });
 });
 
 // ==================== STATS ROUTES (Admin only) ====================

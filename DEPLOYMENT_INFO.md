@@ -68,18 +68,21 @@ TWILIO_AUTH_TOKEN=your-twilio-auth-token
 TWILIO_PHONE_NUMBER=your-twilio-phone
 ```
 
-#### Stripe and Frontend Redirects
+#### Stripe Configuration
 
-Set these additional variables to enable Stripe and ensure the success/cancel pages return to the Firebase frontend (so auth and cart context are preserved):
+Set these additional variables to enable Stripe payments and webhooks:
 
 ```
 STRIPE_SECRET_KEY=sk_live_or_test_key_here
+STRIPE_WEBHOOK_SECRET=whsec_xxxxxxxxxxxxx
 SITE_URL=https://fiesta-liquor-store.web.app
 ```
 
-Notes:
-- `SITE_URL` controls the `success_url` and `cancel_url` used when creating Stripe Checkout Sessions in `server.js`. Point this to the Firebase Hosting domain so the success page runs with the same origin that holds your login tokens and cart.
-- If `SITE_URL` points to the Railway domain, the success page will not have Firebase/localStorage auth context and order creation may fail with `401/403`.
+**Important Notes:**
+- `SITE_URL` controls the `success_url` and `cancel_url` used when creating Stripe Checkout Sessions. Point this to the Firebase Hosting domain so the success page runs with the same origin that holds your login tokens and cart.
+- `STRIPE_WEBHOOK_SECRET` is required for webhook signature verification. Get this from Stripe Dashboard → Webhooks → Your endpoint → Signing secret.
+- Webhook endpoint: `https://fiesta-liquor-website-production.up.railway.app/webhook/stripe`
+- Make sure to configure the webhook in Stripe Dashboard to send `checkout.session.completed` events.
 
 ### 📱 PWA Features
 
