@@ -467,6 +467,48 @@ async function proceedToPayment() {
         // Use window.location.origin so this works in both local dev and production
         const apiBase = window.location.origin;
 
+        // Save order to database BEFORE redirecting to Stripe
+        // This ensures the order appears in admin dashboard and user's order history
+        try {
+            const authToken = getAuthToken();
+            const orderPayload = {
+                items: cart.map(item => ({
+                    id: item.id,
+                    productId: item.productId || item.id,
+                    name: item.name,
+                    price: item.price,
+                    quantity: item.quantity,
+                    category: item.category || '',
+                    image: item.image || '',
+                    selectedSize: item.selectedSize || null
+                })),
+                customer: checkoutData.customer,
+                orderType: orderType,
+                paymentMethod: 'card',
+                deliveryTimeEstimate: checkoutData.deliveryTimeEstimate,
+                promo: appliedPromo || null
+            };
+            const orderRes = await fetch(`${apiBase}/api/orders`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${authToken}`
+                },
+                body: JSON.stringify(orderPayload)
+            });
+            if (orderRes.ok) {
+                const savedOrder = await orderRes.json();
+                // Store order ID so success page can reference it
+                localStorage.setItem('lastOrderId', savedOrder.id);
+                console.log('✅ Order saved to database:', savedOrder.id);
+            } else {
+                console.warn('⚠️ Order save failed, continuing to payment anyway');
+            }
+        } catch (orderErr) {
+            console.warn('⚠️ Could not save order before payment:', orderErr.message);
+            // Don't block checkout — order can be recovered from Stripe webhook
+        }
+
         // Pass the current origin (frontend domain) so backend redirects here after Stripe
         const res = await fetch(`${apiBase}/create-checkout-session`, {
             method: "POST",
