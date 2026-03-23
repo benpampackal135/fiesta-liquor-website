@@ -55,7 +55,11 @@ const defaultCorsOrigins = [
     "http://127.0.0.1:4242",
     "http://localhost:5000",
     "http://127.0.0.1:5000",
-    process.env.SITE_URL
+    process.env.SITE_URL,
+    process.env.RAILWAY_PUBLIC_DOMAIN ? `https://${process.env.RAILWAY_PUBLIC_DOMAIN}` : null,
+    "https://fiesta-liquor-website-production.up.railway.app",
+    "https://fiesta-liquor-store.web.app",
+    "https://fiesta-liquor-store.firebaseapp.com"
 ].filter(Boolean);
 
 const allowedOrigins = [...new Set([...defaultCorsOrigins, ...configuredCorsOrigins])];
@@ -818,6 +822,9 @@ app.post("/api/auth/login", async (req, res) => {
             return res.status(401).json({ error: "Invalid email or password" });
         }
 
+        if (!user.password) {
+            return res.status(401).json({ error: "This account uses Google Sign-In. Please use the Google button to log in." });
+        }
         const validPassword = await bcrypt.compare(password, user.password);
         if (!validPassword) {
             return res.status(401).json({ error: "Invalid email or password" });
