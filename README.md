@@ -42,7 +42,8 @@ npm start
 
 
 ### 4. Start Managing!
-- **Customer Website:** http://localhost:4242
+- **Customer Website (V2):** http://localhost:4242/v2/
+- **Customer Website (Legacy):** http://localhost:4242/index.html
 - **Admin Dashboard:** http://localhost:4242/admin-dashboard.html
 
 **That's it!** You're ready to manage your store. See `QUICK_START.md` for detailed instructions.
@@ -126,10 +127,11 @@ fiesta-liquor-website/
 
 ## Default Admin Account
 
-- **Email:** admin@fiestaliquor.com
-- **Password:** admin123
+- Admin access is now controlled by `ADMIN_EMAILS` in your `.env` file.
+- Example: `ADMIN_EMAILS=bensonpampackal456@gmail.com,manager@fiestaliquor.com`
+- Local email/password customers can still be created through normal auth routes.
 
-**Important:** Change the default admin password in production!
+**Important:** Restrict production origins with `CORS_ORIGINS` in `.env`.
 
 ## 💾 Data Storage (Simple & Automatic)
 
@@ -173,4 +175,3 @@ Before deploying to production:
 ## License
 
 This project is proprietary software for Fiesta Liquor.
-

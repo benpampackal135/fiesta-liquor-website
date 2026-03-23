@@ -1,0 +1,349 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Checkout | Fiesta Liquor</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/v2/styles.css">
+  <style>
+    .checkout-wrap {
+      padding: 2rem 0 3rem;
+      display: grid;
+      grid-template-columns: 1fr 380px;
+      gap: 2rem;
+      align-items: start;
+    }
+    @media (max-width: 860px) {
+      .checkout-wrap { grid-template-columns: 1fr; }
+      .order-summary-col { order: -1; }
+    }
+
+    /* Card */
+    .card {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 1.5rem;
+    }
+    .card h2 {
+      font-size: 1.15rem;
+      margin-bottom: 1.2rem;
+      padding-bottom: 0.75rem;
+      border-bottom: 1px solid var(--line);
+    }
+
+    /* Order type toggle */
+    .order-type-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.75rem;
+      margin-bottom: 1.5rem;
+    }
+    .order-type-label {
+      border: 2px solid var(--line);
+      border-radius: 12px;
+      padding: 0.9rem 1rem;
+      cursor: pointer;
+      transition: border-color 150ms, background 150ms;
+      display: grid;
+      gap: 0.2rem;
+    }
+    .order-type-label input { display: none; }
+    .order-type-label.selected {
+      border-color: var(--accent);
+      background: rgba(17, 97, 73, 0.05);
+    }
+    .order-type-label strong { font-size: 0.95rem; }
+    .order-type-label span { font-size: 0.78rem; color: var(--muted); }
+
+    /* Form fields */
+    .form-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.85rem;
+    }
+    @media (max-width: 500px) { .form-row { grid-template-columns: 1fr; } }
+    .form-group {
+      display: grid;
+      gap: 0.28rem;
+      margin-bottom: 0.85rem;
+    }
+    .form-group label {
+      font-size: 0.8rem;
+      font-weight: 500;
+    }
+    .form-group input, .form-group select {
+      width: 100%;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      background: var(--bg-elevated);
+      font: inherit;
+      padding: 0.68rem 0.8rem;
+      transition: border-color 150ms;
+    }
+    .form-group input:focus, .form-group select:focus {
+      outline: none;
+      border-color: var(--accent);
+    }
+
+    /* Address section */
+    #addressField { display: none; }
+    #addressField.visible { display: block; }
+
+    .delivery-estimate {
+      display: none;
+      background: rgba(17, 97, 73, 0.07);
+      border: 1px solid rgba(17, 97, 73, 0.2);
+      border-radius: 8px;
+      padding: 0.65rem 0.8rem;
+      font-size: 0.85rem;
+      color: var(--accent);
+      margin-top: -0.25rem;
+      margin-bottom: 0.85rem;
+    }
+    #deliveryTimeEstimate { display: none; }
+
+    /* Promo code */
+    .promo-row {
+      display: flex;
+      gap: 0.5rem;
+      margin-top: 0.5rem;
+    }
+    .promo-row input {
+      flex: 1;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      background: var(--bg-elevated);
+      font: inherit;
+      padding: 0.6rem 0.75rem;
+    }
+    .promo-row button {
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      border-radius: 10px;
+      padding: 0.6rem 1rem;
+      font: inherit;
+      font-size: 0.85rem;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+    .promo-row button:hover { background: var(--accent-dark); }
+    #promoCodeMessage {
+      font-size: 0.8rem;
+      margin-top: 0.35rem;
+      min-height: 1.1em;
+    }
+
+    /* Order summary */
+    .order-item-summary {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 0.5rem;
+      padding: 0.6rem 0;
+      border-bottom: 1px solid var(--line);
+      font-size: 0.88rem;
+    }
+    .order-item-summary:last-child { border-bottom: none; }
+    .order-total-row {
+      display: flex;
+      justify-content: space-between;
+      font-weight: 700;
+      font-size: 1.1rem;
+      padding-top: 0.75rem;
+      border-top: 2px solid var(--line);
+      margin-top: 0.5rem;
+    }
+
+    /* Checkout button */
+    .checkout-btn {
+      width: 100%;
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      border-radius: 12px;
+      padding: 1rem;
+      font: inherit;
+      font-size: 1rem;
+      font-weight: 700;
+      cursor: pointer;
+      margin-top: 1rem;
+      transition: background 150ms;
+    }
+    .checkout-btn:hover { background: var(--accent-dark); }
+    .checkout-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+
+    .secure-note {
+      text-align: center;
+      color: var(--muted);
+      font-size: 0.75rem;
+      margin-top: 0.6rem;
+    }
+
+    .back-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+      color: var(--muted);
+      text-decoration: none;
+      font-size: 0.85rem;
+      margin-bottom: 1.25rem;
+    }
+    .back-link:hover { color: var(--accent); }
+
+    .section-label {
+      font-size: 0.75rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.07em;
+      color: var(--muted);
+      margin: 1.2rem 0 0.6rem;
+    }
+  </style>
+</head>
+<body>
+
+  <header class="site-header">
+    <div class="container header-inner">
+      <div>
+        <p class="eyebrow">Secure Checkout</p>
+        <h1><a href="/" style="text-decoration:none;color:inherit;">Fiesta Liquor</a></h1>
+      </div>
+    </div>
+  </header>
+
+  <main class="container">
+    <a href="/" class="back-link">← Continue shopping</a>
+
+    <div class="checkout-wrap">
+      <!-- Left: Form -->
+      <div>
+        <form id="checkoutForm" novalidate>
+
+          <!-- Order type -->
+          <div class="card" style="margin-bottom:1.25rem;">
+            <h2>How would you like to receive your order?</h2>
+            <div class="order-type-row">
+              <label class="order-type-label selected" id="pickupLabel">
+                <input type="radio" name="orderType" value="pickup" checked onchange="toggleAddressField()">
+                <strong>Store Pickup</strong>
+                <span>Ready in ~20 min · Free</span>
+              </label>
+              <label class="order-type-label" id="deliveryLabel">
+                <input type="radio" name="orderType" value="delivery" onchange="toggleAddressField()">
+                <strong>Delivery</strong>
+                <span>To your door · $7.99</span>
+              </label>
+            </div>
+          </div>
+
+          <!-- Contact info -->
+          <div class="card" style="margin-bottom:1.25rem;">
+            <h2>Your Information</h2>
+            <div class="form-row">
+              <div class="form-group">
+                <label for="firstName">First Name *</label>
+                <input type="text" id="firstName" autocomplete="given-name" required>
+              </div>
+              <div class="form-group">
+                <label for="lastName">Last Name *</label>
+                <input type="text" id="lastName" autocomplete="family-name" required>
+              </div>
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label for="email">Email *</label>
+                <input type="email" id="email" autocomplete="email" required>
+              </div>
+              <div class="form-group">
+                <label for="phone">Phone *</label>
+                <input type="tel" id="phone" autocomplete="tel" required>
+              </div>
+            </div>
+
+            <!-- Delivery address (shown only when delivery selected) -->
+            <div id="addressField">
+              <p class="section-label">Delivery Address</p>
+              <div class="form-group">
+                <label for="streetAddress">Street Address *</label>
+                <input type="text" id="streetAddress" autocomplete="address-line1">
+              </div>
+              <div class="form-group">
+                <label for="apartment">Apt / Suite</label>
+                <input type="text" id="apartment" autocomplete="address-line2">
+              </div>
+              <div class="form-row">
+                <div class="form-group">
+                  <label for="city">City *</label>
+                  <input type="text" id="city" autocomplete="address-level2">
+                </div>
+                <div class="form-group">
+                  <label for="state">State *</label>
+                  <input type="text" id="state" autocomplete="address-level1" maxlength="2" placeholder="TX">
+                </div>
+              </div>
+              <div class="form-group">
+                <label for="zipCode">ZIP Code *</label>
+                <input type="text" id="zipCode" autocomplete="postal-code" maxlength="5" pattern="\d{5}" inputmode="numeric">
+              </div>
+              <div id="deliveryTimeEstimate" class="delivery-estimate">
+                Estimated delivery: <strong id="estimatedTime"></strong>
+              </div>
+            </div>
+          </div>
+
+          <!-- Promo code -->
+          <div class="card">
+            <h2>Discount Code</h2>
+            <div class="promo-row">
+              <input type="text" id="promoCodeInput" placeholder="Enter code" autocomplete="off">
+              <button type="button" onclick="applyPromoCode()">Apply</button>
+            </div>
+            <p id="promoCodeMessage"></p>
+          </div>
+
+        </form>
+      </div>
+
+      <!-- Right: Order Summary -->
+      <div class="order-summary-col">
+        <div class="card">
+          <h2>Order Summary</h2>
+          <div id="orderSummaryItems"></div>
+          <div class="order-total-row">
+            <span>Total</span>
+            <span id="orderTotal">$0.00</span>
+          </div>
+
+          <button class="checkout-btn" type="button" onclick="proceedToPayment()">
+            Proceed to Payment
+          </button>
+          <p class="secure-note">🔒 Payments securely processed by Stripe</p>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- Firebase Compat SDK -->
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
+  <script src="/firebase.js"></script>
+  <script src="/firebase-auth.js"></script>
+  <script src="/api.js"></script>
+  <script src="/checkout.js"></script>
+
+  <script>
+    // Highlight the selected order-type card visually
+    document.querySelectorAll('input[name="orderType"]').forEach(radio => {
+      radio.addEventListener('change', function() {
+        document.getElementById('pickupLabel').classList.toggle('selected', !this.value || this.value === 'pickup');
+        document.getElementById('deliveryLabel').classList.toggle('selected', this.value === 'delivery');
+      });
+    });
+  </script>
+</body>
+</html>

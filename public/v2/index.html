@@ -1,0 +1,117 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Fiesta Liquor | Fast Pickup & Delivery</title>
+  <meta name="description" content="A faster, cleaner Fiesta Liquor shopping experience with smart search, category filtering, and streamlined checkout.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/v2/styles.css">
+</head>
+<body>
+  <a class="skip-link" href="#catalog">Skip to products</a>
+
+  <header class="site-header">
+    <div class="container header-inner">
+      <div>
+        <p class="eyebrow">Local. Curated. Reliable.</p>
+        <h1>Fiesta Liquor</h1>
+      </div>
+      <div class="header-actions">
+        <a class="ghost-btn" href="/account" id="accountLink">Account</a>
+        <a class="ghost-btn" href="/auth" id="authLink">Sign In</a>
+        <button id="openCartBtn" class="cart-btn" aria-label="Open cart">
+          Cart <span id="cartCount">0</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <section class="hero container" aria-labelledby="hero-title">
+      <div>
+        <p class="kicker">San Antonio's favorite liquor store</p>
+        <h2 id="hero-title">Premium spirits, fast pickup & delivery.</h2>
+        <p class="hero-copy">Browse 100+ products, choose your size, and check out in minutes. Pickup or delivery available.</p>
+        <div class="hero-cta-row">
+          <a href="#catalog" class="primary-btn">Browse Products</a>
+          <a href="/checkout" class="ghost-btn">Go to Checkout</a>
+        </div>
+      </div>
+      <aside class="stat-grid" aria-label="Store highlights">
+        <div><strong>Fast</strong><span>Lightweight page and API-only data fetch</span></div>
+        <div><strong>Smart</strong><span>Live search and category filters</span></div>
+        <div><strong>Secure</strong><span>Server-side auth and restricted API origin support</span></div>
+      </aside>
+    </section>
+
+    <section class="controls container" id="catalog" aria-label="Product controls">
+      <div class="search-wrap">
+        <label for="searchInput" class="sr-only">Search products</label>
+        <input id="searchInput" type="search" placeholder="Search by name or category" autocomplete="off">
+      </div>
+
+      <div id="categoryFilters" class="chip-row" role="tablist" aria-label="Category filters"></div>
+
+      <div class="sort-wrap">
+        <label for="sortSelect">Sort</label>
+        <select id="sortSelect">
+          <option value="featured">Featured</option>
+          <option value="priceAsc">Price: Low to High</option>
+          <option value="priceDesc">Price: High to Low</option>
+          <option value="nameAsc">Name: A-Z</option>
+        </select>
+      </div>
+    </section>
+
+    <section class="container">
+      <p id="resultMeta" class="result-meta">Loading products...</p>
+      <div id="productGrid" class="product-grid" aria-live="polite"></div>
+    </section>
+  </main>
+
+  <aside id="cartDrawer" class="cart-drawer" aria-label="Shopping cart" aria-hidden="true">
+    <div class="cart-drawer-header">
+      <h3>Your Cart <span class="cart-header-count" id="cartHeaderCount">0</span></h3>
+      <button id="closeCartBtn" class="cart-close-btn" aria-label="Close cart">✕</button>
+    </div>
+    <div id="cartItems" class="cart-items"></div>
+    <div class="cart-summary">
+      <div class="cart-summary-row">
+        <span>Subtotal</span>
+        <span id="cartTotal">$0.00</span>
+      </div>
+      <div class="cart-summary-row">
+        <span>Tax & fees calculated at checkout</span>
+      </div>
+      <div class="cart-total-row">
+        <span>Estimated Total</span>
+        <span id="cartTotalBig">$0.00</span>
+      </div>
+      <a class="cart-checkout-btn" href="/checkout">Proceed to Checkout →</a>
+    </div>
+  </aside>
+
+  <div id="cartBackdrop" class="cart-backdrop" hidden></div>
+
+  <template id="productCardTemplate">
+    <article class="product-card">
+      <img class="product-image" alt="" loading="lazy">
+      <div class="product-content">
+        <p class="product-category"></p>
+        <h3 class="product-name"></h3>
+        <p class="product-description"></p>
+        <div class="size-chips"></div>
+        <div class="product-footer">
+          <p class="product-price"></p>
+          <button class="primary-btn add-btn" type="button">Add</button>
+        </div>
+      </div>
+    </article>
+  </template>
+
+  <script src="/v2/app.js" defer></script>
+</body>
+</html>

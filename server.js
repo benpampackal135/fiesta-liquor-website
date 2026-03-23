@@ -12,18 +12,89 @@ const jwt = require("jsonwebtoken");
 const crypto = require("crypto");
 const nodemailer = require("nodemailer");
 const twilio = require("twilio");
+const multer = require("multer");
+
+// Multer — save product images into public/images/
+const imageStorage = multer.diskStorage({
+    destination: (req, file, cb) => {
+        const dir = path.join(__dirname, "public/images");
+        if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+        cb(null, dir);
+    },
+    filename: (req, file, cb) => {
+        const ext = path.extname(file.originalname).toLowerCase();
+        const base = path.basename(file.originalname, ext)
+            .replace(/[^a-z0-9]/gi, "-").toLowerCase().slice(0, 40);
+        cb(null, `${base}-${Date.now()}${ext}`);
+    }
+});
+const uploadImage = multer({
+    storage: imageStorage,
+    limits: { fileSize: 5 * 1024 * 1024 }, // 5 MB
+    fileFilter: (req, file, cb) => {
+        if (/^image\/(jpeg|png|webp|gif|svg\+xml)$/.test(file.mimetype)) cb(null, true);
+        else cb(new Error("Only image files are allowed"));
+    }
+});
 
 const app = express();
 
-// Configure CORS to allow all origins (will restrict later)
+function parseCsvEnv(value) {
+    return String(value || "")
+        .split(",")
+        .map(item => item.trim())
+        .filter(Boolean);
+}
+
+const adminEmails = parseCsvEnv(process.env.ADMIN_EMAILS).map(email => email.toLowerCase());
+const primaryAdminEmail = adminEmails[0] || "bensonpampackal456@gmail.com";
+
+const configuredCorsOrigins = parseCsvEnv(process.env.CORS_ORIGINS);
+const defaultCorsOrigins = [
+    "http://localhost:4242",
+    "http://127.0.0.1:4242",
+    "http://localhost:5000",
+    "http://127.0.0.1:5000",
+    process.env.SITE_URL
+].filter(Boolean);
+
+const allowedOrigins = [...new Set([...defaultCorsOrigins, ...configuredCorsOrigins])];
+
 app.use(cors({
-    origin: '*',
+    origin: (origin, callback) => {
+        if (!origin || allowedOrigins.length === 0 || allowedOrigins.includes(origin)) {
+            callback(null, true);
+            return;
+        }
+        callback(new Error("CORS origin denied"));
+    },
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
     allowedHeaders: ['Content-Type', 'Authorization']
 }));
 
 app.use(express.json());
+
+// ── V2 clean-URL routes (must come BEFORE static middleware) ──────────────────
+app.get('/',        (req, res) => res.sendFile(path.join(__dirname, 'public/v2/index.html')));
+app.get('/auth',    (req, res) => res.sendFile(path.join(__dirname, 'public/v2/auth.html')));
+app.get('/checkout',(req, res) => res.sendFile(path.join(__dirname, 'public/v2/checkout.html')));
+app.get('/success', (req, res) => res.sendFile(path.join(__dirname, 'public/v2/success.html')));
+app.get('/account',        (req, res) => res.sendFile(path.join(__dirname, 'public/v2/account.html')));
+app.get('/reset-password', (req, res) => res.sendFile(path.join(__dirname, 'public/v2/reset-password.html')));
+app.get('/admin',          (req, res) => res.sendFile(path.join(__dirname, 'public/admin-dashboard.html')));
+// ─────────────────────────────────────────────────────────────────────────────
+
+// ── Image upload (admin only) ─────────────────────────────────────────────────
+app.post("/api/upload/image", authenticateToken, requireAdmin, uploadImage.single("image"), (req, res) => {
+    if (!req.file) return res.status(400).json({ error: "No file uploaded" });
+    res.json({ url: `images/${req.file.filename}` });
+});
+// ─────────────────────────────────────────────────────────────────────────────
+
 app.use(express.static('public'));
+app.get('/v2', (req, res) => {
+    res.redirect('/v2/');
+});
 // Helper: site URL (override with SITE_URL)
 function getSiteUrl(req) {
     const configured = process.env.SITE_URL;
@@ -403,7 +474,7 @@ function initDataFiles() {
         const defaultAdmin = {
             id: 1,
             name: "Admin",
-            email: "bensonpampackal456@gmail.com",
+            email: primaryAdminEmail,
             firebaseUid: null,
             isFirebaseUser: true,
             password: null,
@@ -425,14 +496,14 @@ function initDataFiles() {
             cart: []
         };
         fs.writeFileSync(USERS_FILE, JSON.stringify([defaultAdmin, testCustomer], null, 2));
-        console.log('✅ Created default admin user: bensonpampackal456@gmail.com (Firebase user)');
+        console.log(`✅ Created default admin user: ${primaryAdminEmail} (Firebase user)`);
         console.log('✅ Created test customer: customer@test.com / password123');
     } else {
         // Ensure the correct admin exists and old admin is removed
         try {
             const users = JSON.parse(fs.readFileSync(USERS_FILE, 'utf8'));
             const oldAdminEmail = 'admin@fiestaliquor.com';
-            const correctAdminEmail = 'bensonpampackal456@gmail.com';
+            const correctAdminEmail = primaryAdminEmail;
             
             // Remove old admin if exists
             const filtered = users.filter(u => u.email !== oldAdminEmail);
@@ -463,11 +534,34 @@ function initDataFiles() {
                 adminExists.password = null;
                 console.log('✅ Confirmed admin privileges for:', correctAdminEmail);
             }
+
+            // Ensure every configured ADMIN_EMAILS entry has admin access.
+            adminEmails.forEach((email) => {
+                const lower = email.toLowerCase();
+                let existing = filtered.find(u => (u.email || "").toLowerCase() === lower);
+                if (!existing) {
+                    existing = {
+                        id: Date.now() + Math.floor(Math.random() * 1000),
+                        name: "Admin",
+                        email: lower,
+                        firebaseUid: null,
+                        isFirebaseUser: true,
+                        password: null,
+                        role: "admin",
+                        status: "active",
+                        joinDate: new Date().toISOString(),
+                        orders: [],
+                        cart: []
+                    };
+                    filtered.push(existing);
+                    console.log('✅ Added configured admin user:', lower);
+                } else {
+                    existing.role = 'admin';
+                    existing.status = 'active';
+                }
+            });
             
-            // Only write if changes were made
-            if (filtered.length !== users.length || !adminExists.role || adminExists.role !== 'admin') {
-                fs.writeFileSync(USERS_FILE, JSON.stringify(filtered, null, 2));
-            }
+            fs.writeFileSync(USERS_FILE, JSON.stringify(filtered, null, 2));
         } catch (error) {
             console.error('Error ensuring admin user:', error);
         }
@@ -1962,6 +2056,7 @@ const PORT = process.env.PORT || 4242;
 app.listen(PORT, () => {
     console.log(`Server running on http://localhost:${PORT}`);
     console.log(`Data directory: ${DATA_DIR}`);
+    console.log(`Allowed CORS origins: ${allowedOrigins.length ? allowedOrigins.join(', ') : 'all (no CORS_ORIGINS configured)'}`);
     
     // Auto-sync on startup if enabled
     if (process.env.CLOVER_AUTO_SYNC === 'true') {

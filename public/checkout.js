@@ -19,7 +19,7 @@ document.addEventListener('DOMContentLoaded', async function() {
     // Check if cart is empty
     if (cart.length === 0) {
         alert('Your cart is empty! Redirecting to home page...');
-        window.location.href = '/index.html';
+        window.location.href = '/';
         return;
     }
     
@@ -139,7 +139,7 @@ async function checkUserAuth() {
                 hasResolved = true;
                 unsubscribe(); // Stop listening before redirect
                 alert('Please log in to checkout.');
-                window.location.href = '/auth.html?redirect=checkout.html';
+                window.location.href = '/auth?redirect=checkout';
             }
         });
     });
@@ -464,18 +464,17 @@ async function proceedToPayment() {
         }
         
         // Call the backend endpoint to create Stripe checkout session
-        const apiBase = window.location.hostname === 'localhost'
-            ? 'http://localhost:3000'
-            : 'https://fiesta-liquor-website-production.up.railway.app';
-        
+        // Use window.location.origin so this works in both local dev and production
+        const apiBase = window.location.origin;
+
         // Pass the current origin (frontend domain) so backend redirects here after Stripe
         const res = await fetch(`${apiBase}/create-checkout-session`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ 
+            body: JSON.stringify({
                 items: items,
-                successUrl: `${window.location.origin}/success.html`,
-                cancelUrl: `${window.location.origin}/checkout.html`
+                successUrl: `${window.location.origin}/success`,
+                cancelUrl: `${window.location.origin}/checkout`
             })
         });
         

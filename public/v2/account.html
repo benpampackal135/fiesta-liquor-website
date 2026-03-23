@@ -1,0 +1,570 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>My Account | Fiesta Liquor</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/v2/styles.css">
+  <style>
+    .account-layout {
+      padding: 2rem 0 4rem;
+      display: grid;
+      grid-template-columns: 260px 1fr;
+      gap: 1.75rem;
+      align-items: start;
+    }
+    @media (max-width: 760px) {
+      .account-layout { grid-template-columns: 1fr; }
+    }
+
+    /* Sidebar */
+    .sidebar {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      overflow: hidden;
+    }
+    .user-banner {
+      background: linear-gradient(135deg, var(--accent), var(--accent-dark));
+      padding: 1.5rem;
+      text-align: center;
+      color: #fff;
+    }
+    .avatar {
+      width: 64px;
+      height: 64px;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.2);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.4rem;
+      font-weight: 700;
+      margin: 0 auto 0.75rem;
+      overflow: hidden;
+    }
+    .avatar img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+    .user-banner h3 { font-size: 1rem; margin-bottom: 0.15rem; }
+    .user-banner p { font-size: 0.78rem; opacity: 0.8; }
+
+    .sidebar-nav {
+      padding: 0.5rem 0;
+    }
+    .nav-item {
+      display: flex;
+      align-items: center;
+      gap: 0.7rem;
+      padding: 0.75rem 1.2rem;
+      font-size: 0.9rem;
+      cursor: pointer;
+      border: none;
+      background: none;
+      width: 100%;
+      text-align: left;
+      font: inherit;
+      color: var(--text);
+      transition: background 120ms;
+      text-decoration: none;
+    }
+    .nav-item:hover { background: var(--bg); }
+    .nav-item.active { background: rgba(17,97,73,0.07); color: var(--accent); font-weight: 500; }
+    .nav-item .icon { font-size: 1rem; width: 1.2rem; text-align: center; }
+    .nav-divider { height: 1px; background: var(--line); margin: 0.5rem 0; }
+    .nav-item.danger { color: #c0392b; }
+    .nav-item.danger:hover { background: #fde8e8; }
+    .admin-badge {
+      font-size: 0.65rem;
+      background: var(--accent);
+      color: #fff;
+      border-radius: 4px;
+      padding: 0.1rem 0.4rem;
+      margin-left: auto;
+    }
+
+    /* Content panels */
+    .panel { display: none; }
+    .panel.active { display: block; }
+
+    .panel-card {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 1.5rem;
+      margin-bottom: 1.25rem;
+    }
+    .panel-card h2 {
+      font-size: 1.1rem;
+      margin-bottom: 1.25rem;
+      padding-bottom: 0.75rem;
+      border-bottom: 1px solid var(--line);
+    }
+
+    /* Orders */
+    .order-card {
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      overflow: hidden;
+      margin-bottom: 0.9rem;
+    }
+    .order-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      padding: 0.9rem 1rem;
+      background: var(--bg-elevated);
+      border-bottom: 1px solid var(--line);
+      font-size: 0.85rem;
+    }
+    .order-header strong { font-size: 0.92rem; }
+    .status-badge {
+      font-size: 0.72rem;
+      font-weight: 600;
+      padding: 0.2rem 0.55rem;
+      border-radius: 99px;
+      text-transform: capitalize;
+    }
+    .status-badge.pending    { background: #fff3cd; color: #856404; }
+    .status-badge.confirmed  { background: #d1ecf1; color: #0c5460; }
+    .status-badge.ready      { background: #d4edda; color: #155724; }
+    .status-badge.delivered  { background: #d4edda; color: #155724; }
+    .status-badge.completed  { background: #d4edda; color: #155724; }
+    .status-badge.cancelled  { background: #f8d7da; color: #721c24; }
+
+    .order-items {
+      padding: 0.75rem 1rem;
+      font-size: 0.85rem;
+      color: var(--muted);
+    }
+    .order-item-line {
+      display: flex;
+      justify-content: space-between;
+      padding: 0.25rem 0;
+    }
+    .order-total-line {
+      display: flex;
+      justify-content: space-between;
+      font-weight: 700;
+      padding-top: 0.5rem;
+      margin-top: 0.3rem;
+      border-top: 1px solid var(--line);
+      font-size: 0.9rem;
+      color: var(--text);
+    }
+
+    .empty-state {
+      text-align: center;
+      padding: 3rem 1rem;
+      color: var(--muted);
+    }
+    .empty-state p { margin-bottom: 1rem; }
+
+    /* Profile form */
+    .form-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.85rem;
+    }
+    @media (max-width: 500px) { .form-row { grid-template-columns: 1fr; } }
+    .form-group {
+      display: grid;
+      gap: 0.28rem;
+      margin-bottom: 0.85rem;
+    }
+    .form-group label { font-size: 0.8rem; font-weight: 500; }
+    .form-group input {
+      width: 100%;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      background: var(--bg-elevated);
+      font: inherit;
+      padding: 0.68rem 0.8rem;
+      transition: border-color 150ms;
+    }
+    .form-group input:focus { outline: none; border-color: var(--accent); }
+    .form-group input:disabled { opacity: 0.6; cursor: not-allowed; }
+
+    .save-btn {
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      border-radius: 10px;
+      padding: 0.7rem 1.5rem;
+      font: inherit;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 150ms;
+    }
+    .save-btn:hover { background: var(--accent-dark); }
+    .save-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+
+    .msg {
+      border-radius: 8px;
+      padding: 0.6rem 0.8rem;
+      font-size: 0.85rem;
+      margin-bottom: 1rem;
+      display: none;
+    }
+    .msg.error   { background: #fde8e8; color: #c0392b; display: block; }
+    .msg.success { background: #e8f8ef; color: #1a7a4a; display: block; }
+
+    .loading-row {
+      text-align: center;
+      color: var(--muted);
+      padding: 2rem;
+      font-size: 0.9rem;
+    }
+  </style>
+</head>
+<body>
+
+  <header class="site-header">
+    <div class="container header-inner">
+      <div>
+        <p class="eyebrow">My Account</p>
+        <h1><a href="/" style="text-decoration:none;color:inherit;">Fiesta Liquor</a></h1>
+      </div>
+      <div class="header-actions">
+        <a class="ghost-btn" href="/">← Shop</a>
+      </div>
+    </div>
+  </header>
+
+  <main class="container">
+    <!-- Auth guard — shown while checking -->
+    <div id="authGuard" style="text-align:center;padding:4rem 1rem;color:var(--muted);">Loading…</div>
+
+    <div id="accountLayout" class="account-layout" style="display:none">
+
+      <!-- Sidebar -->
+      <aside class="sidebar">
+        <div class="user-banner">
+          <div class="avatar" id="avatarEl"></div>
+          <h3 id="sidebarName">—</h3>
+          <p id="sidebarEmail">—</p>
+        </div>
+        <nav class="sidebar-nav">
+          <button class="nav-item active" onclick="showPanel('orders')" id="navOrders">
+            <span class="icon">📦</span> My Orders
+          </button>
+          <button class="nav-item" onclick="showPanel('profile')" id="navProfile">
+            <span class="icon">👤</span> Profile
+          </button>
+          <div id="adminNavItem" style="display:none">
+            <div class="nav-divider"></div>
+            <a class="nav-item" href="/admin">
+              <span class="icon">⚙️</span> Admin Dashboard
+              <span class="admin-badge">Admin</span>
+            </a>
+          </div>
+          <div class="nav-divider"></div>
+          <button class="nav-item danger" onclick="signOut()">
+            <span class="icon">🚪</span> Sign Out
+          </button>
+        </nav>
+      </aside>
+
+      <!-- Content -->
+      <div>
+
+        <!-- Orders panel -->
+        <div class="panel active" id="panelOrders">
+          <div class="panel-card">
+            <h2>My Orders</h2>
+            <div id="ordersList"><div class="loading-row">Loading orders…</div></div>
+          </div>
+        </div>
+
+        <!-- Profile panel -->
+        <div class="panel" id="panelProfile">
+          <div class="panel-card">
+            <h2>Edit Profile</h2>
+            <div id="profileMsg" class="msg"></div>
+            <div class="form-row">
+              <div class="form-group">
+                <label for="profName">Full Name</label>
+                <input type="text" id="profName" autocomplete="name">
+              </div>
+              <div class="form-group">
+                <label for="profPhone">Phone</label>
+                <input type="tel" id="profPhone" autocomplete="tel">
+              </div>
+            </div>
+            <div class="form-group">
+              <label for="profEmail">Email</label>
+              <input type="email" id="profEmail" disabled autocomplete="email">
+            </div>
+            <button class="save-btn" id="saveProfileBtn" onclick="saveProfile()">Save Changes</button>
+          </div>
+
+          <div class="panel-card">
+            <h2>Change Password</h2>
+            <p style="font-size:0.85rem;color:var(--muted);margin-bottom:1rem;">
+              If you signed in with Google, password changes are managed through your Google account.
+            </p>
+            <div id="pwdMsg" class="msg"></div>
+            <div class="form-group">
+              <label for="pwdCurrent">Current Password</label>
+              <input type="password" id="pwdCurrent" autocomplete="current-password">
+            </div>
+            <div class="form-group">
+              <label for="pwdNew">New Password (min. 6 chars)</label>
+              <input type="password" id="pwdNew" autocomplete="new-password">
+            </div>
+            <button class="save-btn" id="changePwdBtn" onclick="changePassword()">Update Password</button>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </main>
+
+  <!-- Firebase Compat SDK -->
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
+  <script src="/firebase.js"></script>
+  <script src="/firebase-auth.js"></script>
+  <script src="/api.js"></script>
+
+  <script>
+    const currency = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' });
+    let currentUser = null;
+
+    // ─── Auth guard ──────────────────────────────────────────────────────────────
+    async function initAccount() {
+      // Check localStorage first for fast render
+      const storedUser = JSON.parse(
+        localStorage.getItem('currentUser') || localStorage.getItem('user') || 'null'
+      );
+      const firebaseUserInfo = JSON.parse(localStorage.getItem('firebaseUser') || 'null');
+
+      if (!storedUser && !firebaseUserInfo) {
+        window.location.href = '/auth?redirect=account';
+        return;
+      }
+
+      // Use stored data immediately, then refresh from server
+      currentUser = storedUser || {
+        name: firebaseUserInfo.displayName || firebaseUserInfo.email,
+        email: firebaseUserInfo.email
+      };
+
+      renderSidebar();
+      showLayout();
+      loadOrders();
+
+      // Refresh from server in background
+      try {
+        const me = await apiRequest('/api/auth/me');
+        if (me) {
+          currentUser = me;
+          localStorage.setItem('currentUser', JSON.stringify(me));
+          renderSidebar();
+        }
+      } catch (e) {
+        // silently fail — use stored data
+      }
+    }
+
+    function showLayout() {
+      document.getElementById('authGuard').style.display = 'none';
+      document.getElementById('accountLayout').style.display = 'grid';
+    }
+
+    function renderSidebar() {
+      const name = currentUser.name || currentUser.displayName || '';
+      const email = currentUser.email || '';
+      const initial = (name[0] || email[0] || '?').toUpperCase();
+
+      document.getElementById('sidebarName').textContent = name || email;
+      document.getElementById('sidebarEmail').textContent = email;
+
+      const avatarEl = document.getElementById('avatarEl');
+      const firebaseUser = JSON.parse(localStorage.getItem('firebaseUser') || 'null');
+      if (firebaseUser && firebaseUser.photoURL) {
+        avatarEl.innerHTML = `<img src="${firebaseUser.photoURL}" alt="avatar">`;
+      } else {
+        avatarEl.textContent = initial;
+      }
+
+      if (currentUser.role === 'admin') {
+        document.getElementById('adminNavItem').style.display = '';
+      }
+
+      // Pre-fill profile fields
+      document.getElementById('profName').value  = name;
+      document.getElementById('profPhone').value = currentUser.phone || '';
+      document.getElementById('profEmail').value = email;
+    }
+
+    // ─── Panel switching ─────────────────────────────────────────────────────────
+    function showPanel(name) {
+      document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+      document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+      document.getElementById('panel' + name.charAt(0).toUpperCase() + name.slice(1)).classList.add('active');
+      document.getElementById('nav' + name.charAt(0).toUpperCase() + name.slice(1)).classList.add('active');
+    }
+
+    // ─── Orders ──────────────────────────────────────────────────────────────────
+    async function loadOrders() {
+      const list = document.getElementById('ordersList');
+      list.innerHTML = '<div class="loading-row">Loading orders…</div>';
+      try {
+        const orders = await apiRequest('/api/orders');
+        if (!orders || orders.length === 0) {
+          list.innerHTML = `
+            <div class="empty-state">
+              <p>No orders yet.</p>
+              <a href="/" class="save-btn" style="display:inline-block;text-decoration:none">Start Shopping</a>
+            </div>`;
+          return;
+        }
+        // Sort newest first
+        const sorted = [...orders].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+        list.innerHTML = sorted.map(renderOrder).join('');
+      } catch (e) {
+        list.innerHTML = `<div class="empty-state"><p>Could not load orders. ${escapeHtml(e.message)}</p></div>`;
+      }
+    }
+
+    function renderOrder(order) {
+      const date = new Date(order.createdAt).toLocaleDateString('en-US', {
+        month: 'short', day: 'numeric', year: 'numeric'
+      });
+      const status = order.status || 'pending';
+      const items = Array.isArray(order.items) ? order.items : [];
+      const itemLines = items.map(it =>
+        `<div class="order-item-line">
+          <span>${escapeHtml(it.name)}${it.selectedSize ? ` <small>(${escapeHtml(it.selectedSize.size || it.selectedSize)})</small>` : ''} × ${it.quantity}</span>
+          <span>${currency.format(it.price * it.quantity)}</span>
+        </div>`
+      ).join('');
+
+      return `
+        <div class="order-card">
+          <div class="order-header">
+            <div>
+              <strong>Order #${order.id}</strong>
+              <span style="color:var(--muted);margin-left:0.5rem;font-size:0.8rem;">${date}</span>
+            </div>
+            <div style="display:flex;gap:0.5rem;align-items:center;">
+              <span style="font-size:0.8rem;color:var(--muted);text-transform:capitalize;">${order.orderType || 'pickup'}</span>
+              <span class="status-badge ${status}">${status}</span>
+            </div>
+          </div>
+          <div class="order-items">
+            ${itemLines}
+            <div class="order-total-line">
+              <span>Total</span>
+              <span>${currency.format(order.total || 0)}</span>
+            </div>
+          </div>
+        </div>`;
+    }
+
+    // ─── Profile ─────────────────────────────────────────────────────────────────
+    async function saveProfile() {
+      const btn = document.getElementById('saveProfileBtn');
+      const msg = document.getElementById('profileMsg');
+      msg.className = 'msg';
+
+      const name  = document.getElementById('profName').value.trim();
+      const phone = document.getElementById('profPhone').value.trim();
+
+      if (!name) {
+        msg.textContent = 'Name is required.';
+        msg.className = 'msg error';
+        return;
+      }
+
+      btn.disabled = true;
+      btn.textContent = 'Saving…';
+      try {
+        const updated = await apiRequest('/api/users/profile', {
+          method: 'PUT',
+          body: JSON.stringify({ name, phone })
+        });
+        currentUser = { ...currentUser, name, phone };
+        localStorage.setItem('currentUser', JSON.stringify(currentUser));
+        renderSidebar();
+        msg.textContent = 'Profile updated!';
+        msg.className = 'msg success';
+      } catch (e) {
+        msg.textContent = e.message || 'Failed to save profile.';
+        msg.className = 'msg error';
+      } finally {
+        btn.disabled = false;
+        btn.textContent = 'Save Changes';
+      }
+    }
+
+    async function changePassword() {
+      const btn = document.getElementById('changePwdBtn');
+      const msg = document.getElementById('pwdMsg');
+      msg.className = 'msg';
+
+      const current = document.getElementById('pwdCurrent').value;
+      const newPwd  = document.getElementById('pwdNew').value;
+
+      if (!current || !newPwd) {
+        msg.textContent = 'Please fill in both fields.';
+        msg.className = 'msg error';
+        return;
+      }
+      if (newPwd.length < 6) {
+        msg.textContent = 'New password must be at least 6 characters.';
+        msg.className = 'msg error';
+        return;
+      }
+
+      btn.disabled = true;
+      btn.textContent = 'Updating…';
+      try {
+        await apiRequest('/api/users/profile', {
+          method: 'PUT',
+          body: JSON.stringify({ currentPassword: current, newPassword: newPwd })
+        });
+        msg.textContent = 'Password updated successfully.';
+        msg.className = 'msg success';
+        document.getElementById('pwdCurrent').value = '';
+        document.getElementById('pwdNew').value = '';
+      } catch (e) {
+        msg.textContent = e.message || 'Failed to update password.';
+        msg.className = 'msg error';
+      } finally {
+        btn.disabled = false;
+        btn.textContent = 'Update Password';
+      }
+    }
+
+    // ─── Sign out ─────────────────────────────────────────────────────────────────
+    function signOut() {
+      if (typeof window.firebaseAuth !== 'undefined') {
+        window.firebaseAuth.firebaseSignOut();
+      } else {
+        localStorage.removeItem('authToken');
+        localStorage.removeItem('token');
+        localStorage.removeItem('currentUser');
+        localStorage.removeItem('user');
+        window.location.href = '/';
+      }
+    }
+
+    function escapeHtml(t) {
+      return String(t)
+        .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+        .replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+    }
+
+    initAccount();
+  </script>
+</body>
+</html>

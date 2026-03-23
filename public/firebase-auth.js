@@ -168,10 +168,13 @@ async function handleGoogleSignInSuccess(user) {
     
     // Redirect based on page
     // On iOS Safari, use href instead of reload for better reliability
-    if (window.location.pathname.includes('auth.html')) {
-      console.log('Redirecting from auth.html to index.html');
+    if (window.location.pathname.includes('auth.html') || window.location.pathname === '/auth') {
+      console.log('Redirecting from auth page to home');
+      // Check for redirect param
+      const params = new URLSearchParams(window.location.search);
+      const redirectTo = params.get('redirect') ? '/' + params.get('redirect') : '/';
       setTimeout(() => {
-        window.location.href = '/index.html';
+        window.location.href = redirectTo;
       }, 500);
     } else {
       console.log('Redirecting to update UI');
@@ -214,9 +217,9 @@ function shouldUseRedirect() {
   if (isIOSSafari()) {
     return true;
   }
-  // Use redirect by default for better reliability (popups are often blocked)
-  // Set to false if you want to try popup first on desktop
-  return true; // Changed to true - redirect is more reliable across all browsers
+  // Desktop: use popup (faster, no full page reload)
+  // Mobile: use redirect (popups are blocked by mobile browsers)
+  return false;
 }
 
 // Sign in with Google
@@ -418,16 +421,18 @@ async function signUpWithEmail(email, password, displayName) {
     updateAuthUI();
     
     // Redirect based on page
-    if (window.location.pathname.includes('auth.html')) {
-      console.log('Redirecting from auth.html to index.html');
+    if (window.location.pathname.includes('auth.html') || window.location.pathname === '/auth') {
+      console.log('Redirecting from auth page to home');
+      const params = new URLSearchParams(window.location.search);
+      const redirectTo = params.get('redirect') ? '/' + params.get('redirect') : '/';
       setTimeout(() => {
-        window.location.href = '/index.html';
+        window.location.href = redirectTo;
       }, 500);
     } else {
       console.log('Refreshing page to update UI');
       window.location.reload();
     }
-    
+
     return user;
   } catch (error) {
     console.error('Sign-up error:', error);
@@ -516,16 +521,18 @@ async function signInWithEmail(email, password) {
     updateAuthUI();
     
     // Redirect based on page
-    if (window.location.pathname.includes('auth.html')) {
-      console.log('Redirecting from auth.html to index.html');
+    if (window.location.pathname.includes('auth.html') || window.location.pathname === '/auth') {
+      console.log('Redirecting from auth page to home');
+      const params = new URLSearchParams(window.location.search);
+      const redirectTo = params.get('redirect') ? '/' + params.get('redirect') : '/';
       setTimeout(() => {
-        window.location.href = '/index.html';
+        window.location.href = redirectTo;
       }, 500);
     } else {
       console.log('Refreshing page to update UI');
       window.location.reload();
     }
-    
+
     return user;
   } catch (error) {
     console.error('Sign-in error:', error);
@@ -574,7 +581,7 @@ async function firebaseSignOut() {
     
     console.log('Signed out');
     updateAuthUI();
-    window.location.href = '/index.html';
+    window.location.href = '/';
   } catch (error) {
     console.error('Sign-out error:', error);
   }
