@@ -530,8 +530,13 @@ function initDataFiles() {
                 // Ensure it's admin
                 adminExists.role = 'admin';
                 adminExists.status = 'active';
-                adminExists.isFirebaseUser = true;
-                adminExists.password = null;
+                // Set a password if one isn't set, so email/password login always works
+                if (!adminExists.password) {
+                    const defaultPwd = process.env.ADMIN_PASSWORD || 'FiestaAdmin2024!';
+                    adminExists.password = bcrypt.hashSync(defaultPwd, 10);
+                    adminExists.isFirebaseUser = false;
+                    console.log('✅ Set fallback password for admin:', correctAdminEmail);
+                }
                 console.log('✅ Confirmed admin privileges for:', correctAdminEmail);
             }
 
