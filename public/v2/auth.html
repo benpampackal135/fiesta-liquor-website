@@ -300,17 +300,19 @@
 
       setLoading('loginBtn', true);
       try {
-        // Try Firebase email/password first (handles Firebase + native backend users)
-        if (typeof window.firebaseAuth !== 'undefined') {
-          await window.firebaseAuth.signInWithEmail(email, password);
-          // firebase-auth.js handles redirect
-        } else {
-          // Fallback: native backend auth
-          await authAPI.login(email, password);
-          const params = new URLSearchParams(window.location.search);
-          const redirectTo = params.get('redirect') ? '/' + params.get('redirect') : '/';
-          window.location.href = redirectTo;
+        // Always use backend API for email/password login
+        // (Google accounts don't have Firebase email/password credentials)
+        const data = await authAPI.login(email, password);
+        if (data.token) {
+          localStorage.setItem('authToken', data.token);
+          localStorage.setItem('token', data.token);
         }
+        if (data.user) {
+          localStorage.setItem('currentUser', JSON.stringify(data.user));
+        }
+        const params = new URLSearchParams(window.location.search);
+        const redirectTo = params.get('redirect') ? '/' + params.get('redirect') : '/';
+        window.location.href = redirectTo;
       } catch (err) {
         showMsg(err.message || 'Login failed. Check your email and password.', 'error');
         setLoading('loginBtn', false);
