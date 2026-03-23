@@ -158,7 +158,8 @@ async function handleGoogleSignInSuccess(user) {
       }
     } catch (backendError) {
       console.error('Backend registration error:', backendError);
-      // Don't fail the login - user is authenticated with Firebase
+      // Clear potentially stale role info so admin dashboard re-validates via /api/auth/me
+      localStorage.removeItem('currentUser');
     }
     
     // Restore cart from server
@@ -413,8 +414,9 @@ async function signUpWithEmail(email, password, displayName) {
       }
     } catch (backendError) {
       console.error('Backend registration error:', backendError);
+      localStorage.removeItem('currentUser');
     }
-    
+
     // Restore cart from server
     await syncCartOnLogin(token);
     
