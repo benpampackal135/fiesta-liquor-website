@@ -302,7 +302,6 @@ function renderCart() {
   if (!state.cart.length) {
     elements.cartItems.innerHTML = `
       <div class="cart-empty">
-        <div class="cart-empty-icon">🛒</div>
         <p>Your cart is empty</p>
         <small>Add something from the catalog below</small>
       </div>`;

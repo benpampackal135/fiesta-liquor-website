@@ -265,25 +265,13 @@
     <p>Admin Dashboard</p>
   </div>
   <nav class="sidebar-nav">
-    <button class="nav-item active" onclick="showPanel('overview')" id="nav-overview">
-      <span class="nav-icon">📊</span> Overview
-    </button>
-    <button class="nav-item" onclick="showPanel('products')" id="nav-products">
-      <span class="nav-icon">🍾</span> Products
-    </button>
-    <button class="nav-item" onclick="showPanel('orders')" id="nav-orders">
-      <span class="nav-icon">📦</span> Orders
-    </button>
-    <button class="nav-item" onclick="showPanel('customers')" id="nav-customers">
-      <span class="nav-icon">👥</span> Customers
-    </button>
+    <button class="nav-item active" onclick="showPanel('overview')" id="nav-overview">Overview</button>
+    <button class="nav-item" onclick="showPanel('products')" id="nav-products">Products</button>
+    <button class="nav-item" onclick="showPanel('orders')" id="nav-orders">Orders</button>
+    <button class="nav-item" onclick="showPanel('customers')" id="nav-customers">Customers</button>
     <div class="nav-sep"></div>
-    <button class="nav-item" onclick="showPanel('promos')" id="nav-promos">
-      <span class="nav-icon">🏷️</span> Promo Codes
-    </button>
-    <button class="nav-item" onclick="showPanel('newsletter')" id="nav-newsletter">
-      <span class="nav-icon">📧</span> Newsletter
-    </button>
+    <button class="nav-item" onclick="showPanel('promos')" id="nav-promos">Promo Codes</button>
+    <button class="nav-item" onclick="showPanel('newsletter')" id="nav-newsletter">Newsletter</button>
   </nav>
   <div class="sidebar-footer">
     <a href="/">← View Store</a>
@@ -446,8 +434,7 @@
         <div style="display:flex;gap:1rem;align-items:flex-start;flex-wrap:wrap;">
           <div class="upload-zone" id="uploadZone">
             <input type="file" id="imageFile" accept="image/*" onchange="handleImageSelect(event)">
-            <div class="up-icon">🖼️</div>
-            <p><strong>Click to upload</strong> or drag & drop</p>
+            <p><strong>Click to upload</strong> or drag &amp; drop</p>
             <p>JPG, PNG, WEBP up to 5MB</p>
           </div>
           <div class="img-preview-wrap">
@@ -851,7 +838,7 @@ async function uploadImageIfNeeded() {
     return data.url;
   } catch(err) {
     prog.style.display = 'none';
-    $('uploadStatus').textContent = '❌ Upload failed — using URL below if set';
+    $('uploadStatus').textContent = 'Upload failed — using URL below if set';
     return $('productImageUrl').value || null;
   }
 }
