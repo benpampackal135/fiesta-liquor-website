@@ -6,113 +6,8 @@
   <title>Order Confirmed | Fiesta Liquor</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/v2/styles.css">
-  <style>
-    .success-page {
-      min-height: 100vh;
-      display: flex;
-      flex-direction: column;
-    }
-    .success-main {
-      flex: 1;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      padding: 2rem 1rem;
-    }
-    .success-card {
-      background: var(--card);
-      border: 1px solid var(--line);
-      border-radius: var(--radius);
-      box-shadow: var(--shadow);
-      width: 100%;
-      max-width: 540px;
-      padding: 2.5rem 2rem;
-      text-align: center;
-    }
-    .check-icon {
-      width: 64px;
-      height: 64px;
-      background: rgba(17, 97, 73, 0.1);
-      border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      margin: 0 auto 1.25rem;
-    }
-    .check-icon svg {
-      width: 32px;
-      height: 32px;
-      stroke: var(--accent);
-    }
-    .success-card h2 {
-      font-size: 1.6rem;
-      margin-bottom: 0.4rem;
-    }
-    .success-card .subtitle {
-      color: var(--muted);
-      font-size: 0.9rem;
-      margin-bottom: 1.75rem;
-    }
-    .order-details {
-      background: var(--bg-elevated);
-      border: 1px solid var(--line);
-      border-radius: 12px;
-      padding: 1.2rem;
-      text-align: left;
-      margin-bottom: 1.5rem;
-    }
-    .detail-row {
-      display: flex;
-      justify-content: space-between;
-      gap: 0.5rem;
-      font-size: 0.88rem;
-      padding: 0.45rem 0;
-      border-bottom: 1px solid var(--line);
-    }
-    .detail-row:last-child { border-bottom: none; }
-    .detail-row .label { color: var(--muted); }
-    .detail-row .value { font-weight: 600; }
-    .items-list {
-      margin-top: 0.75rem;
-    }
-    .item-row {
-      display: flex;
-      justify-content: space-between;
-      font-size: 0.85rem;
-      padding: 0.3rem 0;
-      color: var(--muted);
-    }
-    .cta-buttons {
-      display: flex;
-      flex-direction: column;
-      gap: 0.65rem;
-    }
-    .cta-buttons a {
-      display: block;
-      width: 100%;
-      padding: 0.85rem;
-      border-radius: 12px;
-      font: inherit;
-      font-size: 0.95rem;
-      font-weight: 600;
-      text-decoration: none;
-      text-align: center;
-      transition: background 150ms;
-    }
-    .cta-primary {
-      background: var(--accent);
-      color: #fff;
-    }
-    .cta-primary:hover { background: var(--accent-dark); }
-    .cta-ghost {
-      background: #fff;
-      border: 1px solid var(--line);
-      color: var(--text);
-    }
-    .cta-ghost:hover { background: var(--bg); }
-  </style>
 </head>
 <body class="success-page">
 
@@ -120,7 +15,7 @@
     <div class="container header-inner">
       <div>
         <p class="eyebrow">Order Confirmed</p>
-        <h1><a href="/" style="text-decoration:none;color:inherit;">Fiesta Liquor</a></h1>
+        <h1><a href="/">Fiesta Liquor</a></h1>
       </div>
     </div>
   </header>
@@ -139,19 +34,19 @@
       <div class="order-details" id="orderDetails" style="display:none">
         <div class="detail-row">
           <span class="label">Order Type</span>
-          <span class="value" id="detOrderType">—</span>
+          <span class="value" id="detOrderType">&mdash;</span>
         </div>
         <div class="detail-row" id="detAddressRow" style="display:none">
           <span class="label">Delivery To</span>
-          <span class="value" id="detAddress">—</span>
+          <span class="value" id="detAddress">&mdash;</span>
         </div>
         <div class="detail-row">
           <span class="label">Name</span>
-          <span class="value" id="detName">—</span>
+          <span class="value" id="detName">&mdash;</span>
         </div>
         <div class="detail-row">
           <span class="label">Email</span>
-          <span class="value" id="detEmail">—</span>
+          <span class="value" id="detEmail">&mdash;</span>
         </div>
         <div class="items-list" id="detItems"></div>
       </div>
@@ -165,10 +60,7 @@
 
   <script>
     (function() {
-      // Load checkout data from localStorage (saved before redirect to Stripe)
       const checkoutDataStr = localStorage.getItem('checkoutData');
-
-      // Clear the cart on successful payment
       localStorage.removeItem('cart');
 
       if (!checkoutDataStr) return;
@@ -186,25 +78,18 @@
         if (orderType === 'delivery' && c.address && typeof c.address === 'object') {
           document.getElementById('detAddressRow').style.display = '';
           document.getElementById('detAddress').textContent =
-            c.address.fullAddress || c.address.street || '—';
+            c.address.fullAddress || c.address.street || '\u2014';
         }
 
         const fullName = [c.firstName, c.lastName].filter(Boolean).join(' ');
-        document.getElementById('detName').textContent = fullName || '—';
-        document.getElementById('detEmail').textContent = c.email || '—';
+        document.getElementById('detName').textContent = fullName || '\u2014';
+        document.getElementById('detEmail').textContent = c.email || '\u2014';
 
-        // Update subtitle
         if (c.email) {
           document.getElementById('successSubtitle').textContent =
             `A confirmation will be sent to ${c.email}.`;
         }
 
-        // Show cart items
-        const cart = JSON.parse(localStorage.getItem('cart') || '[]');
-        // Note: cart already cleared above, but checkoutData has implicit items
-        // We'll just show the order type confirmation for now since cart is cleared
-
-        // Clean up checkout data
         localStorage.removeItem('checkoutData');
       } catch (e) {
         console.error('Could not parse checkout data:', e);

@@ -7,7 +7,7 @@
   <meta name="description" content="A faster, cleaner Fiesta Liquor shopping experience with smart search, category filtering, and streamlined checkout.">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/v2/styles.css">
 </head>
 <body>
@@ -100,11 +100,10 @@
           Our Locations<br>in San Antonio
         </h2>
 
-        <!-- 2×2 Bootstrap grid — stacks to 1 column on mobile -->
-        <div class="row locations-grid">
+        <div class="locations-grid">
 
           <!-- Location 1: Fiesta Liquor #1 -->
-          <div class="col-md-6 location-col scroll-reveal stagger-loc-1">
+          <div class="scroll-reveal stagger-loc-1">
             <article class="location-card">
               <div class="location-map">
                 <iframe
@@ -124,7 +123,7 @@
           </div>
 
           <!-- Location 2: KG Liquor -->
-          <div class="col-md-6 location-col scroll-reveal stagger-loc-2">
+          <div class="scroll-reveal stagger-loc-2">
             <article class="location-card">
               <div class="location-map">
                 <iframe
@@ -144,7 +143,7 @@
           </div>
 
           <!-- Location 3: Fiesta Liquor #5 -->
-          <div class="col-md-6 location-col scroll-reveal stagger-loc-3">
+          <div class="scroll-reveal stagger-loc-3">
             <article class="location-card">
               <div class="location-map">
                 <iframe
@@ -164,7 +163,7 @@
           </div>
 
           <!-- Location 4: Stone Oak Liquor -->
-          <div class="col-md-6 location-col scroll-reveal stagger-loc-4">
+          <div class="scroll-reveal stagger-loc-4">
             <article class="location-card">
               <div class="location-map">
                 <iframe
@@ -183,7 +182,7 @@
             </article>
           </div>
 
-        </div><!-- /.row -->
+        </div>
       </div><!-- /.container -->
     </section>
     <!-- ===================== END LOCATIONS ===================== -->
@@ -212,7 +211,8 @@
     </div>
   </aside>
 
-  <div id="cartBackdrop" class="cart-backdrop" hidden></div>
+  <div id="cartBackdrop" class="cart-backdrop"></div>
+  <div id="toastContainer" class="toast-container"></div>
 
   <template id="productCardTemplate">
     <article class="product-card">
@@ -234,7 +234,7 @@
   <footer class="site-footer">
     <div class="container footer-inner">
       <p class="footer-brand">Fiesta Liquor</p>
-      <p class="footer-copy">© 2024 Fiesta Liquor, San Antonio TX. All rights reserved.</p>
+      <p class="footer-copy">© 2025 Fiesta Liquor, San Antonio TX. All rights reserved.</p>
       <ul class="footer-links">
         <li><a href="/privacy.html">Privacy</a></li>
         <li><a href="/terms.html">Terms</a></li>

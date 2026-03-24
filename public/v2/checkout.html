@@ -6,255 +6,8 @@
   <title>Checkout | Fiesta Liquor</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/v2/styles.css">
-  <style>
-    .checkout-wrap {
-      padding: 2rem 0 3rem;
-      display: grid;
-      grid-template-columns: 1fr 380px;
-      gap: 2rem;
-      align-items: start;
-    }
-    @media (max-width: 860px) {
-      .checkout-wrap { grid-template-columns: 1fr; }
-      .order-summary-col { order: -1; }
-    }
-
-    /* Card */
-    .card {
-      background: var(--card);
-      border: 1px solid var(--line);
-      border-radius: var(--radius);
-      padding: 1.5rem;
-    }
-    .card h2 {
-      font-size: 1.15rem;
-      margin-bottom: 1.2rem;
-      padding-bottom: 0.75rem;
-      border-bottom: 1px solid var(--line);
-    }
-
-    /* Order type toggle */
-    .order-type-row {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 0.75rem;
-      margin-bottom: 1.5rem;
-    }
-    .order-type-label {
-      border: 2px solid var(--line);
-      border-radius: 12px;
-      padding: 0.9rem 1rem;
-      cursor: pointer;
-      transition: border-color 150ms, background 150ms;
-      display: grid;
-      gap: 0.2rem;
-    }
-    .order-type-label input { display: none; }
-    .order-type-label.selected {
-      border-color: var(--accent);
-      background: rgba(17, 97, 73, 0.05);
-    }
-    .order-type-label strong { font-size: 0.95rem; }
-    .order-type-label span { font-size: 0.78rem; color: var(--muted); }
-
-    /* Form fields */
-    .form-row {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 0.85rem;
-    }
-    @media (max-width: 500px) { .form-row { grid-template-columns: 1fr; } }
-    .form-group {
-      display: grid;
-      gap: 0.28rem;
-      margin-bottom: 0.85rem;
-    }
-    .form-group label {
-      font-size: 0.8rem;
-      font-weight: 500;
-    }
-    .form-group input, .form-group select {
-      width: 100%;
-      border: 1px solid var(--line);
-      border-radius: 10px;
-      background: var(--bg-elevated);
-      font: inherit;
-      padding: 0.68rem 0.8rem;
-      transition: border-color 150ms;
-    }
-    .form-group input:focus, .form-group select:focus {
-      outline: none;
-      border-color: var(--accent);
-    }
-
-    /* Address section */
-    #addressField { display: none; }
-    #addressField.visible { display: block; }
-
-    .delivery-estimate {
-      display: none;
-      background: rgba(17, 97, 73, 0.07);
-      border: 1px solid rgba(17, 97, 73, 0.2);
-      border-radius: 8px;
-      padding: 0.65rem 0.8rem;
-      font-size: 0.85rem;
-      color: var(--accent);
-      margin-top: -0.25rem;
-      margin-bottom: 0.85rem;
-    }
-    #deliveryTimeEstimate { display: none; }
-
-    /* Promo code */
-    .promo-row {
-      display: flex;
-      gap: 0.5rem;
-      margin-top: 0.5rem;
-    }
-    .promo-row input {
-      flex: 1;
-      border: 1px solid var(--line);
-      border-radius: 10px;
-      background: var(--bg-elevated);
-      font: inherit;
-      padding: 0.6rem 0.75rem;
-    }
-    .promo-row button {
-      background: var(--accent);
-      color: #fff;
-      border: none;
-      border-radius: 10px;
-      padding: 0.6rem 1rem;
-      font: inherit;
-      font-size: 0.85rem;
-      cursor: pointer;
-      white-space: nowrap;
-    }
-    .promo-row button:hover { background: var(--accent-dark); }
-    #promoCodeMessage {
-      font-size: 0.8rem;
-      margin-top: 0.35rem;
-      min-height: 1.1em;
-    }
-
-    /* Order summary */
-    .order-item-summary {
-      display: flex;
-      justify-content: space-between;
-      align-items: flex-start;
-      gap: 0.5rem;
-      padding: 0.6rem 0;
-      border-bottom: 1px solid var(--line);
-      font-size: 0.88rem;
-    }
-    .order-item-summary:last-child { border-bottom: none; }
-    .order-total-row {
-      display: flex;
-      justify-content: space-between;
-      font-weight: 700;
-      font-size: 1.1rem;
-      padding-top: 0.75rem;
-      border-top: 2px solid var(--line);
-      margin-top: 0.5rem;
-    }
-
-    /* Checkout button */
-    .checkout-btn {
-      width: 100%;
-      background: var(--accent);
-      color: #fff;
-      border: none;
-      border-radius: 12px;
-      padding: 1rem;
-      font: inherit;
-      font-size: 1rem;
-      font-weight: 700;
-      cursor: pointer;
-      margin-top: 1rem;
-      transition: background 150ms;
-    }
-    .checkout-btn:hover { background: var(--accent-dark); }
-    .checkout-btn:disabled { opacity: 0.6; cursor: not-allowed; }
-
-    .secure-note {
-      text-align: center;
-      color: var(--muted);
-      font-size: 0.75rem;
-      margin-top: 0.6rem;
-    }
-
-    .back-link {
-      display: inline-flex;
-      align-items: center;
-      gap: 0.35rem;
-      color: var(--muted);
-      text-decoration: none;
-      font-size: 0.85rem;
-      margin-bottom: 1.25rem;
-    }
-    .back-link:hover { color: var(--accent); }
-
-    .section-label {
-      font-size: 0.75rem;
-      font-weight: 600;
-      text-transform: uppercase;
-      letter-spacing: 0.07em;
-      color: var(--muted);
-      margin: 1.2rem 0 0.6rem;
-    }
-
-    /* ── Closed overlay ───────────────────────────────────────── */
-    .closed-overlay {
-      display: none;
-      background: var(--card);
-      border: 1px solid var(--line);
-      border-radius: var(--radius);
-      padding: 2.5rem 2rem;
-      text-align: center;
-      margin-bottom: 1.5rem;
-    }
-    .closed-overlay.visible { display: block; }
-    .closed-overlay .closed-icon { font-size: 2.8rem; margin-bottom: 0.75rem; }
-    .closed-overlay h2 { margin-bottom: 0.5rem; }
-    .closed-overlay p { color: var(--muted); margin-bottom: 1.25rem; }
-    .closed-overlay .hours-table { margin: 0 auto 1.5rem; text-align: left; font-size: 0.88rem; }
-    .closed-overlay .hours-table td { padding: 0.2rem 0.75rem; }
-    .closed-overlay .hours-table td:first-child { font-weight: 600; }
-    .closed-overlay a.primary-btn {
-      display: inline-block;
-      background: var(--accent);
-      color: #fff;
-      padding: 0.75rem 1.5rem;
-      border-radius: 12px;
-      text-decoration: none;
-      font-weight: 700;
-    }
-
-    /* ── Location picker ──────────────────────────────────────── */
-    .location-picker-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 0.75rem;
-    }
-    @media (max-width: 500px) { .location-picker-grid { grid-template-columns: 1fr; } }
-    .location-pick-label {
-      border: 2px solid var(--line);
-      border-radius: 12px;
-      padding: 0.85rem 1rem;
-      cursor: pointer;
-      transition: border-color 150ms, background 150ms;
-      display: grid;
-      gap: 0.15rem;
-    }
-    .location-pick-label input { display: none; }
-    .location-pick-label.selected {
-      border-color: var(--accent);
-      background: rgba(17, 97, 73, 0.05);
-    }
-    .location-pick-label strong { font-size: 0.9rem; }
-    .location-pick-label span { font-size: 0.76rem; color: var(--muted); line-height: 1.4; }
-  </style>
 </head>
 <body>
 
@@ -262,13 +15,13 @@
     <div class="container header-inner">
       <div>
         <p class="eyebrow">Secure Checkout</p>
-        <h1><a href="/" style="text-decoration:none;color:inherit;">Fiesta Liquor</a></h1>
+        <h1><a href="/">Fiesta Liquor</a></h1>
       </div>
     </div>
   </header>
 
   <main class="container">
-    <a href="/" class="back-link">← Continue shopping</a>
+    <a href="/" class="back-link" style="margin-bottom:1.25rem;display:inline-flex;">← Continue shopping</a>
 
     <!-- Shown when store is outside operating hours -->
     <div class="closed-overlay" id="closedOverlay">
@@ -280,7 +33,7 @@
         <tr><td>Online orders</td><td>10:00 AM – 8:30 PM</td></tr>
         <tr><td>Sunday</td><td>Closed</td></tr>
       </table>
-      <a href="/" class="primary-btn">Browse Products</a>
+      <a href="/" class="primary-btn" style="display:inline-block;">Browse Products</a>
     </div>
 
     <div class="checkout-wrap" id="checkoutWrap">
@@ -289,7 +42,7 @@
         <form id="checkoutForm" novalidate>
 
           <!-- Location picker -->
-          <div class="card" style="margin-bottom:1.25rem;">
+          <div class="card">
             <h2>Choose a store location</h2>
             <div class="location-picker-grid">
               <label class="location-pick-label selected" id="locLabel0">
@@ -316,7 +69,7 @@
           </div>
 
           <!-- Order type -->
-          <div class="card" style="margin-bottom:1.25rem;">
+          <div class="card">
             <h2>How would you like to receive your order?</h2>
             <div class="order-type-row">
               <label class="order-type-label selected" id="pickupLabel">
@@ -333,7 +86,7 @@
           </div>
 
           <!-- Contact info -->
-          <div class="card" style="margin-bottom:1.25rem;">
+          <div class="card">
             <h2>Your Information</h2>
             <div class="form-row">
               <div class="form-group">
@@ -358,7 +111,7 @@
 
             <!-- Delivery address (shown only when delivery selected) -->
             <div id="addressField">
-              <p class="section-label">Delivery Address</p>
+              <p class="section-label" style="color:var(--muted);margin:1.2rem 0 0.6rem;">Delivery Address</p>
               <div class="form-group">
                 <label for="streetAddress">Street Address *</label>
                 <input type="text" id="streetAddress" autocomplete="address-line1">
@@ -410,13 +163,13 @@
             <span id="orderTotal">$0.00</span>
           </div>
 
-          <button class="checkout-btn" type="button" onclick="proceedToPayment()">
+          <button class="checkout-btn" type="button" onclick="proceedToPayment()" style="margin-top:1rem;">
             Proceed to Payment
           </button>
-          <p class="secure-note">🔒 Payments securely processed by Stripe</p>
+          <p class="secure-note">Payments securely processed by Stripe</p>
         </div>
       </div>
-    </div><!-- /.checkout-wrap -->
+    </div>
   </main>
 
   <!-- Firebase Compat SDK -->
@@ -435,8 +188,8 @@
         const ct = new Date(now.toLocaleString('en-US', { timeZone: 'America/Chicago' }));
         const day = ct.getDay();
         const mins = ct.getHours() * 60 + ct.getMinutes();
-        if (day === 0)    return { open: false, msg: "We're closed on Sundays. Come back Monday — we open at 10 AM!" };
-        if (mins < 600)   return { open: false, msg: "We open at 10 AM Mon–Sat. Check back soon!" };
+        if (day === 0)    return { open: false, msg: "We're closed on Sundays. Come back Monday \u2014 we open at 10 AM!" };
+        if (mins < 600)   return { open: false, msg: "We open at 10 AM Mon\u2013Sat. Check back soon!" };
         if (mins >= 1230) return { open: false, msg: "Online orders close at 8:30 PM (store closes at 9 PM). See you tomorrow!" };
         return { open: true };
       }

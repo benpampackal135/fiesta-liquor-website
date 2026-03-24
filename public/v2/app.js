@@ -20,6 +20,7 @@ const elements = {
   cartBackdrop: document.getElementById("cartBackdrop"),
   openCartBtn: document.getElementById("openCartBtn"),
   closeCartBtn: document.getElementById("closeCartBtn"),
+  toastContainer: document.getElementById("toastContainer"),
 };
 
 const currency = new Intl.NumberFormat("en-US", {
@@ -31,16 +32,35 @@ init();
 initScrollEffects();
 checkStoreHours();
 
+// ── Toast notifications ──────────────────────────────────────
+function showToast(message, type = "") {
+  const toast = document.createElement("div");
+  toast.className = `toast ${type}`;
+  toast.textContent = message;
+  elements.toastContainer.appendChild(toast);
+
+  // Trigger show animation
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => toast.classList.add("show"));
+  });
+
+  setTimeout(() => {
+    toast.classList.remove("show");
+    toast.addEventListener("transitionend", () => toast.remove(), { once: true });
+    // Fallback removal
+    setTimeout(() => toast.remove(), 400);
+  }, 2200);
+}
+
 // ── Store hours ────────────────────────────────────────────────
-// Open Mon–Sat 10 AM – 9 PM (CT). Last online order: 8:30 PM. Closed Sundays.
 function getStoreStatus() {
   const now = new Date();
   const ct = new Date(now.toLocaleString("en-US", { timeZone: "America/Chicago" }));
-  const day = ct.getDay(); // 0=Sun, 6=Sat
+  const day = ct.getDay();
   const mins = ct.getHours() * 60 + ct.getMinutes();
 
-  if (day === 0) return { open: false, msg: "We're closed on Sundays. See you Monday — 10 AM to 9 PM!" };
-  if (mins < 600)  return { open: false, msg: "We open at 10 AM Mon–Sat. Check back soon!" };
+  if (day === 0) return { open: false, msg: "We're closed on Sundays. See you Monday \u2014 10 AM to 9 PM!" };
+  if (mins < 600)  return { open: false, msg: "We open at 10 AM Mon\u2013Sat. Check back soon!" };
   if (mins >= 1230) return { open: false, msg: "Online orders close at 8:30 PM. Our store closes at 9 PM. See you tomorrow!" };
   return { open: true };
 }
@@ -55,10 +75,30 @@ function checkStoreHours() {
   }
 }
 
+// ── Skeleton loading ─────────────────────────────────────────
+function showSkeletons() {
+  const count = 8;
+  elements.productGrid.innerHTML = "";
+  for (let i = 0; i < count; i++) {
+    const card = document.createElement("div");
+    card.className = "skeleton-card";
+    card.innerHTML = `
+      <div class="skeleton-pulse skeleton-image"></div>
+      <div>
+        <div class="skeleton-pulse skeleton-text short"></div>
+        <div class="skeleton-pulse skeleton-text"></div>
+        <div class="skeleton-pulse skeleton-text price"></div>
+      </div>
+    `;
+    elements.productGrid.appendChild(card);
+  }
+}
+
 async function init() {
   bindEvents();
   renderCart();
   updateHeaderAuth();
+  showSkeletons();
 
   try {
     const response = await fetch("/api/products", { headers: { Accept: "application/json" } });
@@ -89,6 +129,13 @@ function bindEvents() {
   elements.openCartBtn.addEventListener("click", openCart);
   elements.closeCartBtn.addEventListener("click", closeCart);
   elements.cartBackdrop.addEventListener("click", closeCart);
+
+  // Close cart on Escape
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape" && elements.cartDrawer.classList.contains("open")) {
+      closeCart();
+    }
+  });
 }
 
 function getCategoryLabel(category) {
@@ -218,18 +265,19 @@ function renderProducts() {
       addToCart(product, selectedSize);
       addBtn.textContent = "Added!";
       addBtn.classList.add("added");
+      showToast(`${product.name} added to cart`, "success");
       setTimeout(() => {
         addBtn.textContent = "Add to Cart";
         addBtn.classList.remove("added");
       }, 1200);
     });
 
+    // Add reveal class for animation
+    node.classList.add("reveal-card");
     fragment.appendChild(node);
   });
 
   elements.productGrid.appendChild(fragment);
-
-  // Trigger scroll-reveal on newly rendered cards
   observeProductCards();
 }
 
@@ -291,7 +339,6 @@ function renderCart() {
   const count = state.cart.reduce((sum, item) => sum + item.quantity, 0);
   const total = state.cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
 
-  // Update all count/total indicators
   elements.cartCount.textContent = String(count);
   elements.cartTotal.textContent = currency.format(total);
   const totalBig = document.getElementById("cartTotalBig");
@@ -316,19 +363,19 @@ function renderCart() {
 
     row.innerHTML = `
       <img class="cart-item-img" src="${escapeHtml(item.image || "")}" alt="${escapeHtml(item.name)}"
-           onerror="this.src='https://placehold.co/60x60/f4ede1/2a2f28?text=🍾'">
+           onerror="this.src='https://placehold.co/60x60/f4ede1/2a2f28?text=FL'">
       <div class="cart-item-info">
         <span class="cart-item-name">${escapeHtml(item.name)}</span>
         ${sizeKey ? `<span class="cart-item-size">${escapeHtml(sizeKey)}</span>` : ""}
         <div class="cart-qty-row">
-          <button class="qty-btn dec-btn" type="button" aria-label="Decrease quantity">−</button>
+          <button class="qty-btn dec-btn" type="button" aria-label="Decrease quantity">\u2212</button>
           <span class="qty-val">${item.quantity}</span>
           <button class="qty-btn inc-btn" type="button" aria-label="Increase quantity">+</button>
         </div>
       </div>
       <div class="cart-item-right">
         <span class="cart-item-price">${currency.format(item.price * item.quantity)}</span>
-        <button class="cart-remove-btn" type="button" aria-label="Remove item">✕ remove</button>
+        <button class="cart-remove-btn" type="button" aria-label="Remove item">\u2715 remove</button>
       </div>
     `;
 
@@ -342,13 +389,15 @@ function renderCart() {
 function openCart() {
   elements.cartDrawer.classList.add("open");
   elements.cartDrawer.ariaHidden = "false";
-  elements.cartBackdrop.hidden = false;
+  elements.cartBackdrop.classList.add("visible");
+  document.body.classList.add("no-scroll");
 }
 
 function closeCart() {
   elements.cartDrawer.classList.remove("open");
   elements.cartDrawer.ariaHidden = "true";
-  elements.cartBackdrop.hidden = true;
+  elements.cartBackdrop.classList.remove("visible");
+  document.body.classList.remove("no-scroll");
 }
 
 function updateHeaderAuth() {
@@ -370,7 +419,6 @@ function updateHeaderAuth() {
 
 // ── Scroll effects ────────────────────────────────────────────
 function initScrollEffects() {
-  // 1. Sticky nav darkens on scroll
   const header = document.getElementById("siteHeader");
   if (header) {
     window.addEventListener("scroll", () => {
@@ -378,13 +426,13 @@ function initScrollEffects() {
     }, { passive: true });
   }
 
-  // 2. Hero elements fade in on page load (staggered)
+  // Hero fade-in
   const heroEls = document.querySelectorAll(".reveal-hero");
   heroEls.forEach((el, i) => {
     setTimeout(() => el.classList.add("in-view"), 120 + i * 130);
   });
 
-  // 3. Generic scroll-reveal (controls bar, etc.)
+  // Generic scroll-reveal
   const revealObserver = new IntersectionObserver((entries) => {
     entries.forEach((entry) => {
       if (entry.isIntersecting) {
@@ -397,7 +445,7 @@ function initScrollEffects() {
   document.querySelectorAll(".scroll-reveal").forEach((el) => revealObserver.observe(el));
 }
 
-// ── Product card scroll-reveal (called after cards are rendered) ──
+// ── Product card scroll-reveal ────────────────────────────────
 function observeProductCards() {
   const cardObserver = new IntersectionObserver((entries) => {
     entries.forEach((entry) => {
@@ -408,8 +456,7 @@ function observeProductCards() {
     });
   }, { threshold: 0.08 });
 
-  document.querySelectorAll(".product-card").forEach((card, i) => {
-    // Stagger up to 5 columns (cycle resets every 5 cards)
+  document.querySelectorAll(".product-card.reveal-card").forEach((card, i) => {
     card.style.transitionDelay = `${(i % 5) * 60}ms`;
     cardObserver.observe(card);
   });
