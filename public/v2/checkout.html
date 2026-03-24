@@ -203,6 +203,57 @@
       color: var(--muted);
       margin: 1.2rem 0 0.6rem;
     }
+
+    /* ── Closed overlay ───────────────────────────────────────── */
+    .closed-overlay {
+      display: none;
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 2.5rem 2rem;
+      text-align: center;
+      margin-bottom: 1.5rem;
+    }
+    .closed-overlay.visible { display: block; }
+    .closed-overlay .closed-icon { font-size: 2.8rem; margin-bottom: 0.75rem; }
+    .closed-overlay h2 { margin-bottom: 0.5rem; }
+    .closed-overlay p { color: var(--muted); margin-bottom: 1.25rem; }
+    .closed-overlay .hours-table { margin: 0 auto 1.5rem; text-align: left; font-size: 0.88rem; }
+    .closed-overlay .hours-table td { padding: 0.2rem 0.75rem; }
+    .closed-overlay .hours-table td:first-child { font-weight: 600; }
+    .closed-overlay a.primary-btn {
+      display: inline-block;
+      background: var(--accent);
+      color: #fff;
+      padding: 0.75rem 1.5rem;
+      border-radius: 12px;
+      text-decoration: none;
+      font-weight: 700;
+    }
+
+    /* ── Location picker ──────────────────────────────────────── */
+    .location-picker-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.75rem;
+    }
+    @media (max-width: 500px) { .location-picker-grid { grid-template-columns: 1fr; } }
+    .location-pick-label {
+      border: 2px solid var(--line);
+      border-radius: 12px;
+      padding: 0.85rem 1rem;
+      cursor: pointer;
+      transition: border-color 150ms, background 150ms;
+      display: grid;
+      gap: 0.15rem;
+    }
+    .location-pick-label input { display: none; }
+    .location-pick-label.selected {
+      border-color: var(--accent);
+      background: rgba(17, 97, 73, 0.05);
+    }
+    .location-pick-label strong { font-size: 0.9rem; }
+    .location-pick-label span { font-size: 0.76rem; color: var(--muted); line-height: 1.4; }
   </style>
 </head>
 <body>
@@ -219,10 +270,50 @@
   <main class="container">
     <a href="/" class="back-link">← Continue shopping</a>
 
-    <div class="checkout-wrap">
+    <!-- Shown when store is outside operating hours -->
+    <div class="closed-overlay" id="closedOverlay">
+      <div class="closed-icon">🕙</div>
+      <h2>We're currently closed</h2>
+      <p id="closedOverlayMsg">Online orders are available Mon–Sat, 10 AM – 8:30 PM.</p>
+      <table class="hours-table">
+        <tr><td>Mon – Sat</td><td>10:00 AM – 9:00 PM</td></tr>
+        <tr><td>Online orders</td><td>10:00 AM – 8:30 PM</td></tr>
+        <tr><td>Sunday</td><td>Closed</td></tr>
+      </table>
+      <a href="/" class="primary-btn">Browse Products</a>
+    </div>
+
+    <div class="checkout-wrap" id="checkoutWrap">
       <!-- Left: Form -->
       <div>
         <form id="checkoutForm" novalidate>
+
+          <!-- Location picker -->
+          <div class="card" style="margin-bottom:1.25rem;">
+            <h2>Choose a store location</h2>
+            <div class="location-picker-grid">
+              <label class="location-pick-label selected" id="locLabel0">
+                <input type="radio" name="storeLocation" value="Fiesta Liquor #1" data-address="15503 Babcock Rd, San Antonio, TX 78255" checked onchange="updateLocationLabels()">
+                <strong>Fiesta Liquor #1</strong>
+                <span>15503 Babcock Rd<br>San Antonio, TX 78255</span>
+              </label>
+              <label class="location-pick-label" id="locLabel1">
+                <input type="radio" name="storeLocation" value="KG Liquor" data-address="8456 Fredericksburg Rd, San Antonio, TX 78229" onchange="updateLocationLabels()">
+                <strong>KG Liquor</strong>
+                <span>8456 Fredericksburg Rd<br>San Antonio, TX 78229</span>
+              </label>
+              <label class="location-pick-label" id="locLabel2">
+                <input type="radio" name="storeLocation" value="Fiesta Liquor #5" data-address="9618 TX-151 #105, San Antonio, TX 78251" onchange="updateLocationLabels()">
+                <strong>Fiesta Liquor #5</strong>
+                <span>9618 TX-151 #105<br>San Antonio, TX 78251</span>
+              </label>
+              <label class="location-pick-label" id="locLabel3">
+                <input type="radio" name="storeLocation" value="Stone Oak Liquor" data-address="19202 Stone Oak Pkwy #107, San Antonio, TX 78258" onchange="updateLocationLabels()">
+                <strong>Stone Oak Liquor</strong>
+                <span>19202 Stone Oak Pkwy #107<br>San Antonio, TX 78258</span>
+              </label>
+            </div>
+          </div>
 
           <!-- Order type -->
           <div class="card" style="margin-bottom:1.25rem;">
@@ -325,7 +416,7 @@
           <p class="secure-note">🔒 Payments securely processed by Stripe</p>
         </div>
       </div>
-    </div>
+    </div><!-- /.checkout-wrap -->
   </main>
 
   <!-- Firebase Compat SDK -->
@@ -337,13 +428,40 @@
   <script src="/checkout.js"></script>
 
   <script>
-    // Highlight the selected order-type card visually
+    // ── Store hours check on page load ──────────────────────────
+    (function() {
+      function getStoreStatus() {
+        const now = new Date();
+        const ct = new Date(now.toLocaleString('en-US', { timeZone: 'America/Chicago' }));
+        const day = ct.getDay();
+        const mins = ct.getHours() * 60 + ct.getMinutes();
+        if (day === 0)    return { open: false, msg: "We're closed on Sundays. Come back Monday — we open at 10 AM!" };
+        if (mins < 600)   return { open: false, msg: "We open at 10 AM Mon–Sat. Check back soon!" };
+        if (mins >= 1230) return { open: false, msg: "Online orders close at 8:30 PM (store closes at 9 PM). See you tomorrow!" };
+        return { open: true };
+      }
+      const status = getStoreStatus();
+      if (!status.open) {
+        document.getElementById('closedOverlay').classList.add('visible');
+        document.getElementById('closedOverlayMsg').textContent = status.msg;
+        document.getElementById('checkoutWrap').style.display = 'none';
+      }
+    })();
+
+    // ── Highlight selected order-type card ──────────────────────
     document.querySelectorAll('input[name="orderType"]').forEach(radio => {
       radio.addEventListener('change', function() {
         document.getElementById('pickupLabel').classList.toggle('selected', !this.value || this.value === 'pickup');
         document.getElementById('deliveryLabel').classList.toggle('selected', this.value === 'delivery');
       });
     });
+
+    // ── Highlight selected location card ────────────────────────
+    function updateLocationLabels() {
+      document.querySelectorAll('.location-pick-label').forEach(label => {
+        label.classList.toggle('selected', label.querySelector('input').checked);
+      });
+    }
   </script>
 </body>
 </html>

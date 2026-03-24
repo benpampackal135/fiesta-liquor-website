@@ -320,8 +320,8 @@
         <div class="card-header"><h2>Recent Orders</h2><button class="btn btn-ghost btn-sm" onclick="showPanel('orders')">View All →</button></div>
         <div class="table-wrap">
           <table>
-            <thead><tr><th>Order #</th><th>Customer</th><th>Type</th><th>Total</th><th>Status</th><th>Date</th></tr></thead>
-            <tbody id="recentOrdersBody"><tr><td colspan="6" class="loading">Loading…</td></tr></tbody>
+            <thead><tr><th>Order #</th><th>Customer</th><th>Store</th><th>Type</th><th>Total</th><th>Status</th><th>Date</th></tr></thead>
+            <tbody id="recentOrdersBody"><tr><td colspan="7" class="loading">Loading…</td></tr></tbody>
           </table>
         </div>
       </div>
@@ -375,8 +375,8 @@
         </div>
         <div class="table-wrap">
           <table>
-            <thead><tr><th>Order #</th><th>Customer</th><th>Items</th><th>Total</th><th>Type</th><th>Status</th><th>Date</th></tr></thead>
-            <tbody id="ordersBody"><tr><td colspan="7" class="loading">Loading…</td></tr></tbody>
+            <thead><tr><th>Order #</th><th>Customer</th><th>Store Location</th><th>Items</th><th>Total</th><th>Type</th><th>Status</th><th>Date</th></tr></thead>
+            <tbody id="ordersBody"><tr><td colspan="8" class="loading">Loading…</td></tr></tbody>
           </table>
         </div>
       </div>
@@ -676,11 +676,12 @@ async function loadOverview() {
       <tr>
         <td><strong>#${o.id}</strong></td>
         <td>${esc((o.customer?.firstName||'') + ' ' + (o.customer?.lastName||''))}</td>
+        <td><small>${esc(o.storeLocation?.name||'—')}</small></td>
         <td><span class="badge badge-gray">${esc(o.orderType||'pickup')}</span></td>
         <td>${fmt(o.total||0)}</td>
         <td>${statusBadge(o.status||'pending')}</td>
         <td>${dateStr(o.createdAt)}</td>
-      </tr>`).join('') : '<tr><td colspan="6" class="empty">No orders yet</td></tr>';
+      </tr>`).join('') : '<tr><td colspan="7" class="empty">No orders yet</td></tr>';
   } catch(e) { toast(e.message,'error'); }
 }
 
@@ -925,6 +926,7 @@ function renderOrders(list) {
     <tr>
       <td><strong>#${o.id}</strong></td>
       <td>${esc((o.customer?.firstName||'') + ' ' + (o.customer?.lastName||''))}<br><small style="color:var(--muted)">${esc(o.customer?.email||'')}</small></td>
+      <td><strong>${esc(o.storeLocation?.name||'—')}</strong>${o.storeLocation?.address?`<br><small style="color:var(--muted)">${esc(o.storeLocation.address)}</small>`:''}</td>
       <td>${(o.items||[]).length} item${o.items?.length===1?'':'s'}</td>
       <td>${fmt(o.total||0)}</td>
       <td><span class="badge badge-gray">${esc(o.orderType||'pickup')}</span></td>
@@ -934,7 +936,7 @@ function renderOrders(list) {
         </select>
       </td>
       <td>${dateStr(o.createdAt)}</td>
-    </tr>`).join('') : '<tr><td colspan="7" class="empty">No orders found</td></tr>';
+    </tr>`).join('') : '<tr><td colspan="8" class="empty">No orders found</td></tr>';
 }
 
 async function updateOrderStatus(id, status) {

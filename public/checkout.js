@@ -390,7 +390,18 @@ async function proceedToPayment() {
         alert('Please fill in all required fields.');
         return;
     }
-    
+
+    // Validate location selection
+    const selectedLocationEl = document.querySelector('input[name="storeLocation"]:checked');
+    if (!selectedLocationEl) {
+        alert('Please select a store location.');
+        return;
+    }
+    const selectedLocation = {
+        name: selectedLocationEl.value,
+        address: selectedLocationEl.dataset.address
+    };
+
     // Store checkout data in localStorage for after payment
     const checkoutData = {
         customer: {
@@ -408,6 +419,7 @@ async function proceedToPayment() {
             } : 'Store Pickup'
         },
         orderType: orderType,
+        storeLocation: selectedLocation,
         deliveryTimeEstimate: orderType === 'delivery' ? deliveryTimeEstimate : null,
         promo: appliedPromo
     };
@@ -504,6 +516,7 @@ async function proceedToPayment() {
                 })),
                 customer: checkoutData.customer,
                 orderType: orderType,
+                storeLocation: checkoutData.storeLocation,
                 paymentMethod: 'card',
                 deliveryTimeEstimate: checkoutData.deliveryTimeEstimate,
                 promo: appliedPromo || null

@@ -1245,6 +1245,7 @@ app.post("/api/orders", authenticateToken, (req, res) => {
             stripeTotal: stripeTotal || null, // Store Stripe total separately
             stripeSessionId: stripeSessionId || null,
             orderType: orderType || 'pickup',
+            storeLocation: req.body.storeLocation || null,
             paymentMethod: paymentMethod || 'card',
             deliveryTimeEstimate: orderType === 'delivery' ? deliveryTimeEstimate : null,
             orderDate: new Date().toISOString(),
