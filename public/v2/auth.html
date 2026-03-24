@@ -79,6 +79,11 @@
         Continue with Google
       </button>
 
+      <!-- Loading overlay shown while processing Google redirect result -->
+      <div id="redirectLoading" style="display:none; text-align:center; padding:1.5rem 0;">
+        <p style="color:var(--muted);font-size:0.95rem;">Signing you in with Google...</p>
+      </div>
+
       <a href="/" class="back-link centered">Back to store</a>
     </div>
   </main>
@@ -92,7 +97,17 @@
 
   <script>
     // If user is already logged in, redirect home
+    // IMPORTANT: Skip redirect if returning from a Google sign-in redirect flow.
+    // The URL will contain OAuth parameters (__/auth/handler or signInSuccessUrl)
+    // and getRedirectResult() in firebase-auth.js needs to process the result first.
     (function() {
+      const isReturningFromRedirect = sessionStorage.getItem('googleRedirectPending') === '1';
+      if (isReturningFromRedirect) {
+        // Don't auto-redirect — let getRedirectResult() handle the sign-in flow
+        console.log('⏳ Returning from Google redirect — waiting for getRedirectResult()');
+        return;
+      }
+
       const user = localStorage.getItem('currentUser') || localStorage.getItem('firebaseUser');
       if (user) {
         try {

@@ -61,35 +61,56 @@ function initializeFirebaseAuth() {
   
   // Handle redirect result after Google sign-in redirect
   // This is critical for iOS Safari which uses redirect flow
-  // Add a small delay to ensure page is fully loaded (especially important for iOS Safari)
+  // Use a longer delay for iOS Safari to ensure the page and Firebase SDK are fully ready
+  const redirectDelay = isIOSSafari() ? 500 : 200;
+  const isPendingRedirect = sessionStorage.getItem('googleRedirectPending') === '1';
+
+  // Show loading state if we're returning from a redirect
+  if (isPendingRedirect) {
+    const loadingEl = document.getElementById('redirectLoading');
+    const googleBtn = document.querySelector('.google-signin-btn');
+    if (loadingEl) loadingEl.style.display = 'block';
+    if (googleBtn) googleBtn.style.display = 'none';
+  }
+
   setTimeout(() => {
     auth.getRedirectResult().then((result) => {
+      // Clear the pending flag regardless of outcome
+      sessionStorage.removeItem('googleRedirectPending');
+
       if (result.user) {
         console.log('✅ Google sign-in via redirect successful, user:', result.user.email);
         // Handle the sign-in success asynchronously
         handleGoogleSignInSuccess(result.user).catch((error) => {
           console.error('Error handling redirect sign-in success:', error);
+          hideRedirectLoading();
         });
       } else {
-        // Check if there's an error in the result
-        if (result.error) {
-          console.error('Redirect sign-in error:', result.error);
-          // Only show alert for actual errors, not user cancellation
-          if (result.error.code !== 'auth/popup-closed-by-user' && result.error.code !== 'auth/cancelled-popup-request') {
-            alert('Failed to sign in with Google: ' + result.error.message);
-          }
-        }
+        hideRedirectLoading();
       }
     }).catch((error) => {
+      sessionStorage.removeItem('googleRedirectPending');
+      hideRedirectLoading();
       // Only log/show errors that aren't user cancellations
-      if (error.code !== 'auth/popup-blocked' && 
-          error.code !== 'auth/popup-closed-by-user' && 
+      if (error.code !== 'auth/popup-blocked' &&
+          error.code !== 'auth/popup-closed-by-user' &&
           error.code !== 'auth/cancelled-popup-request') {
         console.error('Redirect sign-in error:', error);
-        // Don't show alert for redirect errors - they're usually handled by getRedirectResult
+        const msgBox = document.getElementById('msgBox');
+        if (msgBox) {
+          msgBox.textContent = 'Google sign-in failed. Please try again.';
+          msgBox.className = 'msg error visible';
+        }
       }
     });
-  }, 100); // Small delay to ensure page is ready (especially important for iOS Safari)
+  }, redirectDelay);
+
+  function hideRedirectLoading() {
+    const loadingEl = document.getElementById('redirectLoading');
+    const googleBtn = document.querySelector('.google-signin-btn');
+    if (loadingEl) loadingEl.style.display = 'none';
+    if (googleBtn) googleBtn.style.display = '';
+  }
   
   console.log('Firebase Auth initialized');
 }
@@ -272,6 +293,8 @@ async function signInWithGoogle() {
       console.log('📱 Mobile browser detected - using redirect method');
       try {
         console.log('🔄 Calling signInWithRedirect...');
+        // Mark that we're about to redirect so auth.html knows not to auto-redirect on return
+        sessionStorage.setItem('googleRedirectPending', '1');
         await auth.signInWithRedirect(googleProvider);
         console.log('✅ Redirect initiated - page will navigate');
         // The page will redirect, so we return here
@@ -312,8 +335,10 @@ async function signInWithGoogle() {
       } else {
         console.log('🔄 Popup error - switching to redirect method...');
       }
-      
+
       try {
+        // Mark that we're about to redirect so auth.html knows not to auto-redirect on return
+        sessionStorage.setItem('googleRedirectPending', '1');
         await auth.signInWithRedirect(googleProvider);
         console.log('✅ Redirect initiated - page will navigate');
         // The page will redirect, so we return here

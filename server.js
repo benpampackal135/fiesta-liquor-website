@@ -1799,7 +1799,7 @@ app.get('/get-stripe-session', authenticateToken, async (req, res) => {
 
 app.post('/create-checkout-session', async (req, res) => {
   try {
-    const { items, successUrl, cancelUrl } = req.body;
+    const { items, successUrl, cancelUrl, orderMetadata } = req.body;
 
     // Use redirect URLs from frontend if provided, otherwise use SITE_URL env var
     const success_url = successUrl || `${process.env.SITE_URL || `${req.protocol}://${req.get('host')}`}/success.html`;
@@ -1809,7 +1809,8 @@ app.post('/create-checkout-session', async (req, res) => {
     console.log('  Success:', success_url);
     console.log('  Cancel:', cancel_url);
 
-    const session = await stripe.checkout.sessions.create({
+    // Build Stripe session config
+    const sessionConfig = {
         mode: 'payment',
         payment_method_types: ['card'],
         line_items: items.map(item => ({
@@ -1824,7 +1825,23 @@ app.post('/create-checkout-session', async (req, res) => {
         })),
         success_url: `${success_url}?session_id={CHECKOUT_SESSION_ID}`,
         cancel_url: cancel_url
-    });
+    };
+
+    // Attach order metadata so the webhook can create the order
+    // after payment succeeds. Stripe metadata values must be strings.
+    if (orderMetadata && typeof orderMetadata === 'object') {
+        sessionConfig.metadata = {};
+        for (const [key, val] of Object.entries(orderMetadata)) {
+            // Stripe allows max 500 chars per metadata value
+            sessionConfig.metadata[key] = String(val || '').slice(0, 500);
+        }
+        // Also set customer_email so the webhook can match the user
+        if (orderMetadata.customerEmail) {
+            sessionConfig.customer_email = orderMetadata.customerEmail;
+        }
+    }
+
+    const session = await stripe.checkout.sessions.create(sessionConfig);
 
     res.json({ url: session.url });
   } catch (error) {
@@ -1881,58 +1898,140 @@ app.post('/webhook/stripe', express.raw({ type: 'application/json' }), async (re
       case 'checkout.session.completed':
         const session = event.data.object;
         const stripeTotal = session.amount_total / 100; // Convert from cents to dollars
-        
+        const customerEmail = session.customer_email;
+        const meta = session.metadata || {};
+
         console.log('✅ Payment successful:', {
           sessionId: session.id,
           amountTotal: stripeTotal,
-          customerEmail: session.customer_email
+          customerEmail: customerEmail,
+          hasMetadata: Object.keys(meta).length > 0
         });
-        
-        // Update the order with the actual Stripe total
-        // Find the most recent pending order for this customer email
+
+        // ── Create order from metadata (post-payment) ─────────
+        // Orders are only created here, AFTER Stripe confirms
+        // payment. This prevents fake/abandoned orders.
         try {
           const orders = readData(ORDERS_FILE);
-          const customerEmail = session.customer_email;
-          
-          // Find order by session ID first, then by email and status
-          let recentOrder = orders.find(order => order.stripeSessionId === session.id);
-          
-          // If not found by session ID, find by email and status
-          if (!recentOrder) {
-            recentOrder = orders
-              .filter(order => 
-                (order.customer?.email === customerEmail || order.customerEmail === customerEmail) &&
-                (order.status === 'pending' || order.status === 'processing') &&
-                !order.stripeTotal // Only update if not already set
-              )
-              .sort((a, b) => new Date(b.orderDate || b.createdAt) - new Date(a.orderDate || a.createdAt))[0];
+
+          // Guard: check if this session already created an order (idempotency)
+          const existingOrder = orders.find(o => o.stripeSessionId === session.id);
+          if (existingOrder) {
+            console.log(`⚠️ Order #${existingOrder.id} already exists for session ${session.id}, skipping.`);
+            break;
           }
-          
-          if (recentOrder) {
-            const orderIndex = orders.findIndex(o => o.id === recentOrder.id);
-            if (orderIndex !== -1) {
-              // Update order with actual Stripe total
-              orders[orderIndex].stripeTotal = stripeTotal;
-              orders[orderIndex].stripeSessionId = session.id;
-              // Also update the total field to match Stripe's total
-              orders[orderIndex].total = stripeTotal;
-              writeData(ORDERS_FILE, orders);
-              console.log(`✅ Updated order #${recentOrder.id} with Stripe total: $${stripeTotal}`);
-              
-              // Send order confirmation email immediately after payment
-              const updatedOrder = orders[orderIndex];
-              if (updatedOrder && customerEmail) {
-                console.log(`📧 Sending order confirmation email to ${customerEmail} for order #${updatedOrder.id}...`);
-                sendCustomerOrderEmail(updatedOrder).catch(err => {
-                  console.error('❌ Failed to send order confirmation email:', err.message);
-                });
-              }
-            }
+
+          // Reconstruct cart items from metadata
+          let cartItems = [];
+          if (meta.cartItems) {
+            try { cartItems = JSON.parse(meta.cartItems); } catch (e) { /* ignore */ }
           } else {
-            console.log('⚠️ No matching pending order found for customer:', customerEmail);
+            // Reassemble from chunked metadata keys (cartItems_0, cartItems_1, …)
+            let combined = '';
+            for (let i = 0; ; i++) {
+              const chunk = meta['cartItems_' + i];
+              if (!chunk) break;
+              combined += chunk;
+            }
+            if (combined) {
+              try { cartItems = JSON.parse(combined); } catch (e) { /* ignore */ }
+            }
           }
+
+          // Expand compact item format back to full format
+          const items = cartItems.map(ci => ({
+            id: ci.id,
+            productId: ci.id,
+            name: ci.n,
+            price: ci.p,
+            quantity: ci.q,
+            category: ci.c || '',
+            image: ci.img || '',
+            selectedSize: ci.sz || null
+          }));
+
+          // Build customer object from metadata
+          const orderType = meta.orderType || 'pickup';
+          const customer = {
+            firstName: meta.customerFirstName || '',
+            lastName: meta.customerLastName || '',
+            email: customerEmail || meta.customerEmail || '',
+            phone: meta.customerPhone || '',
+            address: orderType === 'delivery' ? {
+              street: meta.deliveryStreet || '',
+              apartment: meta.deliveryApt || null,
+              city: meta.deliveryCity || '',
+              state: meta.deliveryState || '',
+              zipCode: meta.deliveryZip || '',
+              fullAddress: meta.deliveryAddress || ''
+            } : 'Store Pickup'
+          };
+
+          // Calculate fees (same formula as POST /api/orders)
+          const subtotal = items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+          const deliveryFee = orderType === 'delivery' ? 7.99 : 0;
+          const promoDiscount = parseFloat(meta.promoDiscount) || 0;
+          const discountedSubtotal = Math.max(0, subtotal - promoDiscount);
+          const subtotalWithFee = discountedSubtotal + deliveryFee;
+          const tax = parseFloat((subtotalWithFee * 0.0825).toFixed(2));
+          const amountBeforeFee = subtotalWithFee + tax;
+          const stripeFee = calculateUpfrontProcessingFee(amountBeforeFee);
+
+          const orderId = orders.length > 0 ? Math.max(...orders.map(o => o.id)) + 1 : 1;
+
+          const newOrder = {
+            id: orderId,
+            customer: customer,
+            items: items,
+            subtotal: subtotal,
+            deliveryFee: deliveryFee,
+            tax: tax,
+            stripeFee: stripeFee,
+            total: stripeTotal, // Use actual Stripe-charged amount
+            stripeTotal: stripeTotal,
+            stripeSessionId: session.id,
+            orderType: orderType,
+            storeLocation: {
+              name: meta.storeName || '',
+              address: meta.storeAddress || ''
+            },
+            paymentMethod: 'card',
+            deliveryTimeEstimate: orderType === 'delivery' && meta.deliveryTimeEstimate
+              ? parseInt(meta.deliveryTimeEstimate) : null,
+            promo: meta.promoCode ? {
+              code: meta.promoCode,
+              discount: promoDiscount
+            } : null,
+            orderDate: new Date().toISOString(),
+            createdAt: new Date().toISOString(),
+            status: 'pending',
+            paymentConfirmed: true
+          };
+
+          orders.push(newOrder);
+          writeData(ORDERS_FILE, orders);
+          console.log(`✅ Order #${orderId} created after payment confirmation (Stripe session: ${session.id})`);
+
+          // Update user's order history if we can find the user
+          try {
+            const users = readData(USERS_FILE);
+            const userIndex = users.findIndex(u => u.email === customerEmail);
+            if (userIndex !== -1) {
+              users[userIndex].orders = users[userIndex].orders || [];
+              users[userIndex].orders.push(orderId);
+              writeData(USERS_FILE, users);
+            }
+          } catch (userErr) {
+            console.error('Error updating user order history:', userErr.message);
+          }
+
+          // Send notifications (non-blocking)
+          sendOrderSms(newOrder).catch(err => console.error('Owner SMS notify error:', err));
+          sendCustomerOrderEmail(newOrder).catch(err => console.error('Customer email notify error:', err));
+          sendCustomerOrderSms(newOrder).catch(err => console.error('Customer SMS notify error:', err));
+
         } catch (error) {
-          console.error('Error updating order with Stripe total:', error);
+          console.error('Error creating order from webhook:', error);
           // Don't throw - continue processing
         }
         
