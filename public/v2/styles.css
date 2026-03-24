@@ -22,6 +22,22 @@
   --ease-out:     cubic-bezier(0.22, 1, 0.36, 1);
 }
 
+/* ── Store closed banner ────────────────────────────────────── */
+.store-closed-banner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: #7c3f00;
+  color: #fff8f0;
+  font-size: 0.88rem;
+  font-weight: 500;
+  padding: 10px 20px;
+  text-align: center;
+  justify-content: center;
+  letter-spacing: 0.01em;
+}
+.store-closed-banner[hidden] { display: none; }
+
 /* ── Reset ─────────────────────────────────────────────────── */
 *, *::before, *::after { box-sizing: border-box; }
 

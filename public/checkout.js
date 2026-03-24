@@ -330,10 +330,30 @@ function loadOrderSummary() {
     orderTotal.textContent = `$${total.toFixed(2)}`;
 }
 
+// ── Store hours check ─────────────────────────────────────────
+// Open Mon–Sat 10 AM – 9 PM (CT). Last online order: 8:30 PM. Closed Sundays.
+function getStoreStatus() {
+    const now = new Date();
+    const ct = new Date(now.toLocaleString('en-US', { timeZone: 'America/Chicago' }));
+    const day = ct.getDay();
+    const mins = ct.getHours() * 60 + ct.getMinutes();
+    if (day === 0)    return { open: false, msg: "We're closed on Sundays. Online orders are available Mon–Sat, 10 AM – 8:30 PM." };
+    if (mins < 600)   return { open: false, msg: "We're not open yet. Online orders start at 10 AM Mon–Sat." };
+    if (mins >= 1230) return { open: false, msg: "Online orders have closed for today (cutoff: 8:30 PM). Our store is open until 9 PM — please call or visit us in person." };
+    return { open: true };
+}
+
 // Proceed to payment
 async function proceedToPayment() {
+    // Block order if store is outside operating hours
+    const storeStatus = getStoreStatus();
+    if (!storeStatus.open) {
+        alert(storeStatus.msg);
+        return;
+    }
+
     const form = document.getElementById('checkoutForm');
-    
+
     // Get order type
     const selectedOrderType = document.querySelector('input[name="orderType"]:checked');
     const orderType = selectedOrderType ? selectedOrderType.value : 'pickup';

@@ -29,6 +29,31 @@ const currency = new Intl.NumberFormat("en-US", {
 
 init();
 initScrollEffects();
+checkStoreHours();
+
+// ── Store hours ────────────────────────────────────────────────
+// Open Mon–Sat 10 AM – 9 PM (CT). Last online order: 8:30 PM. Closed Sundays.
+function getStoreStatus() {
+  const now = new Date();
+  const ct = new Date(now.toLocaleString("en-US", { timeZone: "America/Chicago" }));
+  const day = ct.getDay(); // 0=Sun, 6=Sat
+  const mins = ct.getHours() * 60 + ct.getMinutes();
+
+  if (day === 0) return { open: false, msg: "We're closed on Sundays. See you Monday — 10 AM to 9 PM!" };
+  if (mins < 600)  return { open: false, msg: "We open at 10 AM Mon–Sat. Check back soon!" };
+  if (mins >= 1230) return { open: false, msg: "Online orders close at 8:30 PM. Our store closes at 9 PM. See you tomorrow!" };
+  return { open: true };
+}
+
+function checkStoreHours() {
+  const status = getStoreStatus();
+  const banner = document.getElementById("storeClosedBanner");
+  const msg    = document.getElementById("storeClosedMsg");
+  if (!status.open && banner) {
+    msg.textContent = status.msg;
+    banner.hidden = false;
+  }
+}
 
 async function init() {
   bindEvents();
