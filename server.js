@@ -1280,10 +1280,10 @@ app.post("/api/orders", authenticateToken, (req, res) => {
 app.put("/api/orders/:id/status", authenticateToken, requireAdmin, (req, res) => {
     try {
         const { status, notes } = req.body;
-        const validStatuses = ['pending', 'accepted', 'preparing', 'ready', 'out_for_delivery', 'delivered', 'completed', 'cancelled'];
+        const validStatuses = ['pending', 'accepted', 'preparing', 'ready', 'out_for_delivery', 'delivered', 'completed', 'cancelled', 'needs_substitution'];
 
         if (!validStatuses.includes(status)) {
-            return res.status(400).json({ error: "Invalid status. Valid options: pending, accepted, preparing, ready, out_for_delivery, delivered, completed, cancelled" });
+            return res.status(400).json({ error: "Invalid status. Valid options: pending, accepted, preparing, ready, out_for_delivery, delivered, completed, cancelled, needs_substitution" });
         }
 
         const orders = readData(ORDERS_FILE);
@@ -1310,13 +1310,26 @@ app.put("/api/orders/:id/status", authenticateToken, requireAdmin, (req, res) =>
             notes: notes || null
         });
         
-        // Send customer notification when order is out for delivery or ready
-        if (status === 'out_for_delivery' || status === 'ready') {
+        // Store admin notes on the order when provided
+        if (notes) {
+            if (!orders[index].adminNotes) orders[index].adminNotes = [];
+            orders[index].adminNotes.push({
+                note: notes,
+                addedBy: req.user.email,
+                addedAt: new Date().toISOString(),
+                status: status
+            });
+        }
+
+        // Send customer notification when order is out for delivery, ready, or needs substitution
+        if (status === 'out_for_delivery' || status === 'ready' || status === 'needs_substitution') {
             sendCustomerOrderSms({
                 ...orders[index],
-                statusMessage: status === 'out_for_delivery' ? 
-                    'Your order is out for delivery!' : 
-                    'Your order is ready for pickup!'
+                statusMessage: status === 'out_for_delivery' ?
+                    'Your order is out for delivery!' :
+                    status === 'ready' ?
+                    'Your order is ready for pickup!' :
+                    'An item in your order needs a substitution. We will call you shortly.'
             }).catch(err => console.error('Customer SMS notify error:', err));
         }
 

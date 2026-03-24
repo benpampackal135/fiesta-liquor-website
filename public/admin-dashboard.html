@@ -228,6 +228,48 @@
     /* ── Order status select ── */
     .status-select { font: inherit; font-size: 0.78rem; border: 1px solid var(--line); border-radius: 6px; padding: 0.3rem 0.5rem; background: var(--bg); cursor: pointer; }
 
+    /* ── New-order pulse animation ── */
+    @keyframes pulse-new {
+      0%   { background: #fffbeb; }
+      50%  { background: #fef3c7; }
+      100% { background: #fffbeb; }
+    }
+    tr.order-new td { animation: pulse-new 2s ease-in-out infinite; }
+    tr.order-new td:first-child { border-left: 3px solid var(--warning); }
+
+    /* ── Notification bell in topbar ── */
+    .notif-bell {
+      position: relative; background: none; border: none; cursor: pointer;
+      font-size: 1.2rem; padding: 4px 8px; border-radius: 8px; transition: background 120ms;
+    }
+    .notif-bell:hover { background: var(--bg); }
+    .notif-badge {
+      position: absolute; top: 0; right: 2px; background: var(--danger);
+      color: #fff; font-size: 0.6rem; font-weight: 700; min-width: 16px;
+      height: 16px; border-radius: 99px; display: flex; align-items: center;
+      justify-content: center; padding: 0 4px;
+    }
+    .notif-badge:empty { display: none; }
+
+    /* ── Order detail modal extras ── */
+    .order-detail-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+    .order-detail-grid .detail-block { display: flex; flex-direction: column; gap: 0.2rem; }
+    .detail-label { font-size: 0.72rem; color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; }
+    .detail-value { font-size: 0.88rem; font-weight: 500; }
+    .detail-value a { color: var(--accent); text-decoration: none; }
+    .detail-value a:hover { text-decoration: underline; }
+    .order-items-list { width: 100%; font-size: 0.83rem; border-collapse: collapse; margin-top: 0.5rem; }
+    .order-items-list th { text-align: left; font-weight: 600; font-size: 0.72rem; color: var(--muted); padding: 0.4rem 0; border-bottom: 1px solid var(--line); text-transform: uppercase; }
+    .order-items-list td { padding: 0.5rem 0; border-bottom: 1px solid var(--line); }
+    .order-items-list tr:last-child td { border-bottom: none; }
+    .notes-timeline { display: flex; flex-direction: column; gap: 0.5rem; margin-top: 0.5rem; }
+    .note-entry { background: var(--bg); border-radius: 8px; padding: 0.6rem 0.75rem; font-size: 0.82rem; }
+    .note-entry .note-meta { font-size: 0.7rem; color: var(--muted); margin-top: 0.25rem; }
+    .phone-actions { display: flex; gap: 0.5rem; margin-top: 0.25rem; }
+    .phone-actions a { display: inline-flex; align-items: center; gap: 0.3rem; font-size: 0.78rem; padding: 0.3rem 0.6rem; border-radius: 6px; text-decoration: none; font-weight: 600; }
+    .phone-actions .call-btn { background: #e8f5e9; color: #2e7d32; }
+    .phone-actions .sms-btn  { background: #e3f2fd; color: #1565c0; }
+
     /* ── Empty state ── */
     .empty { text-align: center; padding: 3rem 1rem; color: var(--muted); font-size: 0.88rem; }
 
@@ -287,6 +329,9 @@
       <h1 id="pageTitle">Overview</h1>
     </div>
     <div class="topbar-right">
+      <button class="notif-bell" id="notifBell" title="New order alerts (click to toggle sound)">
+        🔔 <span class="notif-badge" id="notifBadge"></span>
+      </button>
       <span class="admin-badge">Admin</span>
       <span id="topbarUser" style="font-size:0.82rem;color:var(--muted);">—</span>
     </div>
@@ -347,15 +392,21 @@
       <div class="card">
         <div class="card-header">
           <h2>Orders <span id="orderCount" style="color:var(--muted);font-size:0.8rem;font-weight:400;"></span></h2>
-          <button class="btn btn-ghost btn-sm" onclick="exportOrders()">↓ Export CSV</button>
+          <div style="display:flex;gap:0.5rem;">
+            <button class="btn btn-ghost btn-sm" id="pollingToggle" onclick="togglePolling()" title="Auto-refresh is ON">Auto-refresh: ON</button>
+            <button class="btn btn-ghost btn-sm" onclick="exportOrders()">↓ Export CSV</button>
+          </div>
         </div>
         <div class="filters">
           <input type="search" id="orderSearch" placeholder="Search by customer or order #…" oninput="filterOrders()">
           <select id="orderStatusFilter" onchange="filterOrders()">
             <option value="">All Statuses</option>
             <option value="pending">Pending</option>
-            <option value="confirmed">Confirmed</option>
+            <option value="accepted">Confirmed</option>
+            <option value="needs_substitution">Needs Substitution</option>
+            <option value="preparing">Preparing</option>
             <option value="ready">Ready</option>
+            <option value="out_for_delivery">Out for Delivery</option>
             <option value="delivered">Delivered</option>
             <option value="completed">Completed</option>
             <option value="cancelled">Cancelled</option>
@@ -363,7 +414,7 @@
         </div>
         <div class="table-wrap">
           <table>
-            <thead><tr><th>Order #</th><th>Customer</th><th>Store Location</th><th>Items</th><th>Total</th><th>Type</th><th>Status</th><th>Date</th></tr></thead>
+            <thead><tr><th>Order #</th><th>Customer</th><th>Phone</th><th>Type</th><th>Total</th><th>Status</th><th>Date</th><th>Actions</th></tr></thead>
             <tbody id="ordersBody"><tr><td colspan="8" class="loading">Loading…</td></tr></tbody>
           </table>
         </div>
@@ -563,6 +614,36 @@
   </div>
 </div>
 
+<!-- ═══ ORDER DETAIL MODAL ═══════════════════════════════════════════════════ -->
+<div class="modal-overlay" id="orderModal" onclick="closeOrderModal(event)">
+  <div class="modal" onclick="event.stopPropagation()" style="max-width:680px;">
+    <div class="modal-header">
+      <h3 id="orderModalTitle">Order #—</h3>
+      <button class="modal-close" onclick="closeOrderModal()">✕</button>
+    </div>
+    <div class="modal-body" id="orderModalBody">
+      <!-- Populated by openOrderModal() -->
+    </div>
+    <div class="modal-footer">
+      <div style="flex:1;display:flex;gap:0.5rem;align-items:center;">
+        <select class="status-select" id="orderModalStatus" style="font-size:0.85rem;padding:0.45rem 0.6rem;">
+          <option value="pending">Pending</option>
+          <option value="accepted">Confirmed</option>
+          <option value="preparing">Preparing</option>
+          <option value="needs_substitution">Needs Substitution</option>
+          <option value="ready">Ready</option>
+          <option value="out_for_delivery">Out for Delivery</option>
+          <option value="delivered">Delivered</option>
+          <option value="completed">Completed</option>
+          <option value="cancelled">Cancelled</option>
+        </select>
+        <input type="text" id="orderModalNotes" placeholder="Add a note (optional)…" style="flex:1;font:inherit;font-size:0.82rem;border:1px solid var(--line);border-radius:8px;padding:0.45rem 0.65rem;background:var(--bg);">
+      </div>
+      <button class="btn btn-primary" id="orderModalSaveBtn" onclick="saveOrderStatusFromModal()">Update</button>
+    </div>
+  </div>
+</div>
+
 <!-- Toast -->
 <div id="toast"></div>
 
@@ -608,6 +689,10 @@ document.addEventListener('DOMContentLoaded', async () => {
   document.getElementById('topbarUser').textContent = user.name || user.email;
   loadOverview();
   loadProducts();
+
+  // Start order polling and request notification permission
+  requestNotificationPermission();
+  startPolling();
 });
 
 // ── Panel switching ────────────────────────────────────────────────────────────
@@ -638,9 +723,16 @@ const $ = id => document.getElementById(id);
 const fmt = n => new Intl.NumberFormat('en-US',{style:'currency',currency:'USD'}).format(n);
 const dateStr = d => new Date(d).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});
 function esc(t) { return String(t||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+const STATUS_LABELS = {
+  pending: 'Pending', accepted: 'Confirmed', preparing: 'Preparing',
+  needs_substitution: 'Needs Sub', ready: 'Ready',
+  out_for_delivery: 'Out for Delivery', delivered: 'Delivered',
+  completed: 'Completed', cancelled: 'Cancelled'
+};
+const ALL_STATUSES = Object.keys(STATUS_LABELS);
 function statusBadge(s) {
-  const map = {pending:'orange',confirmed:'blue',ready:'green',delivered:'green',completed:'green',cancelled:'red'};
-  return `<span class="badge badge-${map[s]||'gray'}">${esc(s)}</span>`;
+  const map = {pending:'orange',accepted:'blue',confirmed:'blue',preparing:'blue',needs_substitution:'red',ready:'green',out_for_delivery:'orange',delivered:'green',completed:'green',cancelled:'red'};
+  return `<span class="badge badge-${map[s]||'gray'}">${esc(STATUS_LABELS[s]||s)}</span>`;
 }
 
 // ── OVERVIEW ───────────────────────────────────────────────────────────────────
@@ -890,54 +982,315 @@ async function deleteProduct(id, name) {
 }
 
 // ── ORDERS ─────────────────────────────────────────────────────────────────────
-async function loadOrders() {
+
+// Track known order IDs so we can detect truly new ones
+let _knownOrderIds = new Set();
+let _firstLoad = true;
+
+async function loadOrders(silent) {
   try {
-    allOrders = await apiRequest('/api/orders');
+    const freshOrders = await apiRequest('/api/orders');
+    // Detect new orders (skip first load to avoid alerting on existing orders)
+    if (!_firstLoad) {
+      const newOrders = freshOrders.filter(o => !_knownOrderIds.has(o.id));
+      if (newOrders.length > 0) {
+        onNewOrdersReceived(newOrders);
+      }
+    }
+    _firstLoad = false;
+    // Update known IDs
+    _knownOrderIds = new Set(freshOrders.map(o => o.id));
+    allOrders = freshOrders;
     $('orderCount').textContent = `(${allOrders.length})`;
-    renderOrders(allOrders);
-  } catch(e) { $('ordersBody').innerHTML = `<tr><td colspan="7" class="empty">${esc(e.message)}</td></tr>`; }
+    // Update pending badge in topbar
+    const pendingCount = allOrders.filter(o => o.status === 'pending').length;
+    $('notifBadge').textContent = pendingCount > 0 ? pendingCount : '';
+    if (!silent) renderOrders(allOrders);
+    else { filterOrders(); } // re-apply current filter
+  } catch(e) {
+    if (!silent) $('ordersBody').innerHTML = `<tr><td colspan="8" class="empty">${esc(e.message)}</td></tr>`;
+  }
 }
 
 function filterOrders() {
   const q   = $('orderSearch').value.toLowerCase();
   const st  = $('orderStatusFilter').value;
   renderOrders(allOrders.filter(o => {
-    const txt = `${o.id} ${o.customer?.firstName||''} ${o.customer?.lastName||''} ${o.customer?.email||''}`.toLowerCase();
+    const txt = `${o.id} ${o.customer?.firstName||''} ${o.customer?.lastName||''} ${o.customer?.email||''} ${o.customer?.phone||''}`.toLowerCase();
     return (!q || txt.includes(q)) && (!st || o.status === st);
   }));
 }
 
 function renderOrders(list) {
   const sorted = [...list].sort((a,b) => new Date(b.createdAt)-new Date(a.createdAt));
-  $('ordersBody').innerHTML = sorted.length ? sorted.map(o => `
-    <tr>
+  $('ordersBody').innerHTML = sorted.length ? sorted.map(o => {
+    const name = esc((o.customer?.firstName||'') + ' ' + (o.customer?.lastName||''));
+    const phone = o.customer?.phone || '';
+    const isPending = o.status === 'pending';
+    const isSub = o.status === 'needs_substitution';
+    return `
+    <tr class="${isPending ? 'order-new' : ''} ${isSub ? 'order-sub' : ''}">
       <td><strong>#${o.id}</strong></td>
-      <td>${esc((o.customer?.firstName||'') + ' ' + (o.customer?.lastName||''))}<br><small style="color:var(--muted)">${esc(o.customer?.email||'')}</small></td>
-      <td><strong>${esc(o.storeLocation?.name||'—')}</strong>${o.storeLocation?.address?`<br><small style="color:var(--muted)">${esc(o.storeLocation.address)}</small>`:''}</td>
-      <td>${(o.items||[]).length} item${o.items?.length===1?'':'s'}</td>
-      <td>${fmt(o.total||0)}</td>
+      <td>${name}<br><small style="color:var(--muted)">${esc(o.customer?.email||'')}</small></td>
+      <td>${phone ? `<a href="tel:${esc(phone)}" style="color:var(--accent);text-decoration:none;">${esc(phone)}</a>` : '—'}</td>
       <td><span class="badge badge-gray">${esc(o.orderType||'pickup')}</span></td>
+      <td>${fmt(o.total||0)}</td>
       <td>
-        <select class="status-select" onchange="updateOrderStatus(${o.id},this.value)">
-          ${['pending','confirmed','ready','delivered','completed','cancelled'].map(s=>`<option value="${s}" ${o.status===s?'selected':''}>${s}</option>`).join('')}
+        <select class="status-select" onchange="quickStatusUpdate(${o.id},this.value)">
+          ${ALL_STATUSES.map(s=>`<option value="${s}" ${o.status===s?'selected':''}>${STATUS_LABELS[s]}</option>`).join('')}
         </select>
       </td>
       <td>${dateStr(o.createdAt)}</td>
-    </tr>`).join('') : '<tr><td colspan="8" class="empty">No orders found</td></tr>';
+      <td><button class="btn btn-ghost btn-sm" onclick="openOrderModal(${o.id})">View</button></td>
+    </tr>`;
+  }).join('') : '<tr><td colspan="8" class="empty">No orders found</td></tr>';
 }
 
-async function updateOrderStatus(id, status) {
+// Quick inline status change (no notes)
+async function quickStatusUpdate(id, status) {
   try {
     await apiRequest(`/api/orders/${id}/status`, { method:'PUT', body:JSON.stringify({status}) });
-    toast(`Order #${id} → ${status}`);
+    toast(`Order #${id} → ${STATUS_LABELS[status] || status}`);
     const o = allOrders.find(x=>x.id===id);
     if (o) o.status = status;
+    // Update pending badge
+    const pendingCount = allOrders.filter(o => o.status === 'pending').length;
+    $('notifBadge').textContent = pendingCount > 0 ? pendingCount : '';
   } catch(e) { toast(e.message,'error'); loadOrders(); }
 }
 
+// ── Order detail modal ────────────────────────────────────────────────────────
+let _modalOrderId = null;
+
+function openOrderModal(id) {
+  const o = allOrders.find(x => x.id === id);
+  if (!o) return;
+  _modalOrderId = id;
+
+  $('orderModalTitle').textContent = `Order #${id}`;
+  $('orderModalStatus').value = o.status || 'pending';
+  $('orderModalNotes').value = '';
+
+  const name = esc((o.customer?.firstName||'') + ' ' + (o.customer?.lastName||''));
+  const email = esc(o.customer?.email || '—');
+  const phone = o.customer?.phone || '';
+  const addr = o.orderType === 'delivery' && o.customer?.address
+    ? (typeof o.customer.address === 'string' ? o.customer.address : o.customer.address.fullAddress || `${o.customer.address.street||''}, ${o.customer.address.city||''}, ${o.customer.address.state||''} ${o.customer.address.zipCode||''}`)
+    : null;
+
+  // Items table
+  const itemsHtml = (o.items||[]).map(i => `
+    <tr>
+      <td>${esc(i.name)}${i.selectedSize ? ` <small>(${esc(i.selectedSize.size||i.selectedSize)})</small>` : (i.size ? ` <small>(${esc(i.size)})</small>` : '')}</td>
+      <td style="text-align:center;">${i.quantity}</td>
+      <td style="text-align:right;">${fmt(i.price * i.quantity)}</td>
+    </tr>`).join('');
+
+  // Notes timeline
+  const notes = o.adminNotes || [];
+  const statusHist = (o.statusHistory || []).filter(h => h.notes);
+  const allNotes = [
+    ...notes.map(n => ({ text: n.note, by: n.addedBy, at: n.addedAt, status: n.status })),
+    ...statusHist.map(h => ({ text: h.notes, by: h.changedBy, at: h.changedAt, status: h.to }))
+  ].sort((a,b) => new Date(b.at) - new Date(a.at));
+
+  const notesHtml = allNotes.length ? allNotes.map(n => `
+    <div class="note-entry">
+      ${esc(n.text)}
+      <div class="note-meta">${esc(n.by)} · ${dateStr(n.at)} · Status: ${STATUS_LABELS[n.status]||n.status}</div>
+    </div>`).join('') : '<small style="color:var(--muted);">No notes yet</small>';
+
+  $('orderModalBody').innerHTML = `
+    <div class="order-detail-grid">
+      <div class="detail-block">
+        <span class="detail-label">Customer</span>
+        <span class="detail-value">${name}</span>
+        <span class="detail-value" style="font-size:0.82rem;"><a href="mailto:${email}">${email}</a></span>
+      </div>
+      <div class="detail-block">
+        <span class="detail-label">Phone</span>
+        <span class="detail-value">${phone ? esc(phone) : '—'}</span>
+        ${phone ? `<div class="phone-actions">
+          <a class="call-btn" href="tel:${esc(phone)}">📞 Call</a>
+          <a class="sms-btn" href="sms:${esc(phone)}">💬 Text</a>
+        </div>` : ''}
+      </div>
+      <div class="detail-block">
+        <span class="detail-label">Order Type</span>
+        <span class="detail-value">${esc(o.orderType||'pickup')}</span>
+      </div>
+      <div class="detail-block">
+        <span class="detail-label">Store</span>
+        <span class="detail-value">${esc(o.storeLocation?.name||'—')}</span>
+      </div>
+      ${addr ? `<div class="detail-block" style="grid-column:1/-1;">
+        <span class="detail-label">Delivery Address</span>
+        <span class="detail-value">${esc(addr)}</span>
+      </div>` : ''}
+      <div class="detail-block">
+        <span class="detail-label">Status</span>
+        <span class="detail-value">${statusBadge(o.status||'pending')}</span>
+      </div>
+      <div class="detail-block">
+        <span class="detail-label">Placed</span>
+        <span class="detail-value">${new Date(o.createdAt).toLocaleString('en-US',{month:'short',day:'numeric',year:'numeric',hour:'numeric',minute:'2-digit'})}</span>
+      </div>
+    </div>
+
+    <div>
+      <span class="detail-label">Items</span>
+      <table class="order-items-list">
+        <thead><tr><th>Item</th><th style="text-align:center;">Qty</th><th style="text-align:right;">Price</th></tr></thead>
+        <tbody>${itemsHtml}</tbody>
+        <tfoot>
+          <tr style="font-weight:700;"><td>Total</td><td></td><td style="text-align:right;">${fmt(o.total||0)}</td></tr>
+        </tfoot>
+      </table>
+    </div>
+
+    <div>
+      <span class="detail-label">Notes</span>
+      <div class="notes-timeline">${notesHtml}</div>
+    </div>
+  `;
+
+  $('orderModal').classList.add('open');
+}
+
+function closeOrderModal(e) {
+  if (e && e.target !== $('orderModal')) return;
+  $('orderModal').classList.remove('open');
+  _modalOrderId = null;
+}
+
+async function saveOrderStatusFromModal() {
+  if (!_modalOrderId) return;
+  const status = $('orderModalStatus').value;
+  const notes = $('orderModalNotes').value.trim();
+  const btn = $('orderModalSaveBtn');
+  btn.disabled = true; btn.textContent = 'Saving…';
+  try {
+    await apiRequest(`/api/orders/${_modalOrderId}/status`, {
+      method: 'PUT',
+      body: JSON.stringify({ status, notes: notes || undefined })
+    });
+    toast(`Order #${_modalOrderId} → ${STATUS_LABELS[status] || status}`);
+    closeOrderModal();
+    loadOrders();
+  } catch(e) { toast(e.message, 'error'); }
+  finally { btn.disabled = false; btn.textContent = 'Update'; }
+}
+
+// ── SOUND ALERT + BROWSER NOTIFICATIONS ──────────────────────────────────────
+
+let _soundEnabled = true;
+
+// Generate a notification chime using the Web Audio API (no external file needed)
+function playNewOrderSound() {
+  if (!_soundEnabled) return;
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    // Play two quick tones (a pleasant chime)
+    [523.25, 659.25, 783.99].forEach((freq, i) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = 'sine';
+      osc.frequency.value = freq;
+      gain.gain.setValueAtTime(0.3, ctx.currentTime + i * 0.15);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + i * 0.15 + 0.4);
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start(ctx.currentTime + i * 0.15);
+      osc.stop(ctx.currentTime + i * 0.15 + 0.4);
+    });
+  } catch(e) { /* AudioContext not available — ignore */ }
+}
+
+// Request browser notification permission on page load
+function requestNotificationPermission() {
+  if ('Notification' in window && Notification.permission === 'default') {
+    Notification.requestPermission();
+  }
+}
+
+// Show a browser notification for new orders
+function showBrowserNotification(orders) {
+  if (!('Notification' in window) || Notification.permission !== 'granted') return;
+  const count = orders.length;
+  const first = orders[0];
+  const name = (first.customer?.firstName||'') + ' ' + (first.customer?.lastName||'');
+  const body = count === 1
+    ? `${name} — ${fmt(first.total||0)} (${first.orderType||'pickup'})`
+    : `${count} new orders received`;
+  const n = new Notification('New Order — Fiesta Liquor', {
+    body: body,
+    icon: '/images/logo.png',
+    tag: 'new-order' // replaces previous notification
+  });
+  n.onclick = function() { window.focus(); showPanel('orders'); n.close(); };
+  setTimeout(() => n.close(), 8000);
+}
+
+// Called when polling detects new orders
+function onNewOrdersReceived(newOrders) {
+  playNewOrderSound();
+  showBrowserNotification(newOrders);
+  // Flash the page title
+  let flashes = 0;
+  const origTitle = document.title;
+  const flashInterval = setInterval(() => {
+    document.title = flashes % 2 === 0 ? `🔴 NEW ORDER — Fiesta Liquor` : origTitle;
+    flashes++;
+    if (flashes > 8) { clearInterval(flashInterval); document.title = origTitle; }
+  }, 800);
+}
+
+// Toggle sound on/off via bell button
+$('notifBell').addEventListener('click', function() {
+  _soundEnabled = !_soundEnabled;
+  this.textContent = _soundEnabled ? '🔔' : '🔕';
+  // Re-add the badge span (textContent wipes it)
+  const badge = document.createElement('span');
+  badge.className = 'notif-badge';
+  badge.id = 'notifBadge';
+  const pendingCount = allOrders.filter(o => o.status === 'pending').length;
+  badge.textContent = pendingCount > 0 ? pendingCount : '';
+  this.appendChild(badge);
+  toast(_soundEnabled ? 'Sound alerts ON' : 'Sound alerts OFF');
+});
+
+// ── POLLING (auto-refresh orders every 15 seconds) ──────────────────────────
+let _pollingInterval = null;
+let _pollingEnabled = true;
+
+function startPolling() {
+  stopPolling();
+  _pollingInterval = setInterval(() => {
+    loadOrders(true); // silent refresh
+  }, 15000);
+}
+
+function stopPolling() {
+  if (_pollingInterval) { clearInterval(_pollingInterval); _pollingInterval = null; }
+}
+
+function togglePolling() {
+  _pollingEnabled = !_pollingEnabled;
+  const btn = $('pollingToggle');
+  if (_pollingEnabled) {
+    startPolling();
+    btn.textContent = 'Auto-refresh: ON';
+    toast('Auto-refresh ON (every 15s)');
+  } else {
+    stopPolling();
+    btn.textContent = 'Auto-refresh: OFF';
+    toast('Auto-refresh OFF');
+  }
+}
+
 function exportOrders() {
-  const rows = [['Order #','Customer','Email','Type','Total','Status','Date']];
-  allOrders.forEach(o => rows.push([o.id, (o.customer?.firstName||'')+(o.customer?.lastName?` ${o.customer.lastName}`:''), o.customer?.email||'', o.orderType||'pickup', (o.total||0).toFixed(2), o.status||'', dateStr(o.createdAt)]));
+  const rows = [['Order #','Customer','Email','Phone','Type','Total','Status','Date']];
+  allOrders.forEach(o => rows.push([o.id, (o.customer?.firstName||'')+(o.customer?.lastName?` ${o.customer.lastName}`:''), o.customer?.email||'', o.customer?.phone||'', o.orderType||'pickup', (o.total||0).toFixed(2), o.status||'', dateStr(o.createdAt)]));
   const csv = rows.map(r => r.map(c=>`"${String(c).replace(/"/g,'""')}"`).join(',')).join('\n');
   dlFile('orders.csv', csv, 'text/csv');
 }
