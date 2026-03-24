@@ -695,6 +695,170 @@ h1 {
 }
 
 /* ============================================================
+   LOCATIONS SECTION
+   ============================================================ */
+.locations-section {
+  padding: 100px 0 110px;
+  background: var(--bg);
+}
+
+/* Section label + title (reused pattern) */
+.section-label {
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--accent);
+  margin-bottom: 0.5rem;
+}
+
+.section-title {
+  font-size: clamp(2rem, 4.5vw, 3rem);
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  line-height: 1.08;
+  color: var(--text);
+  margin-bottom: 3rem;
+}
+
+/* Grid spacing */
+.locations-grid { margin: 0 -12px; }
+.location-col   { padding: 12px; margin-bottom: 0; }
+
+/* Card */
+.location-card {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  box-shadow: var(--shadow-sm);
+  transition: transform 0.28s var(--ease-out), box-shadow 0.28s var(--ease-out);
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+.location-card:hover {
+  transform: translateY(-6px);
+  box-shadow: var(--shadow);
+}
+
+/* Map iframe wrapper — slight overlay so iframe doesn't eat pointer events on card */
+.location-map {
+  position: relative;
+  overflow: hidden;
+  border-bottom: 1px solid var(--line);
+  flex-shrink: 0;
+}
+.location-map iframe {
+  display: block;
+  width: 100%;
+  height: 220px;
+  border: 0;
+  transition: transform 0.35s var(--ease-out);
+}
+.location-card:hover .location-map iframe {
+  transform: scale(1.02);
+}
+
+/* Info block */
+.location-info {
+  padding: 1.4rem 1.5rem 1.6rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+  flex: 1;
+}
+
+.location-name {
+  font-size: 1.05rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: var(--text);
+  margin: 0;
+}
+
+/* Details list (address, phone, hours) */
+.location-details {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+}
+
+.location-details li {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.55rem;
+  font-size: 0.87rem;
+  color: var(--muted);
+  line-height: 1.45;
+}
+
+/* Inline SVG icon */
+.location-details svg {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+  margin-top: 2px;
+  color: var(--accent);
+}
+
+.location-details a {
+  color: var(--accent);
+  text-decoration: none;
+  font-weight: 500;
+  transition: color 0.15s ease;
+}
+.location-details a:hover { color: var(--accent-dark); text-decoration: underline; }
+
+/* "Get Directions" button */
+.location-directions-btn {
+  display: inline-block;
+  margin-top: auto;
+  padding: 0.55rem 1.1rem;
+  background: var(--accent-light);
+  color: var(--accent);
+  border-radius: 999px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  text-decoration: none;
+  width: fit-content;
+  transition: background 0.2s ease, color 0.2s ease, transform 0.15s ease;
+  border: 1.5px solid rgba(17, 97, 73, 0.15);
+}
+.location-directions-btn:hover {
+  background: var(--accent);
+  color: #fff;
+  transform: translateY(-1px);
+  text-decoration: none;
+}
+
+/* Stagger delays for the 4 location cards */
+.stagger-loc-1 { transition-delay: 0s;     }
+.stagger-loc-2 { transition-delay: 0.1s;   }
+.stagger-loc-3 { transition-delay: 0.18s;  }
+.stagger-loc-4 { transition-delay: 0.26s;  }
+
+/* Nav text link (Locations in header) */
+.nav-text-link {
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--muted);
+  text-decoration: none;
+  padding: 0.3rem 0.1rem;
+  transition: color 0.2s ease;
+}
+.nav-text-link:hover { color: var(--accent); }
+
+/* Mobile: stack grid to 1 column */
+@media (max-width: 767px) {
+  .locations-section { padding: 70px 0 80px; }
+  .location-col      { margin-bottom: 0; }
+}
+
+/* ============================================================
    FOOTER
    ============================================================ */
 .site-footer {

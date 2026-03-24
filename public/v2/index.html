@@ -20,6 +20,7 @@
         <h1>Fiesta Liquor</h1>
       </div>
       <div class="header-actions">
+        <a class="nav-text-link" href="#locations">Locations</a>
         <a class="ghost-btn" href="/account" id="accountLink">Account</a>
         <a class="ghost-btn" href="/auth" id="authLink">Sign In</a>
         <button id="openCartBtn" class="cart-btn" aria-label="Open cart">
@@ -84,6 +85,163 @@
       <p id="resultMeta" class="result-meta">Loading products...</p>
       <div id="productGrid" class="product-grid" aria-live="polite"></div>
     </section>
+
+    <!-- ===================== LOCATIONS ===================== -->
+    <section class="locations-section" id="locations" aria-labelledby="locations-title">
+      <div class="container">
+
+        <p class="section-label scroll-reveal">Find Us</p>
+        <h2 class="section-title scroll-reveal" id="locations-title">
+          Our Locations<br>in San Antonio
+        </h2>
+
+        <!-- 2×2 Bootstrap grid — stacks to 1 column on mobile -->
+        <div class="row locations-grid">
+
+          <!-- Location 1 -->
+          <div class="col-md-6 location-col scroll-reveal stagger-loc-1">
+            <article class="location-card">
+              <div class="location-map">
+                <iframe
+                  title="Fiesta Liquor Bandera Road"
+                  src="https://maps.google.com/maps?q=9118+Bandera+Rd,+San+Antonio,+TX+78250&output=embed"
+                  width="100%" height="220" style="border:0;" allowfullscreen
+                  loading="lazy" referrerpolicy="no-referrer-when-downgrade">
+                </iframe>
+              </div>
+              <div class="location-info">
+                <h3 class="location-name">Fiesta Liquor — Bandera</h3>
+                <ul class="location-details">
+                  <li>
+                    <!-- Pin icon -->
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"/><circle cx="12" cy="9" r="2.5" stroke-linecap="round"/></svg>
+                    <span>9118 Bandera Rd, San Antonio, TX 78250</span>
+                  </li>
+                  <li>
+                    <!-- Phone icon -->
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.07 11a19.79 19.79 0 01-3.07-8.67A2 2 0 012 .84h3a2 2 0 012 1.72c.13.96.36 1.9.7 2.81a2 2 0 01-.45 2.11L6.09 8.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.91.34 1.85.57 2.81.7A2 2 0 0122 16.92z"/></svg>
+                    <a href="tel:+12106810001">(210) 681-0001</a>
+                  </li>
+                  <li>
+                    <!-- Clock icon -->
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="10" stroke-linecap="round"/><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6l4 2"/></svg>
+                    <span>Mon–Sun: 9 AM – 10 PM</span>
+                  </li>
+                </ul>
+                <a class="location-directions-btn" href="https://www.google.com/maps/dir/?api=1&destination=9118+Bandera+Rd,+San+Antonio,+TX+78250" target="_blank" rel="noopener">
+                  Get Directions ↗
+                </a>
+              </div>
+            </article>
+          </div>
+
+          <!-- Location 2 -->
+          <div class="col-md-6 location-col scroll-reveal stagger-loc-2">
+            <article class="location-card">
+              <div class="location-map">
+                <iframe
+                  title="Fiesta Liquor Culebra Road"
+                  src="https://maps.google.com/maps?q=6210+Culebra+Rd,+San+Antonio,+TX+78228&output=embed"
+                  width="100%" height="220" style="border:0;" allowfullscreen
+                  loading="lazy" referrerpolicy="no-referrer-when-downgrade">
+                </iframe>
+              </div>
+              <div class="location-info">
+                <h3 class="location-name">Fiesta Liquor — Culebra</h3>
+                <ul class="location-details">
+                  <li>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"/><circle cx="12" cy="9" r="2.5" stroke-linecap="round"/></svg>
+                    <span>6210 Culebra Rd, San Antonio, TX 78228</span>
+                  </li>
+                  <li>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.07 11a19.79 19.79 0 01-3.07-8.67A2 2 0 012 .84h3a2 2 0 012 1.72c.13.96.36 1.9.7 2.81a2 2 0 01-.45 2.11L6.09 8.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.91.34 1.85.57 2.81.7A2 2 0 0122 16.92z"/></svg>
+                    <a href="tel:+12105550002">(210) 555-0002</a>
+                  </li>
+                  <li>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="10" stroke-linecap="round"/><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6l4 2"/></svg>
+                    <span>Mon–Sun: 9 AM – 10 PM</span>
+                  </li>
+                </ul>
+                <a class="location-directions-btn" href="https://www.google.com/maps/dir/?api=1&destination=6210+Culebra+Rd,+San+Antonio,+TX+78228" target="_blank" rel="noopener">
+                  Get Directions ↗
+                </a>
+              </div>
+            </article>
+          </div>
+
+          <!-- Location 3 -->
+          <div class="col-md-6 location-col scroll-reveal stagger-loc-3">
+            <article class="location-card">
+              <div class="location-map">
+                <iframe
+                  title="Fiesta Liquor Wurzbach Road"
+                  src="https://maps.google.com/maps?q=7142+Wurzbach+Rd,+San+Antonio,+TX+78240&output=embed"
+                  width="100%" height="220" style="border:0;" allowfullscreen
+                  loading="lazy" referrerpolicy="no-referrer-when-downgrade">
+                </iframe>
+              </div>
+              <div class="location-info">
+                <h3 class="location-name">Fiesta Liquor — Wurzbach</h3>
+                <ul class="location-details">
+                  <li>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"/><circle cx="12" cy="9" r="2.5" stroke-linecap="round"/></svg>
+                    <span>7142 Wurzbach Rd, San Antonio, TX 78240</span>
+                  </li>
+                  <li>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.07 11a19.79 19.79 0 01-3.07-8.67A2 2 0 012 .84h3a2 2 0 012 1.72c.13.96.36 1.9.7 2.81a2 2 0 01-.45 2.11L6.09 8.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.91.34 1.85.57 2.81.7A2 2 0 0122 16.92z"/></svg>
+                    <a href="tel:+12105550003">(210) 555-0003</a>
+                  </li>
+                  <li>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="10" stroke-linecap="round"/><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6l4 2"/></svg>
+                    <span>Mon–Sun: 9 AM – 10 PM</span>
+                  </li>
+                </ul>
+                <a class="location-directions-btn" href="https://www.google.com/maps/dir/?api=1&destination=7142+Wurzbach+Rd,+San+Antonio,+TX+78240" target="_blank" rel="noopener">
+                  Get Directions ↗
+                </a>
+              </div>
+            </article>
+          </div>
+
+          <!-- Location 4 -->
+          <div class="col-md-6 location-col scroll-reveal stagger-loc-4">
+            <article class="location-card">
+              <div class="location-map">
+                <iframe
+                  title="Fiesta Liquor Fredericksburg Road"
+                  src="https://maps.google.com/maps?q=4502+Fredericksburg+Rd,+San+Antonio,+TX+78201&output=embed"
+                  width="100%" height="220" style="border:0;" allowfullscreen
+                  loading="lazy" referrerpolicy="no-referrer-when-downgrade">
+                </iframe>
+              </div>
+              <div class="location-info">
+                <h3 class="location-name">Fiesta Liquor — Fredericksburg</h3>
+                <ul class="location-details">
+                  <li>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"/><circle cx="12" cy="9" r="2.5" stroke-linecap="round"/></svg>
+                    <span>4502 Fredericksburg Rd, San Antonio, TX 78201</span>
+                  </li>
+                  <li>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.07 11a19.79 19.79 0 01-3.07-8.67A2 2 0 012 .84h3a2 2 0 012 1.72c.13.96.36 1.9.7 2.81a2 2 0 01-.45 2.11L6.09 8.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.91.34 1.85.57 2.81.7A2 2 0 0122 16.92z"/></svg>
+                    <a href="tel:+12105550004">(210) 555-0004</a>
+                  </li>
+                  <li>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="10" stroke-linecap="round"/><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6l4 2"/></svg>
+                    <span>Mon–Sun: 9 AM – 10 PM</span>
+                  </li>
+                </ul>
+                <a class="location-directions-btn" href="https://www.google.com/maps/dir/?api=1&destination=4502+Fredericksburg+Rd,+San+Antonio,+TX+78201" target="_blank" rel="noopener">
+                  Get Directions ↗
+                </a>
+              </div>
+            </article>
+          </div>
+
+        </div><!-- /.row -->
+      </div><!-- /.container -->
+    </section>
+    <!-- ===================== END LOCATIONS ===================== -->
+
   </main>
 
   <aside id="cartDrawer" class="cart-drawer" aria-label="Shopping cart" aria-hidden="true">
@@ -134,6 +292,7 @@
       <ul class="footer-links">
         <li><a href="/privacy.html">Privacy</a></li>
         <li><a href="/terms.html">Terms</a></li>
+        <li><a href="#locations">Locations</a></li>
         <li><a href="/account">Account</a></li>
       </ul>
     </div>
