@@ -13,9 +13,9 @@
 <body>
   <a class="skip-link" href="#catalog">Skip to products</a>
 
-  <header class="site-header">
+  <header class="site-header" id="siteHeader">
     <div class="container header-inner">
-      <div>
+      <div class="header-brand">
         <p class="eyebrow">Local. Curated. Reliable.</p>
         <h1>Fiesta Liquor</h1>
       </div>
@@ -23,31 +23,45 @@
         <a class="ghost-btn" href="/account" id="accountLink">Account</a>
         <a class="ghost-btn" href="/auth" id="authLink">Sign In</a>
         <button id="openCartBtn" class="cart-btn" aria-label="Open cart">
-          Cart <span id="cartCount">0</span>
+          🛒 <span id="cartCount">0</span>
         </button>
       </div>
     </div>
   </header>
 
   <main>
-    <section class="hero container" aria-labelledby="hero-title">
-      <div>
-        <p class="kicker">San Antonio's favorite liquor store</p>
-        <h2 id="hero-title">Premium spirits, fast pickup & delivery.</h2>
-        <p class="hero-copy">Browse 100+ products, choose your size, and check out in minutes. Pickup or delivery available.</p>
-        <div class="hero-cta-row">
-          <a href="#catalog" class="primary-btn">Browse Products</a>
-          <a href="/checkout" class="ghost-btn">Go to Checkout</a>
+    <!-- Hero -->
+    <section class="hero-full" aria-labelledby="hero-title">
+      <div class="hero-blob hero-blob-1"></div>
+      <div class="hero-blob hero-blob-2"></div>
+      <div class="hero-inner container">
+        <div class="hero-text">
+          <span class="hero-badge reveal-hero">San Antonio's Favorite</span>
+          <h2 id="hero-title" class="reveal-hero">Premium spirits,<br>fast pickup &amp; delivery.</h2>
+          <p class="hero-copy reveal-hero">Browse 100+ products, choose your size, and check out in minutes. Pickup or delivery — we've got you covered.</p>
+          <div class="hero-cta-row reveal-hero">
+            <a href="#catalog" class="primary-btn">Browse Products</a>
+            <a href="/checkout" class="ghost-btn">Go to Checkout</a>
+          </div>
         </div>
+        <aside class="stat-grid reveal-hero" aria-label="Store highlights">
+          <div class="stat-card">
+            <strong>100+</strong>
+            <span>Products in stock</span>
+          </div>
+          <div class="stat-card">
+            <strong>Fast</strong>
+            <span>Pickup &amp; delivery</span>
+          </div>
+          <div class="stat-card">
+            <strong>Secure</strong>
+            <span>Safe checkout</span>
+          </div>
+        </aside>
       </div>
-      <aside class="stat-grid" aria-label="Store highlights">
-        <div><strong>Fast</strong><span>Lightweight page and API-only data fetch</span></div>
-        <div><strong>Smart</strong><span>Live search and category filters</span></div>
-        <div><strong>Secure</strong><span>Server-side auth and restricted API origin support</span></div>
-      </aside>
     </section>
 
-    <section class="controls container" id="catalog" aria-label="Product controls">
+    <section class="controls container scroll-reveal" id="catalog" aria-label="Product controls">
       <div class="search-wrap">
         <label for="searchInput" class="sr-only">Search products</label>
         <input id="searchInput" type="search" placeholder="Search by name or category" autocomplete="off">
@@ -111,6 +125,19 @@
       </div>
     </article>
   </template>
+
+  <!-- Footer -->
+  <footer class="site-footer">
+    <div class="container footer-inner">
+      <p class="footer-brand">Fiesta Liquor</p>
+      <p class="footer-copy">© 2024 Fiesta Liquor, San Antonio TX. All rights reserved.</p>
+      <ul class="footer-links">
+        <li><a href="/privacy.html">Privacy</a></li>
+        <li><a href="/terms.html">Terms</a></li>
+        <li><a href="/account">Account</a></li>
+      </ul>
+    </div>
+  </footer>
 
   <script src="/v2/app.js" defer></script>
 </body>

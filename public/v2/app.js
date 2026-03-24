@@ -28,6 +28,7 @@ const currency = new Intl.NumberFormat("en-US", {
 });
 
 init();
+initScrollEffects();
 
 async function init() {
   bindEvents();
@@ -202,6 +203,9 @@ function renderProducts() {
   });
 
   elements.productGrid.appendChild(fragment);
+
+  // Trigger scroll-reveal on newly rendered cards
+  observeProductCards();
 }
 
 function normalizeImagePath(rawPath) {
@@ -338,6 +342,53 @@ function updateHeaderAuth() {
     if (authLink) authLink.style.display = "";
     if (accountLink) accountLink.style.display = "none";
   }
+}
+
+// ── Scroll effects ────────────────────────────────────────────
+function initScrollEffects() {
+  // 1. Sticky nav darkens on scroll
+  const header = document.getElementById("siteHeader");
+  if (header) {
+    window.addEventListener("scroll", () => {
+      header.classList.toggle("scrolled", window.scrollY > 24);
+    }, { passive: true });
+  }
+
+  // 2. Hero elements fade in on page load (staggered)
+  const heroEls = document.querySelectorAll(".reveal-hero");
+  heroEls.forEach((el, i) => {
+    setTimeout(() => el.classList.add("in-view"), 120 + i * 130);
+  });
+
+  // 3. Generic scroll-reveal (controls bar, etc.)
+  const revealObserver = new IntersectionObserver((entries) => {
+    entries.forEach((entry) => {
+      if (entry.isIntersecting) {
+        entry.target.classList.add("in-view");
+        revealObserver.unobserve(entry.target);
+      }
+    });
+  }, { threshold: 0.12 });
+
+  document.querySelectorAll(".scroll-reveal").forEach((el) => revealObserver.observe(el));
+}
+
+// ── Product card scroll-reveal (called after cards are rendered) ──
+function observeProductCards() {
+  const cardObserver = new IntersectionObserver((entries) => {
+    entries.forEach((entry) => {
+      if (entry.isIntersecting) {
+        entry.target.classList.add("visible");
+        cardObserver.unobserve(entry.target);
+      }
+    });
+  }, { threshold: 0.08 });
+
+  document.querySelectorAll(".product-card").forEach((card, i) => {
+    // Stagger up to 5 columns (cycle resets every 5 cards)
+    card.style.transitionDelay = `${(i % 5) * 60}ms`;
+    cardObserver.observe(card);
+  });
 }
 
 function escapeHtml(text) {
