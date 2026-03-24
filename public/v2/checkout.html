@@ -8,6 +8,9 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/v2/styles.css">
+  <!-- Leaflet.js for delivery radius map -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="">
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
 </head>
 <body>
 
@@ -83,6 +86,29 @@
                 <span>To your door · $7.99</span>
               </label>
             </div>
+
+            <!-- Delivery location status (shown when delivery is selected) -->
+            <div id="deliveryLocationStatus" style="display:none; margin-top:1rem;">
+              <!-- Checking location spinner -->
+              <div id="deliveryLocationChecking" style="display:none; padding:0.75rem 1rem; background:#f0f4ff; border-radius:8px; color:#555;">
+                Checking your location…
+              </div>
+              <!-- Within delivery radius -->
+              <div id="deliveryLocationOk" style="display:none; padding:0.75rem 1rem; background:#e8f5e9; border-radius:8px; color:#2e7d32;">
+                <strong id="deliveryStoreName"></strong> is <strong id="deliveryStoreDistance"></strong> miles away — delivery available!
+              </div>
+              <!-- Outside delivery radius -->
+              <div id="deliveryLocationBlocked" style="display:none; padding:0.75rem 1rem; background:#fce4ec; border-radius:8px; color:#c62828;">
+                Delivery is unavailable in your area. Please choose pickup instead.
+              </div>
+              <!-- Geolocation error -->
+              <div id="deliveryLocationError" style="display:none; padding:0.75rem 1rem; background:#fff3e0; border-radius:8px; color:#e65100;">
+                <span id="deliveryLocationErrorMsg"></span>
+              </div>
+            </div>
+
+            <!-- Delivery radius map (hidden until delivery is selected) -->
+            <div id="deliveryMap" style="display:none; height:340px; margin-top:1rem; border-radius:10px; overflow:hidden; border:1px solid #e0e0e0;"></div>
           </div>
 
           <!-- Contact info -->
@@ -178,6 +204,7 @@
   <script src="/firebase.js"></script>
   <script src="/firebase-auth.js"></script>
   <script src="/api.js"></script>
+  <script src="/location-service.js"></script>
   <script src="/checkout.js"></script>
 
   <script>

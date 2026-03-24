@@ -4,6 +4,11 @@ let cart = [];
 let currentUser = null;
 let deliveryTimeEstimate = null;
 
+// Delivery eligibility state (set by location-service.js check)
+// null = not checked yet, true = within radius, false = outside radius
+let deliveryEligible = null;
+let deliveryCheckError = null;
+
 // Initialize checkout page
 document.addEventListener('DOMContentLoaded', async function() {
     console.log('🛒 Checkout page loading...');
@@ -198,20 +203,25 @@ function setupAddressField() {
 function toggleAddressField() {
     const addressField = document.getElementById('addressField');
     const orderType = document.querySelector('input[name="orderType"]:checked').value;
-    
+    const statusContainer = document.getElementById('deliveryLocationStatus');
+
     if (orderType === 'delivery') {
         addressField.style.display = 'block';
         document.getElementById('streetAddress').required = true;
         document.getElementById('city').required = true;
         document.getElementById('state').required = true;
         document.getElementById('zipCode').required = true;
-        
+
         // Calculate delivery time if zip is already filled
         const zipInput = document.getElementById('zipCode');
         if (zipInput.value) {
             calculateDeliveryTime();
         }
+
+        // Run geolocation-based delivery eligibility check
+        runDeliveryCheck();
     } else {
+        // Pickup — no distance restriction, hide delivery status
         addressField.style.display = 'none';
         document.getElementById('streetAddress').required = false;
         document.getElementById('city').required = false;
@@ -219,9 +229,78 @@ function toggleAddressField() {
         document.getElementById('zipCode').required = false;
         document.getElementById('deliveryTimeEstimate').style.display = 'none';
         deliveryTimeEstimate = null;
+        deliveryEligible = null;
+        deliveryCheckError = null;
+        if (statusContainer) statusContainer.style.display = 'none';
+        // Hide the delivery map when switching to pickup
+        if (typeof hideDeliveryMap === 'function') hideDeliveryMap();
     }
-    
+
     loadOrderSummary();
+}
+
+// Run the geolocation delivery check and update the UI
+function runDeliveryCheck() {
+    var statusContainer = document.getElementById('deliveryLocationStatus');
+    var checkingEl = document.getElementById('deliveryLocationChecking');
+    var okEl = document.getElementById('deliveryLocationOk');
+    var blockedEl = document.getElementById('deliveryLocationBlocked');
+    var errorEl = document.getElementById('deliveryLocationError');
+
+    if (!statusContainer) return;
+
+    // Reset all status elements
+    statusContainer.style.display = 'block';
+    checkingEl.style.display = 'block';
+    okEl.style.display = 'none';
+    blockedEl.style.display = 'none';
+    errorEl.style.display = 'none';
+
+    // checkDeliveryEligibility is defined in location-service.js
+    if (typeof checkDeliveryEligibility !== 'function') {
+        checkingEl.style.display = 'none';
+        deliveryEligible = true; // fail open if script missing
+        return;
+    }
+
+    checkDeliveryEligibility().then(function (result) {
+        checkingEl.style.display = 'none';
+
+        if (result.error) {
+            // Geolocation failed — show warning but don't hard-block
+            deliveryEligible = false;
+            deliveryCheckError = result.error;
+            errorEl.style.display = 'block';
+            document.getElementById('deliveryLocationErrorMsg').textContent = result.error;
+            // Show map without user marker (stores + radii only)
+            if (typeof renderDeliveryMap === 'function') {
+                renderDeliveryMap(null, null);
+            }
+            return;
+        }
+
+        if (result.eligible) {
+            // User is within delivery radius of at least one store
+            deliveryEligible = true;
+            deliveryCheckError = null;
+            okEl.style.display = 'block';
+            document.getElementById('deliveryStoreName').textContent = result.nearestStore.store.name;
+            document.getElementById('deliveryStoreDistance').textContent = result.nearestStore.distanceMiles;
+
+            // Auto-select the nearest store for delivery
+            selectStoreByName(result.nearestStore.store.name);
+        } else {
+            // User is outside delivery radius of all stores
+            deliveryEligible = false;
+            deliveryCheckError = null;
+            blockedEl.style.display = 'block';
+        }
+
+        // Render the map with user dot + store markers + radius circles
+        if (typeof renderDeliveryMap === 'function') {
+            renderDeliveryMap(result.userCoords, result.allDistances);
+        }
+    });
 }
 
 // Calculate delivery time based on ZIP code
@@ -357,7 +436,16 @@ async function proceedToPayment() {
     // Get order type
     const selectedOrderType = document.querySelector('input[name="orderType"]:checked');
     const orderType = selectedOrderType ? selectedOrderType.value : 'pickup';
-    
+
+    // Block delivery if user is outside delivery radius
+    if (orderType === 'delivery' && deliveryEligible === false) {
+        var msg = deliveryCheckError
+            ? deliveryCheckError
+            : 'Delivery is unavailable in your area. Please choose pickup instead.';
+        alert(msg);
+        return;
+    }
+
     // Validate form
     const requiredFields = ['firstName', 'lastName', 'email', 'phone'];
     if (orderType === 'delivery') {
