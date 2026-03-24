@@ -1778,6 +1778,127 @@ a { color: var(--accent); }
 }
 
 /* ============================================================
+   AGE VERIFICATION GATE
+   ============================================================ */
+.age-gate {
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(15, 20, 15, 0.85);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  padding: 24px;
+  opacity: 1;
+  transition: opacity 0.4s var(--ease-out);
+}
+
+.age-gate[hidden] {
+  display: none;
+}
+
+.age-gate.age-gate--closing {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.age-gate-card {
+  background: var(--card);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+  padding: 48px 40px;
+  max-width: 440px;
+  width: 100%;
+  text-align: center;
+  animation: ageGateIn 0.5s var(--ease-spring) both;
+}
+
+@keyframes ageGateIn {
+  from {
+    opacity: 0;
+    transform: scale(0.92) translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+.age-gate-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 72px;
+  height: 72px;
+  border-radius: var(--radius-full);
+  background: var(--accent);
+  color: #fff;
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin-bottom: 20px;
+}
+
+.age-gate-card h2 {
+  font-size: 1.6rem;
+  font-weight: 700;
+  color: var(--text);
+  margin-bottom: 8px;
+}
+
+.age-gate-card > p {
+  color: var(--muted);
+  font-size: 0.95rem;
+  line-height: 1.5;
+  margin-bottom: 28px;
+}
+
+.age-gate-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.age-gate-actions .primary-btn {
+  width: 100%;
+  padding: 14px 24px;
+  font-size: 1rem;
+}
+
+.age-gate-actions .ghost-btn {
+  width: 100%;
+  padding: 14px 24px;
+  font-size: 1rem;
+}
+
+.age-gate-disclaimer {
+  font-size: 0.75rem;
+  color: var(--muted);
+  line-height: 1.4;
+  opacity: 0.7;
+}
+
+.age-gate-denied {
+  color: var(--danger);
+  font-weight: 600;
+  font-size: 1rem;
+  margin-top: 12px;
+}
+
+@media (max-width: 480px) {
+  .age-gate-card {
+    padding: 36px 24px;
+  }
+  .age-gate-icon {
+    width: 60px;
+    height: 60px;
+    font-size: 1.3rem;
+  }
+}
+
+/* ============================================================
    ACCESSIBILITY
    ============================================================ */
 :focus-visible {

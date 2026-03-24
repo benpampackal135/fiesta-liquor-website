@@ -59,12 +59,16 @@ function initializeFirebaseAuth() {
     // Don't log "logged out" - it's confusing for backend-auth users
   });
   
-  // Handle redirect result after Google sign-in redirect
-  // This is critical for iOS Safari which uses redirect flow
-  // Use a longer delay for iOS Safari to ensure the page and Firebase SDK are fully ready
-  const redirectDelay = isIOSSafari() ? 500 : 200;
-  const isPendingRedirect = sessionStorage.getItem('googleRedirectPending') === '1';
-  let redirectHandled = false; // guard against double-handling
+  // ── Handle redirect result after Google sign-in redirect ──
+  // On mobile, sessionStorage is often wiped during cross-domain redirects
+  // (your site → Google → firebaseapp.com → your site), so we use
+  // localStorage as the primary flag. We also use onAuthStateChanged as
+  // the PRIMARY detection mechanism, because getRedirectResult() is
+  // unreliable on many mobile browsers (returns null even on success).
+  const isPendingRedirect =
+    localStorage.getItem('googleRedirectPending') === '1' ||
+    sessionStorage.getItem('googleRedirectPending') === '1';
+  let redirectHandled = false;
 
   // Show loading state if we're returning from a redirect
   if (isPendingRedirect) {
@@ -75,60 +79,70 @@ function initializeFirebaseAuth() {
     console.log('📱 Detected pending Google redirect, showing loading state');
   }
 
-  setTimeout(() => {
-    auth.getRedirectResult().then((result) => {
-      // Clear the pending flag regardless of outcome
-      sessionStorage.removeItem('googleRedirectPending');
-
-      if (result.user) {
+  // PRIMARY: Use onAuthStateChanged to detect sign-in after redirect.
+  // This fires reliably on all mobile browsers when Firebase restores
+  // the user from the redirect, even when getRedirectResult() fails.
+  if (isPendingRedirect) {
+    const redirectAuthUnsub = auth.onAuthStateChanged((user) => {
+      if (user && !redirectHandled) {
         redirectHandled = true;
-        console.log('✅ Google sign-in via redirect successful, user:', result.user.email);
-        // Handle the sign-in success asynchronously
-        handleGoogleSignInSuccess(result.user).catch((error) => {
-          console.error('Error handling redirect sign-in success:', error);
+        redirectAuthUnsub();
+        clearRedirectFlags();
+        console.log('✅ onAuthStateChanged detected user after redirect:', user.email);
+        handleGoogleSignInSuccess(user).catch((error) => {
+          console.error('Error handling redirect sign-in:', error);
           hideRedirectLoading();
         });
-      } else if (isPendingRedirect) {
-        // getRedirectResult returned null but we expected a result.
-        // Some Android Chrome versions don't return via getRedirectResult.
-        // Use onAuthStateChanged as a fallback — wait briefly for Firebase
-        // to restore the auth state from the redirect.
-        console.log('⚠️ getRedirectResult returned null after pending redirect, waiting for onAuthStateChanged fallback...');
-        setTimeout(() => {
-          if (!redirectHandled) {
-            const currentUser = auth.currentUser;
-            if (currentUser) {
-              redirectHandled = true;
-              console.log('✅ Fallback: found user via auth.currentUser:', currentUser.email);
-              handleGoogleSignInSuccess(currentUser).catch((error) => {
-                console.error('Error in fallback sign-in:', error);
-                hideRedirectLoading();
-              });
-            } else {
-              console.log('ℹ️ No user found after redirect fallback — user may have cancelled');
-              hideRedirectLoading();
-            }
-          }
-        }, 1500);
-      } else {
-        hideRedirectLoading();
       }
-    }).catch((error) => {
-      sessionStorage.removeItem('googleRedirectPending');
-      hideRedirectLoading();
-      // Only log/show errors that aren't user cancellations
-      if (error.code !== 'auth/popup-blocked' &&
-          error.code !== 'auth/popup-closed-by-user' &&
-          error.code !== 'auth/cancelled-popup-request') {
-        console.error('Redirect sign-in error:', error);
+    });
+
+    // Safety timeout: if no user detected after 8 seconds, give up
+    setTimeout(() => {
+      if (!redirectHandled) {
+        redirectAuthUnsub();
+        clearRedirectFlags();
+        hideRedirectLoading();
+        console.log('⏰ Redirect timeout — no user detected after 8s');
         const msgBox = document.getElementById('msgBox');
         if (msgBox) {
-          msgBox.textContent = 'Google sign-in failed. Please try again.';
+          msgBox.textContent = 'Sign-in timed out. Please try again.';
           msgBox.className = 'msg error visible';
         }
       }
+    }, 8000);
+  }
+
+  // SECONDARY: Also try getRedirectResult() as a backup.
+  // On browsers where it works, it provides the result faster.
+  const redirectDelay = isIOSSafari() ? 600 : 300;
+  setTimeout(() => {
+    auth.getRedirectResult().then((result) => {
+      if (result && result.user && !redirectHandled) {
+        redirectHandled = true;
+        clearRedirectFlags();
+        console.log('✅ getRedirectResult returned user:', result.user.email);
+        handleGoogleSignInSuccess(result.user).catch((error) => {
+          console.error('Error handling redirect sign-in:', error);
+          hideRedirectLoading();
+        });
+      }
+      // If no user and not pending, just clean up
+      if (!isPendingRedirect && !result?.user) {
+        hideRedirectLoading();
+      }
+    }).catch((error) => {
+      if (error.code !== 'auth/popup-blocked' &&
+          error.code !== 'auth/popup-closed-by-user' &&
+          error.code !== 'auth/cancelled-popup-request') {
+        console.error('getRedirectResult error:', error.code, error.message);
+      }
     });
   }, redirectDelay);
+
+  function clearRedirectFlags() {
+    localStorage.removeItem('googleRedirectPending');
+    sessionStorage.removeItem('googleRedirectPending');
+  }
 
   function hideRedirectLoading() {
     const loadingEl = document.getElementById('redirectLoading');
@@ -143,6 +157,10 @@ function initializeFirebaseAuth() {
 // Shared function to handle Google sign-in success (used by both popup and redirect)
 async function handleGoogleSignInSuccess(user) {
   try {
+    // Always clear redirect flags on successful sign-in
+    localStorage.removeItem('googleRedirectPending');
+    sessionStorage.removeItem('googleRedirectPending');
+
     // Get Firebase token
     const token = await user.getIdToken();
     
@@ -319,6 +337,8 @@ async function signInWithGoogle() {
       try {
         console.log('🔄 Calling signInWithRedirect...');
         // Mark that we're about to redirect so auth.html knows not to auto-redirect on return
+        // Use BOTH localStorage (survives cross-domain redirects on mobile) and sessionStorage
+        localStorage.setItem('googleRedirectPending', '1');
         sessionStorage.setItem('googleRedirectPending', '1');
         await auth.signInWithRedirect(googleProvider);
         console.log('✅ Redirect initiated - page will navigate');
@@ -363,6 +383,7 @@ async function signInWithGoogle() {
 
       try {
         // Mark that we're about to redirect so auth.html knows not to auto-redirect on return
+        localStorage.setItem('googleRedirectPending', '1');
         sessionStorage.setItem('googleRedirectPending', '1');
         await auth.signInWithRedirect(googleProvider);
         console.log('✅ Redirect initiated - page will navigate');

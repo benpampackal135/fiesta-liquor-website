@@ -8,6 +8,17 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/v2/styles.css">
+  <style>
+    .password-wrapper { position: relative; }
+    .password-wrapper input { padding-right: 2.8rem; width: 100%; }
+    .toggle-pw {
+      position: absolute; right: 0.6rem; top: 50%; transform: translateY(-50%);
+      background: none; border: none; cursor: pointer; padding: 0.25rem;
+      color: var(--muted, #888); display: flex; align-items: center;
+    }
+    .toggle-pw:hover { color: var(--text, #333); }
+    .toggle-pw svg { width: 1.15rem; height: 1.15rem; }
+  </style>
 </head>
 <body class="auth-page">
 
@@ -40,7 +51,13 @@
         </div>
         <div class="form-group">
           <label for="loginPassword">Password</label>
-          <input type="password" id="loginPassword" autocomplete="current-password" placeholder="••••••••" required>
+          <div class="password-wrapper">
+            <input type="password" id="loginPassword" autocomplete="current-password" placeholder="••••••••" required>
+            <button type="button" class="toggle-pw" aria-label="Show password" onclick="togglePassword(this)">
+              <svg class="eye-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+              <svg class="eye-off-icon" style="display:none" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+            </button>
+          </div>
         </div>
         <button type="submit" class="submit-btn" id="loginBtn">Sign In</button>
         <a href="/reset-password" class="back-link centered" style="margin-top:0.6rem;font-size:0.8rem;">Forgot password?</a>
@@ -62,7 +79,13 @@
         </div>
         <div class="form-group">
           <label for="regPassword">Password</label>
-          <input type="password" id="regPassword" autocomplete="new-password" placeholder="Min. 6 characters" required>
+          <div class="password-wrapper">
+            <input type="password" id="regPassword" autocomplete="new-password" placeholder="Min. 6 characters" required>
+            <button type="button" class="toggle-pw" aria-label="Show password" onclick="togglePassword(this)">
+              <svg class="eye-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+              <svg class="eye-off-icon" style="display:none" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+            </button>
+          </div>
         </div>
         <button type="submit" class="submit-btn" id="registerBtn">Create Account</button>
       </form>
@@ -88,6 +111,8 @@
     </div>
   </main>
 
+  <script src="/v2/age-gate.js"></script>
+
   <!-- Firebase Compat SDK -->
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
@@ -98,13 +123,15 @@
   <script>
     // If user is already logged in, redirect home
     // IMPORTANT: Skip redirect if returning from a Google sign-in redirect flow.
-    // The URL will contain OAuth parameters (__/auth/handler or signInSuccessUrl)
-    // and getRedirectResult() in firebase-auth.js needs to process the result first.
+    // We check BOTH localStorage and sessionStorage because sessionStorage gets
+    // wiped during cross-domain redirects on many mobile browsers.
     (function() {
-      const isReturningFromRedirect = sessionStorage.getItem('googleRedirectPending') === '1';
+      const isReturningFromRedirect =
+        localStorage.getItem('googleRedirectPending') === '1' ||
+        sessionStorage.getItem('googleRedirectPending') === '1';
       if (isReturningFromRedirect) {
-        // Don't auto-redirect — let getRedirectResult() handle the sign-in flow
-        console.log('⏳ Returning from Google redirect — waiting for getRedirectResult()');
+        // Don't auto-redirect — let onAuthStateChanged handle the sign-in flow
+        console.log('⏳ Returning from Google redirect — waiting for auth state change');
         return;
       }
 
@@ -146,6 +173,17 @@
       const btn = document.getElementById(btnId);
       btn.disabled = loading;
       btn.textContent = loading ? 'Please wait...' : (btnId === 'loginBtn' ? 'Sign In' : 'Create Account');
+    }
+
+    function togglePassword(btn) {
+      const input = btn.parentElement.querySelector('input');
+      const eyeOn = btn.querySelector('.eye-icon');
+      const eyeOff = btn.querySelector('.eye-off-icon');
+      const showing = input.type === 'text';
+      input.type = showing ? 'password' : 'text';
+      eyeOn.style.display = showing ? '' : 'none';
+      eyeOff.style.display = showing ? 'none' : '';
+      btn.setAttribute('aria-label', showing ? 'Show password' : 'Hide password');
     }
 
     // Email login
