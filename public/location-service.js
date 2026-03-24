@@ -33,8 +33,8 @@ const STORE_LOCATIONS = [
   }
 ];
 
-// Maximum delivery radius in miles
-const MAX_DELIVERY_RADIUS_MILES = 10;
+// Maximum delivery radius in miles (can be overridden by checkout.js after fetching settings)
+var MAX_DELIVERY_RADIUS_MILES = 10;
 
 // ── Haversine formula ───────────────────────────────────────
 // Calculates the great-circle distance between two points on
@@ -201,12 +201,12 @@ function checkDeliveryEligibility() {
 
 var _deliveryMap = null; // keep reference to avoid re-creating
 
-// Convert miles to meters (Leaflet circles use meters)
-var RADIUS_METERS = MAX_DELIVERY_RADIUS_MILES * 1609.34;
-
 function renderDeliveryMap(userCoords, allDistances) {
   var mapEl = document.getElementById('deliveryMap');
   if (!mapEl || typeof L === 'undefined') return;
+
+  // Compute radius in meters from current max radius setting
+  var RADIUS_METERS = MAX_DELIVERY_RADIUS_MILES * 1609.34;
 
   // Show the map container
   mapEl.style.display = 'block';

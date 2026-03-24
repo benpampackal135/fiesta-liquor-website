@@ -64,6 +64,7 @@ function initializeFirebaseAuth() {
   // Use a longer delay for iOS Safari to ensure the page and Firebase SDK are fully ready
   const redirectDelay = isIOSSafari() ? 500 : 200;
   const isPendingRedirect = sessionStorage.getItem('googleRedirectPending') === '1';
+  let redirectHandled = false; // guard against double-handling
 
   // Show loading state if we're returning from a redirect
   if (isPendingRedirect) {
@@ -71,6 +72,7 @@ function initializeFirebaseAuth() {
     const googleBtn = document.querySelector('.google-signin-btn');
     if (loadingEl) loadingEl.style.display = 'block';
     if (googleBtn) googleBtn.style.display = 'none';
+    console.log('📱 Detected pending Google redirect, showing loading state');
   }
 
   setTimeout(() => {
@@ -79,12 +81,35 @@ function initializeFirebaseAuth() {
       sessionStorage.removeItem('googleRedirectPending');
 
       if (result.user) {
+        redirectHandled = true;
         console.log('✅ Google sign-in via redirect successful, user:', result.user.email);
         // Handle the sign-in success asynchronously
         handleGoogleSignInSuccess(result.user).catch((error) => {
           console.error('Error handling redirect sign-in success:', error);
           hideRedirectLoading();
         });
+      } else if (isPendingRedirect) {
+        // getRedirectResult returned null but we expected a result.
+        // Some Android Chrome versions don't return via getRedirectResult.
+        // Use onAuthStateChanged as a fallback — wait briefly for Firebase
+        // to restore the auth state from the redirect.
+        console.log('⚠️ getRedirectResult returned null after pending redirect, waiting for onAuthStateChanged fallback...');
+        setTimeout(() => {
+          if (!redirectHandled) {
+            const currentUser = auth.currentUser;
+            if (currentUser) {
+              redirectHandled = true;
+              console.log('✅ Fallback: found user via auth.currentUser:', currentUser.email);
+              handleGoogleSignInSuccess(currentUser).catch((error) => {
+                console.error('Error in fallback sign-in:', error);
+                hideRedirectLoading();
+              });
+            } else {
+              console.log('ℹ️ No user found after redirect fallback — user may have cancelled');
+              hideRedirectLoading();
+            }
+          }
+        }, 1500);
       } else {
         hideRedirectLoading();
       }
@@ -109,7 +134,7 @@ function initializeFirebaseAuth() {
     const loadingEl = document.getElementById('redirectLoading');
     const googleBtn = document.querySelector('.google-signin-btn');
     if (loadingEl) loadingEl.style.display = 'none';
-    if (googleBtn) googleBtn.style.display = '';
+    if (googleBtn) { googleBtn.style.display = ''; googleBtn.disabled = false; googleBtn.style.opacity = '1'; }
   }
   
   console.log('Firebase Auth initialized');

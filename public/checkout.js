@@ -21,6 +21,15 @@ let deliveryTimeEstimate = null;
 let deliveryEligible = null;
 let deliveryCheckError = null;
 
+// Distance-based delivery pricing (fetched from server settings)
+let deliverySettings = {
+    baseFee: 3.00,
+    perMileRate: 1.50,
+    maxRadius: 10,
+    taxRate: 0.0825
+};
+let deliveryDistanceMiles = 0; // distance to assigned store
+
 // ── Initialize checkout page ────────────────────────────────
 document.addEventListener('DOMContentLoaded', async function() {
     console.log('Checkout page loading...');
@@ -37,6 +46,9 @@ document.addEventListener('DOMContentLoaded', async function() {
         window.location.href = '/';
         return;
     }
+
+    // Fetch delivery settings from server
+    await fetchDeliverySettings();
 
     // Check user authentication
     await checkUserAuth();
@@ -126,6 +138,45 @@ async function checkUserAuth() {
             }
         });
     });
+}
+
+// ── Fetch delivery pricing from server ─────────────────────
+async function fetchDeliverySettings() {
+    try {
+        const apiBase = window.location.origin;
+        const res = await fetch(`${apiBase}/api/delivery-settings`);
+        if (res.ok) {
+            const data = await res.json();
+            deliverySettings.baseFee = data.deliveryBaseFee ?? 3.00;
+            deliverySettings.perMileRate = data.deliveryPerMileRate ?? 1.50;
+            deliverySettings.maxRadius = data.maxDeliveryRadius ?? 10;
+            deliverySettings.taxRate = data.taxRate ?? 0.0825;
+            console.log('Delivery settings loaded:', deliverySettings);
+
+            // Update location-service max radius if available
+            if (typeof MAX_DELIVERY_RADIUS_MILES !== 'undefined') {
+                window.MAX_DELIVERY_RADIUS_MILES = deliverySettings.maxRadius;
+            }
+        }
+    } catch (err) {
+        console.warn('Using default delivery settings:', err.message);
+    }
+}
+
+// ── Calculate delivery fee based on distance ───────────────
+function calculateDeliveryFee(distanceMiles) {
+    if (!distanceMiles || distanceMiles <= 0) {
+        return deliverySettings.baseFee;
+    }
+    return parseFloat((deliverySettings.baseFee + distanceMiles * deliverySettings.perMileRate).toFixed(2));
+}
+
+// ── Get the current delivery fee ───────────────────────────
+function getCurrentDeliveryFee() {
+    const selectedOrderType = document.querySelector('input[name="orderType"]:checked');
+    const orderType = selectedOrderType ? selectedOrderType.value : 'pickup';
+    if (orderType !== 'delivery') return 0;
+    return calculateDeliveryFee(deliveryDistanceMiles);
 }
 
 // ── Name / prefill helpers ──────────────────────────────────
@@ -231,6 +282,9 @@ function toggleAddressField() {
         deliveryTimeEstimate = null;
         deliveryEligible = null;
         deliveryCheckError = null;
+        deliveryDistanceMiles = 0;
+        var feeInfoEl = document.getElementById('deliveryFeeInfo');
+        if (feeInfoEl) feeInfoEl.style.display = 'none';
 
         // Hide delivery status and map
         if (statusContainer) statusContainer.style.display = 'none';
@@ -301,12 +355,26 @@ function runDeliveryCheck() {
             // User is within delivery radius of at least one store
             deliveryEligible = true;
             deliveryCheckError = null;
+            deliveryDistanceMiles = result.nearestStore.distanceMiles;
             okEl.style.display = 'block';
             document.getElementById('deliveryStoreName').textContent = result.nearestStore.store.name;
             document.getElementById('deliveryStoreDistance').textContent = result.nearestStore.distanceMiles;
 
+            // Show calculated delivery fee
+            const calcFee = calculateDeliveryFee(deliveryDistanceMiles);
+            var feeInfoEl = document.getElementById('deliveryFeeInfo');
+            if (feeInfoEl) {
+                feeInfoEl.textContent = 'Delivery fee: $' + calcFee.toFixed(2) +
+                    ' ($' + deliverySettings.baseFee.toFixed(2) + ' base + ' +
+                    deliveryDistanceMiles + ' mi × $' + deliverySettings.perMileRate.toFixed(2) + '/mi)';
+                feeInfoEl.style.display = 'block';
+            }
+
             // Auto-select the nearest store for delivery (locked — user cannot change)
             selectStoreByName(result.nearestStore.store.name);
+
+            // Re-render order summary with updated delivery fee
+            loadOrderSummary();
         } else {
             // User is outside delivery radius of all stores
             deliveryEligible = false;
@@ -370,18 +438,23 @@ function loadOrderSummary() {
     }
 
     const subtotal = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-    const selectedOrderType = document.querySelector('input[name="orderType"]:checked');
-    const orderType = selectedOrderType ? selectedOrderType.value : 'pickup';
-    const deliveryFee = orderType === 'delivery' ? 7.99 : 0;
+    const deliveryFee = getCurrentDeliveryFee();
 
     const promoDiscount = appliedPromo ? appliedPromo.discount || 0 : 0;
     const discountedSubtotal = Math.max(0, subtotal - promoDiscount);
     const subtotalWithFee = discountedSubtotal + deliveryFee;
-    const tax = parseFloat((subtotalWithFee * 0.0825).toFixed(2));
+    const taxRate = deliverySettings.taxRate;
+    const taxPct = (taxRate * 100).toFixed(2).replace(/\.?0+$/, '');
+    const tax = parseFloat((subtotalWithFee * taxRate).toFixed(2));
     const amountBeforeFee = subtotalWithFee + tax;
     const totalWithFee = (amountBeforeFee + 0.30) / (1 - 0.029);
     const stripeFee = parseFloat((totalWithFee - amountBeforeFee).toFixed(2));
     const total = parseFloat(totalWithFee.toFixed(2));
+
+    // Build distance info for delivery
+    const distanceInfo = deliveryDistanceMiles > 0
+        ? ` <span style="font-size:0.8rem;color:#666;">(${deliveryDistanceMiles} mi × $${deliverySettings.perMileRate.toFixed(2)}/mi + $${deliverySettings.baseFee.toFixed(2)} base)</span>`
+        : '';
 
     orderSummaryItems.innerHTML = cart.map(item => `
         <div class="order-item-summary">
@@ -402,11 +475,11 @@ function loadOrderSummary() {
             <span style="color:#28a745;">-$${promoDiscount.toFixed(2)}</span>
         </div>` : ''}
         ${deliveryFee > 0 ? `<div class="order-item-summary">
-            <span>Delivery Fee</span>
+            <span>Delivery Fee${distanceInfo}</span>
             <span>$${deliveryFee.toFixed(2)}</span>
         </div>` : ''}
         <div class="order-item-summary">
-            <span>Tax (8.25%)</span>
+            <span>Tax (${taxPct}%)</span>
             <span>$${tax.toFixed(2)}</span>
         </div>
         <div class="order-item-summary">
@@ -536,11 +609,11 @@ async function proceedToPayment() {
     try {
         // Calculate totals (must match loadOrderSummary exactly)
         const subtotal = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-        const deliveryFee = orderType === 'delivery' ? 7.99 : 0;
+        const deliveryFee = getCurrentDeliveryFee();
         const promoDiscount = appliedPromo ? appliedPromo.discount || 0 : 0;
         const discountedSubtotal = Math.max(0, subtotal - promoDiscount);
         const subtotalWithFee = discountedSubtotal + deliveryFee;
-        const tax = parseFloat((subtotalWithFee * 0.0825).toFixed(2));
+        const tax = parseFloat((subtotalWithFee * deliverySettings.taxRate).toFixed(2));
         const amountBeforeFee = subtotalWithFee + tax;
         const totalWithFee = (amountBeforeFee + 0.30) / (1 - 0.029);
         const stripeFee = parseFloat((totalWithFee - amountBeforeFee).toFixed(2));
@@ -563,8 +636,9 @@ async function proceedToPayment() {
         }
 
         // Add tax line item
+        const taxPctLabel = (deliverySettings.taxRate * 100).toFixed(2).replace(/\.?0+$/, '');
         if (tax > 0) {
-            items.push({ name: 'Tax (8.25%)', price: tax, quantity: 1 });
+            items.push({ name: `Tax (${taxPctLabel}%)`, price: tax, quantity: 1 });
         }
 
         // Add processing fee line item
@@ -586,7 +660,9 @@ async function proceedToPayment() {
             storeAddress: selectedLocation.address,
             promoCode: appliedPromo ? appliedPromo.code : '',
             promoDiscount: appliedPromo ? String(appliedPromo.discount) : '0',
-            deliveryTimeEstimate: deliveryTimeEstimate ? String(deliveryTimeEstimate) : ''
+            deliveryTimeEstimate: deliveryTimeEstimate ? String(deliveryTimeEstimate) : '',
+            deliveryDistance: deliveryDistanceMiles ? String(deliveryDistanceMiles) : '',
+            deliveryFee: String(deliveryFee)
         };
 
         // Stripe metadata values must be strings ≤ 500 chars
@@ -693,11 +769,9 @@ async function applyPromoCode() {
     }
 
     const subtotal = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-    const selectedOrderType = document.querySelector('input[name="orderType"]:checked');
-    const orderType = selectedOrderType ? selectedOrderType.value : 'pickup';
-    const deliveryFee = orderType === 'delivery' ? 7.99 : 0;
-    const subtotalWithFee = subtotal + deliveryFee;
-    const tax = parseFloat((subtotalWithFee * 0.0825).toFixed(2));
+    const promoDeliveryFee = getCurrentDeliveryFee();
+    const subtotalWithFee = subtotal + promoDeliveryFee;
+    const tax = parseFloat((subtotalWithFee * deliverySettings.taxRate).toFixed(2));
     const orderTotal = parseFloat((subtotalWithFee + tax).toFixed(2));
 
     messageEl.textContent = 'Applying code...';

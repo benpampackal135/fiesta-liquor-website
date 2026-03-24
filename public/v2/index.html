@@ -26,6 +26,7 @@
       </div>
       <div class="header-actions">
         <a class="nav-text-link" href="#locations">Locations</a>
+        <a class="nav-text-link" href="#reviews">Reviews</a>
         <a class="ghost-btn" href="/account" id="accountLink">Account</a>
         <a class="ghost-btn" href="/auth" id="authLink">Sign In</a>
         <button id="openCartBtn" class="cart-btn" aria-label="Open cart">
@@ -116,6 +117,7 @@
               <div class="location-info">
                 <h3 class="location-name">Fiesta Liquor #1</h3>
                 <p class="loc-address">15503 Babcock Rd<br>San Antonio, TX 78255</p>
+                <p class="loc-phone"><a href="tel:+12105410594">(210) 541-0594</a></p>
                 <p class="loc-hours">Mon–Sat &nbsp;10 AM – 9 PM<br>Sunday &nbsp;&nbsp;&nbsp;Closed</p>
                 <a class="location-directions-btn" href="https://www.google.com/maps/dir/?api=1&destination=15503+Babcock+Rd,+San+Antonio,+TX+78255" target="_blank" rel="noopener">Get Directions ↗</a>
               </div>
@@ -136,6 +138,7 @@
               <div class="location-info">
                 <h3 class="location-name">KG Liquor</h3>
                 <p class="loc-address">8456 Fredericksburg Rd<br>San Antonio, TX 78229</p>
+                <p class="loc-phone"><a href="tel:+12109490211">(210) 949-0211</a></p>
                 <p class="loc-hours">Mon–Sat &nbsp;10 AM – 9 PM<br>Sunday &nbsp;&nbsp;&nbsp;Closed</p>
                 <a class="location-directions-btn" href="https://www.google.com/maps/dir/?api=1&destination=8456+Fredericksburg+Rd,+San+Antonio,+TX+78229" target="_blank" rel="noopener">Get Directions ↗</a>
               </div>
@@ -156,6 +159,7 @@
               <div class="location-info">
                 <h3 class="location-name">Fiesta Liquor #5</h3>
                 <p class="loc-address">9618 TX-151 #105<br>San Antonio, TX 78251</p>
+                <p class="loc-phone"><a href="tel:+12103547358">(210) 354-7358</a></p>
                 <p class="loc-hours">Mon–Sat &nbsp;10 AM – 9 PM<br>Sunday &nbsp;&nbsp;&nbsp;Closed</p>
                 <a class="location-directions-btn" href="https://www.google.com/maps/dir/?api=1&destination=9618+TX-151+%23105,+San+Antonio,+TX+78251" target="_blank" rel="noopener">Get Directions ↗</a>
               </div>
@@ -176,6 +180,7 @@
               <div class="location-info">
                 <h3 class="location-name">Stone Oak Liquor</h3>
                 <p class="loc-address">19202 Stone Oak Pkwy #107<br>San Antonio, TX 78258</p>
+                <p class="loc-phone"><a href="tel:+12104041166">(210) 404-1166</a></p>
                 <p class="loc-hours">Mon–Sat &nbsp;10 AM – 9 PM<br>Sunday &nbsp;&nbsp;&nbsp;Closed</p>
                 <a class="location-directions-btn" href="https://www.google.com/maps/dir/?api=1&destination=19202+Stone+Oak+Pkwy+%23107,+San+Antonio,+TX+78258" target="_blank" rel="noopener">Get Directions ↗</a>
               </div>
@@ -186,6 +191,80 @@
       </div><!-- /.container -->
     </section>
     <!-- ===================== END LOCATIONS ===================== -->
+
+    <!-- ===================== REVIEWS ===================== -->
+    <section class="reviews-section" id="reviews" aria-labelledby="reviews-title">
+      <div class="container">
+        <p class="section-label scroll-reveal">What People Say</p>
+        <h2 class="section-title scroll-reveal" id="reviews-title">Customer Reviews</h2>
+
+        <!-- Review form -->
+        <div class="review-form-wrap scroll-reveal">
+          <div class="card review-form-card">
+            <h3>Leave a Review</h3>
+            <form id="reviewForm" novalidate>
+              <div class="form-group">
+                <label for="reviewName">Your Name *</label>
+                <input type="text" id="reviewName" placeholder="Jane S." required maxlength="60">
+              </div>
+              <div class="form-group">
+                <label>Rating *</label>
+                <div class="star-rating-input" id="starRatingInput" role="radiogroup" aria-label="Rating">
+                  <button type="button" class="star-btn" data-value="1" aria-label="1 star">&#9733;</button>
+                  <button type="button" class="star-btn" data-value="2" aria-label="2 stars">&#9733;</button>
+                  <button type="button" class="star-btn" data-value="3" aria-label="3 stars">&#9733;</button>
+                  <button type="button" class="star-btn" data-value="4" aria-label="4 stars">&#9733;</button>
+                  <button type="button" class="star-btn" data-value="5" aria-label="5 stars">&#9733;</button>
+                </div>
+                <input type="hidden" id="reviewRating" value="">
+              </div>
+              <div class="form-group">
+                <label for="reviewComment">Your Review *</label>
+                <textarea id="reviewComment" rows="3" placeholder="Tell us about your experience..." required maxlength="1000"></textarea>
+              </div>
+              <button type="submit" class="primary-btn review-submit-btn">Submit Review</button>
+              <p id="reviewFormMsg" class="form-msg"></p>
+            </form>
+          </div>
+        </div>
+
+        <!-- Reviews list -->
+        <div id="reviewsList" class="reviews-list"></div>
+        <p id="reviewsEmpty" class="reviews-empty" style="display:none;">No reviews yet. Be the first to share your experience!</p>
+      </div>
+    </section>
+    <!-- ===================== END REVIEWS ===================== -->
+
+    <!-- ===================== PRODUCT REQUESTS ===================== -->
+    <section class="request-section" id="productRequests" aria-labelledby="request-title">
+      <div class="container">
+        <p class="section-label scroll-reveal">Can't Find What You Want?</p>
+        <h2 class="section-title scroll-reveal" id="request-title">Request a Product</h2>
+        <p class="request-subtitle scroll-reveal">Let us know what you'd like us to stock. We'll do our best to bring it in.</p>
+
+        <div class="request-form-wrap scroll-reveal">
+          <div class="card request-form-card">
+            <form id="productRequestForm" novalidate>
+              <div class="form-group">
+                <label for="reqName">Your Name *</label>
+                <input type="text" id="reqName" placeholder="Jane Smith" required maxlength="60">
+              </div>
+              <div class="form-group">
+                <label for="reqProduct">Product Name *</label>
+                <input type="text" id="reqProduct" placeholder="e.g. Clase Azul Reposado" required maxlength="120">
+              </div>
+              <div class="form-group">
+                <label for="reqMessage">Additional Details (optional)</label>
+                <textarea id="reqMessage" rows="2" placeholder="Size, brand, anything else..." maxlength="500"></textarea>
+              </div>
+              <button type="submit" class="primary-btn request-submit-btn">Send Request</button>
+              <p id="requestFormMsg" class="form-msg"></p>
+            </form>
+          </div>
+        </div>
+      </div>
+    </section>
+    <!-- ===================== END PRODUCT REQUESTS ===================== -->
 
   </main>
 
@@ -239,11 +318,14 @@
         <li><a href="/privacy.html">Privacy</a></li>
         <li><a href="/terms.html">Terms</a></li>
         <li><a href="#locations">Locations</a></li>
+        <li><a href="#reviews">Reviews</a></li>
         <li><a href="/account">Account</a></li>
       </ul>
     </div>
   </footer>
 
   <script src="/v2/app.js" defer></script>
+  <script src="/api.js" defer></script>
+  <script src="/v2/reviews.js" defer></script>
 </body>
 </html>

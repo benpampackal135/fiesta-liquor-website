@@ -56,7 +56,7 @@
               <label class="order-type-label" id="deliveryLabel">
                 <input type="radio" name="orderType" value="delivery" onchange="toggleAddressField()">
                 <strong>Delivery</strong>
-                <span>To your door · $7.99</span>
+                <span>To your door · price based on distance</span>
               </label>
             </div>
             <p id="orderTypeHint" style="margin-top:0.75rem;font-size:0.85rem;color:var(--muted);">Please select pickup or delivery to continue.</p>
@@ -68,6 +68,7 @@
               </div>
               <div id="deliveryLocationOk" style="display:none; padding:0.75rem 1rem; background:#e8f5e9; border-radius:8px; color:#2e7d32;">
                 <strong id="deliveryStoreName"></strong> is <strong id="deliveryStoreDistance"></strong> miles away — delivery available!
+                <div id="deliveryFeeInfo" style="display:none; margin-top:0.4rem; font-size:0.85rem; color:#388e3c;"></div>
               </div>
               <div id="deliveryLocationBlocked" style="display:none; padding:0.75rem 1rem; background:#fce4ec; border-radius:8px; color:#c62828;">
                 Delivery is unavailable in your area. Please choose pickup instead.

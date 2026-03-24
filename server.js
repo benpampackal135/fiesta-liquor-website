@@ -353,6 +353,7 @@ async function sendCustomerOrderEmail(order) {
                 This is an automated confirmation email. Please do not reply to this message.
             </p>
         </div>
+        
     </div>
 </body>
 </html>
@@ -403,6 +404,8 @@ const ORDERS_FILE = path.join(DATA_DIR, 'orders.json');
 const NEWSLETTER_FILE = path.join(DATA_DIR, 'newsletter.json');
 const SETTINGS_FILE = path.join(DATA_DIR, 'settings.json');
 const PROMO_CODES_FILE = path.join(DATA_DIR, 'promo-codes.json');
+const REVIEWS_FILE = path.join(DATA_DIR, 'reviews.json');
+const PRODUCT_REQUESTS_FILE = path.join(DATA_DIR, 'product-requests.json');
 
 // Ensure data directory exists
 if (!fs.existsSync(DATA_DIR)) {
@@ -581,6 +584,9 @@ function initDataFiles() {
     if (!fs.existsSync(SETTINGS_FILE)) {
         const defaultSettings = {
             deliveryFee: 7.99,
+            deliveryBaseFee: 3.00,
+            deliveryPerMileRate: 1.50,
+            maxDeliveryRadius: 10,
             minimumOrder: 25.00,
             taxRate: 0.0825,
             processingFeeRate: 0.029,
@@ -611,6 +617,12 @@ function initDataFiles() {
     }
     if (!fs.existsSync(PROMO_CODES_FILE)) {
         fs.writeFileSync(PROMO_CODES_FILE, JSON.stringify([], null, 2));
+    }
+    if (!fs.existsSync(REVIEWS_FILE)) {
+        fs.writeFileSync(REVIEWS_FILE, JSON.stringify([], null, 2));
+    }
+    if (!fs.existsSync(PRODUCT_REQUESTS_FILE)) {
+        fs.writeFileSync(PRODUCT_REQUESTS_FILE, JSON.stringify([], null, 2));
     }
 }
 
@@ -1222,9 +1234,12 @@ app.post("/api/orders", authenticateToken, (req, res) => {
         const orderId = orders.length > 0 ? Math.max(...orders.map(o => o.id)) + 1 : 1;
 
         const subtotal = items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-        const deliveryFee = orderType === 'delivery' ? 7.99 : 0;
+        // Read delivery fee from settings
+        const orderSettings = readData(SETTINGS_FILE);
+        const deliveryFee = orderType === 'delivery' ? (orderSettings.deliveryFee ?? 7.99) : 0;
         const subtotalWithFee = subtotal + deliveryFee;
-        const tax = parseFloat((subtotalWithFee * 0.0825).toFixed(2));
+        const orderTaxRate = orderSettings.taxRate ?? 0.0825;
+        const tax = parseFloat((subtotalWithFee * orderTaxRate).toFixed(2));
         // Calculate processing fee on amount before fee (subtotal + delivery + tax)
         const amountBeforeFee = subtotalWithFee + tax;
         const stripeFee = calculateUpfrontProcessingFee(amountBeforeFee);
@@ -1967,13 +1982,29 @@ app.post('/webhook/stripe', express.raw({ type: 'application/json' }), async (re
             } : 'Store Pickup'
           };
 
-          // Calculate fees (same formula as POST /api/orders)
+          // Calculate fees — read delivery pricing from settings
+          const currentSettings = readData(SETTINGS_FILE);
           const subtotal = items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-          const deliveryFee = orderType === 'delivery' ? 7.99 : 0;
+
+          // Delivery fee: use distance-based pricing from metadata if available,
+          // otherwise fall back to flat fee from settings
+          let deliveryFee = 0;
+          if (orderType === 'delivery') {
+            const deliveryDistance = parseFloat(meta.deliveryDistance) || 0;
+            const baseFee = currentSettings.deliveryBaseFee ?? 3.00;
+            const perMile = currentSettings.deliveryPerMileRate ?? 1.50;
+            if (deliveryDistance > 0) {
+              deliveryFee = parseFloat((baseFee + deliveryDistance * perMile).toFixed(2));
+            } else {
+              deliveryFee = currentSettings.deliveryFee ?? 7.99;
+            }
+          }
+
+          const taxRate = currentSettings.taxRate ?? 0.0825;
           const promoDiscount = parseFloat(meta.promoDiscount) || 0;
           const discountedSubtotal = Math.max(0, subtotal - promoDiscount);
           const subtotalWithFee = discountedSubtotal + deliveryFee;
-          const tax = parseFloat((subtotalWithFee * 0.0825).toFixed(2));
+          const tax = parseFloat((subtotalWithFee * taxRate).toFixed(2));
           const amountBeforeFee = subtotalWithFee + tax;
           const stripeFee = calculateUpfrontProcessingFee(amountBeforeFee);
 
@@ -2456,6 +2487,22 @@ app.delete("/api/newsletter/unsubscribe", (req, res) => {
 // ==================== SYSTEM SETTINGS ROUTES ====================
 
 // Get system settings
+// Public delivery settings (no auth required — needed by checkout page)
+app.get("/api/delivery-settings", (req, res) => {
+    try {
+        const settings = readData(SETTINGS_FILE);
+        res.json({
+            deliveryBaseFee: settings.deliveryBaseFee ?? 3.00,
+            deliveryPerMileRate: settings.deliveryPerMileRate ?? 1.50,
+            maxDeliveryRadius: settings.maxDeliveryRadius ?? 10,
+            taxRate: settings.taxRate ?? 0.0825
+        });
+    } catch (error) {
+        console.error("Get delivery settings error:", error);
+        res.status(500).json({ error: "Failed to fetch delivery settings" });
+    }
+});
+
 app.get("/api/admin/settings", authenticateToken, requireAdmin, (req, res) => {
     try {
         const settings = readData(SETTINGS_FILE);
@@ -2706,5 +2753,114 @@ app.post("/api/promo-codes/redeem", authenticateToken, (req, res) => {
     } catch (error) {
         console.error("Redeem promo code error:", error);
         res.status(500).json({ error: "Failed to redeem promo code" });
+    }
+});
+
+// ============================================================
+// Reviews API
+// ============================================================
+
+// GET /api/reviews — public, returns all approved reviews (newest first)
+app.get("/api/reviews", (req, res) => {
+    try {
+        const reviews = readData(REVIEWS_FILE);
+        // Return all reviews, newest first
+        const sorted = reviews.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+        res.json(sorted);
+    } catch (error) {
+        console.error("Get reviews error:", error);
+        res.status(500).json({ error: "Failed to load reviews" });
+    }
+});
+
+// POST /api/reviews — public, submit a new review
+app.post("/api/reviews", (req, res) => {
+    try {
+        const { name, rating, comment } = req.body;
+
+        // Validation
+        if (!name || !name.trim()) {
+            return res.status(400).json({ error: "Name is required" });
+        }
+        if (!rating || rating < 1 || rating > 5 || !Number.isInteger(rating)) {
+            return res.status(400).json({ error: "Rating must be an integer from 1 to 5" });
+        }
+        if (!comment || !comment.trim()) {
+            return res.status(400).json({ error: "Comment is required" });
+        }
+        if (comment.trim().length > 1000) {
+            return res.status(400).json({ error: "Comment must be under 1000 characters" });
+        }
+
+        const reviews = readData(REVIEWS_FILE);
+        const newReview = {
+            id: Date.now(),
+            name: name.trim(),
+            rating: parseInt(rating, 10),
+            comment: comment.trim(),
+            createdAt: new Date().toISOString()
+        };
+
+        reviews.push(newReview);
+        writeData(REVIEWS_FILE, reviews);
+
+        res.status(201).json(newReview);
+    } catch (error) {
+        console.error("Submit review error:", error);
+        res.status(500).json({ error: "Failed to submit review" });
+    }
+});
+
+// ============================================================
+// Product Requests API
+// ============================================================
+
+// POST /api/product-requests — public, submit a product request
+app.post("/api/product-requests", (req, res) => {
+    try {
+        const { name, productName, message } = req.body;
+
+        if (!name || !name.trim()) {
+            return res.status(400).json({ error: "Your name is required" });
+        }
+        if (!productName || !productName.trim()) {
+            return res.status(400).json({ error: "Product name is required" });
+        }
+        if (message && message.length > 500) {
+            return res.status(400).json({ error: "Message must be under 500 characters" });
+        }
+
+        const requests = readData(PRODUCT_REQUESTS_FILE);
+        const newRequest = {
+            id: Date.now(),
+            name: name.trim(),
+            productName: productName.trim(),
+            message: (message || '').trim(),
+            createdAt: new Date().toISOString(),
+            status: 'pending'
+        };
+
+        requests.push(newRequest);
+        writeData(PRODUCT_REQUESTS_FILE, requests);
+
+        res.status(201).json({ success: true, request: newRequest });
+    } catch (error) {
+        console.error("Product request error:", error);
+        res.status(500).json({ error: "Failed to submit product request" });
+    }
+});
+
+// GET /api/product-requests — admin only, list all requests
+app.get("/api/product-requests", authenticateToken, (req, res) => {
+    try {
+        if (req.user.role !== 'admin') {
+            return res.status(403).json({ error: "Admin access required" });
+        }
+        const requests = readData(PRODUCT_REQUESTS_FILE);
+        const sorted = requests.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+        res.json(sorted);
+    } catch (error) {
+        console.error("Get product requests error:", error);
+        res.status(500).json({ error: "Failed to load product requests" });
     }
 });

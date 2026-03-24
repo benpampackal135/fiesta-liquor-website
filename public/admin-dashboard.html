@@ -314,6 +314,8 @@
     <div class="nav-sep"></div>
     <button class="nav-item" onclick="showPanel('promos')" id="nav-promos">Promo Codes</button>
     <button class="nav-item" onclick="showPanel('newsletter')" id="nav-newsletter">Newsletter</button>
+    <div class="nav-sep"></div>
+    <button class="nav-item" onclick="showPanel('settings')" id="nav-settings">Settings</button>
   </nav>
   <div class="sidebar-footer">
     <a href="/">← View Store</a>
@@ -463,6 +465,73 @@
             <tbody id="newsletterBody"><tr><td colspan="2" class="loading">Loading…</td></tr></tbody>
           </table>
         </div>
+      </div>
+    </div>
+
+    <!-- ═══ SETTINGS ═══════════════════════════════════════════════════════ -->
+    <div class="panel" id="panel-settings">
+      <div class="card" style="max-width:640px;">
+        <div class="card-header"><h2>Delivery Pricing</h2></div>
+        <div style="padding:1.25rem;">
+          <p style="font-size:0.85rem;color:var(--muted);margin-bottom:1.25rem;">
+            Delivery fee = <strong>Base Fee</strong> + (<strong>Distance</strong> × <strong>Per-Mile Rate</strong>). Customers beyond the max radius cannot order delivery.
+          </p>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;">
+            <div class="field">
+              <label>Base Delivery Fee ($)</label>
+              <input type="number" id="settDeliveryBaseFee" step="0.01" min="0" style="width:100%;">
+            </div>
+            <div class="field">
+              <label>Per-Mile Rate ($)</label>
+              <input type="number" id="settDeliveryPerMile" step="0.01" min="0" style="width:100%;">
+            </div>
+            <div class="field">
+              <label>Max Delivery Radius (miles)</label>
+              <input type="number" id="settMaxRadius" step="0.5" min="1" style="width:100%;">
+            </div>
+            <div class="field">
+              <label>Flat Delivery Fee (fallback, $)</label>
+              <input type="number" id="settDeliveryFee" step="0.01" min="0" style="width:100%;">
+            </div>
+          </div>
+          <div style="margin-top:1rem;padding:0.85rem 1rem;background:#f5f5f4;border-radius:8px;font-size:0.85rem;color:var(--muted);">
+            Example: 5 miles away → $<span id="settFeeExample">—</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="card" style="max-width:640px;margin-top:1.25rem;">
+        <div class="card-header"><h2>Tax &amp; Fees</h2></div>
+        <div style="padding:1.25rem;">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;">
+            <div class="field">
+              <label>Tax Rate (%)</label>
+              <input type="number" id="settTaxRate" step="0.01" min="0" max="100" style="width:100%;">
+            </div>
+            <div class="field">
+              <label>Minimum Order ($)</label>
+              <input type="number" id="settMinOrder" step="0.01" min="0" style="width:100%;">
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card" style="max-width:640px;margin-top:1.25rem;">
+        <div class="card-header"><h2>Product Requests</h2></div>
+        <div style="padding:1.25rem;">
+          <p style="font-size:0.85rem;color:var(--muted);margin-bottom:0.75rem;">Customer product requests submitted via the website.</p>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Customer</th><th>Product</th><th>Message</th><th>Date</th></tr></thead>
+              <tbody id="productRequestsBody"><tr><td colspan="4" class="loading">Loading…</td></tr></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <div style="margin-top:1.25rem;max-width:640px;">
+        <button class="btn btn-primary" onclick="saveSettings()" id="saveSettingsBtn">Save Settings</button>
+        <span id="settingsMsg" style="margin-left:0.75rem;font-size:0.85rem;"></span>
       </div>
     </div>
 
@@ -702,10 +771,10 @@ function showPanel(name) {
   document.getElementById('panel-' + name).classList.add('active');
   document.getElementById('nav-' + name).classList.add('active');
   document.getElementById('pageTitle').textContent =
-    { overview:'Overview', products:'Products', orders:'Orders', customers:'Customers', promos:'Promo Codes', newsletter:'Newsletter' }[name];
+    { overview:'Overview', products:'Products', orders:'Orders', customers:'Customers', promos:'Promo Codes', newsletter:'Newsletter', settings:'Settings' }[name];
   currentPanel = name;
 
-  const loaders = { orders: loadOrders, customers: loadCustomers, promos: loadPromos, newsletter: loadNewsletter };
+  const loaders = { orders: loadOrders, customers: loadCustomers, promos: loadPromos, newsletter: loadNewsletter, settings: loadSettings };
   if (loaders[name]) loaders[name]();
 }
 
@@ -1441,6 +1510,104 @@ function dlFile(name, content, type) {
 function logout() {
   ['authToken','token','currentUser','user','firebaseUser','firebaseToken'].forEach(k=>localStorage.removeItem(k));
   window.location.href = '/auth';
+}
+
+// ── Settings ────────────────────────────────────────────────────────────────────
+let _settingsData = null;
+
+async function loadSettings() {
+  try {
+    const data = await apiFetch('/api/admin/settings');
+    _settingsData = data;
+    $('settDeliveryBaseFee').value = data.deliveryBaseFee ?? 3;
+    $('settDeliveryPerMile').value = data.deliveryPerMileRate ?? 1.5;
+    $('settMaxRadius').value = data.maxDeliveryRadius ?? 10;
+    $('settDeliveryFee').value = data.deliveryFee ?? 7.99;
+    $('settTaxRate').value = ((data.taxRate ?? 0.0825) * 100).toFixed(2);
+    $('settMinOrder').value = data.minimumOrder ?? 25;
+    updateFeeExample();
+
+    // Live preview
+    ['settDeliveryBaseFee','settDeliveryPerMile'].forEach(id => {
+      $(id).addEventListener('input', updateFeeExample);
+    });
+
+    // Load product requests
+    loadProductRequests();
+  } catch(e) {
+    console.error('Failed to load settings:', e);
+    $('settingsMsg').textContent = 'Failed to load settings: ' + e.message;
+    $('settingsMsg').style.color = 'var(--danger)';
+  }
+}
+
+function updateFeeExample() {
+  var base = parseFloat($('settDeliveryBaseFee').value) || 0;
+  var perMile = parseFloat($('settDeliveryPerMile').value) || 0;
+  var fee = (base + 5 * perMile).toFixed(2);
+  $('settFeeExample').textContent = fee;
+}
+
+async function saveSettings() {
+  var btn = $('saveSettingsBtn');
+  var msg = $('settingsMsg');
+  btn.disabled = true;
+  btn.textContent = 'Saving...';
+  msg.textContent = '';
+
+  try {
+    var baseFee = parseFloat($('settDeliveryBaseFee').value);
+    var perMile = parseFloat($('settDeliveryPerMile').value);
+    var maxRadius = parseFloat($('settMaxRadius').value);
+    var flatFee = parseFloat($('settDeliveryFee').value);
+    var taxPct = parseFloat($('settTaxRate').value);
+    var minOrder = parseFloat($('settMinOrder').value);
+
+    if (isNaN(baseFee) || baseFee < 0) throw new Error('Base fee must be >= 0');
+    if (isNaN(perMile) || perMile < 0) throw new Error('Per-mile rate must be >= 0');
+    if (isNaN(maxRadius) || maxRadius < 1) throw new Error('Max radius must be >= 1');
+    if (isNaN(taxPct) || taxPct < 0 || taxPct > 100) throw new Error('Tax rate must be 0–100%');
+
+    var payload = {
+      deliveryBaseFee: baseFee,
+      deliveryPerMileRate: perMile,
+      maxDeliveryRadius: maxRadius,
+      deliveryFee: flatFee,
+      taxRate: taxPct / 100,
+      minimumOrder: minOrder
+    };
+
+    await apiFetch('/api/admin/settings', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+
+    msg.textContent = 'Settings saved!';
+    msg.style.color = 'var(--success)';
+    setTimeout(() => { msg.textContent = ''; }, 3000);
+  } catch(e) {
+    msg.textContent = 'Error: ' + e.message;
+    msg.style.color = 'var(--danger)';
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Save Settings';
+  }
+}
+
+async function loadProductRequests() {
+  try {
+    const requests = await apiFetch('/api/product-requests');
+    var body = $('productRequestsBody');
+    body.innerHTML = requests.length ? requests.map(r => `<tr>
+      <td>${esc(r.name)}</td>
+      <td><strong>${esc(r.productName)}</strong></td>
+      <td>${esc(r.message || '—')}</td>
+      <td>${r.createdAt ? dateStr(r.createdAt) : '—'}</td>
+    </tr>`).join('') : '<tr><td colspan="4" class="empty">No product requests yet</td></tr>';
+  } catch(e) {
+    $('productRequestsBody').innerHTML = '<tr><td colspan="4" class="empty">Failed to load</td></tr>';
+  }
 }
 </script>
 </body>
