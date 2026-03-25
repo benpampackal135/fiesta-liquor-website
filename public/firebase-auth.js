@@ -96,20 +96,20 @@ function initializeFirebaseAuth() {
       }
     });
 
-    // Safety timeout: if no user detected after 8 seconds, give up
+    // Safety timeout: if no user detected after 15 seconds, show retry option
     setTimeout(() => {
       if (!redirectHandled) {
         redirectAuthUnsub();
         clearRedirectFlags();
         hideRedirectLoading();
-        console.log('⏰ Redirect timeout — no user detected after 8s');
+        console.log('⏰ Redirect timeout — no user detected after 15s');
         const msgBox = document.getElementById('msgBox');
         if (msgBox) {
-          msgBox.textContent = 'Sign-in timed out. Please try again.';
+          msgBox.innerHTML = 'Sign-in timed out. <button onclick="window.location.reload()" style="background:none;border:none;color:var(--accent);text-decoration:underline;cursor:pointer;font:inherit;padding:0;">Tap to retry</button>';
           msgBox.className = 'msg error visible';
         }
       }
-    }, 8000);
+    }, 15000);
   }
 
   // SECONDARY: Also try getRedirectResult() as a backup.
@@ -272,18 +272,10 @@ function isMobileBrowser() {
   return /iphone|ipad|ipod|android|mobile|blackberry|opera|mini|windows\sce|palm|smartphone|iemobile/i.test(ua);
 }
 
-// Detect if popups are likely to be blocked (mobile or certain desktop scenarios)
+// We now try popup first on ALL devices (including mobile).
+// Modern mobile browsers allow popups from user-initiated clicks.
+// Only fall back to redirect if the popup is explicitly blocked.
 function shouldUseRedirect() {
-  // Always use redirect on mobile browsers
-  if (isMobileBrowser()) {
-    return true;
-  }
-  // Always use redirect on iOS Safari
-  if (isIOSSafari()) {
-    return true;
-  }
-  // Desktop: use popup (faster, no full page reload)
-  // Mobile: use redirect (popups are blocked by mobile browsers)
   return false;
 }
 
@@ -331,68 +323,36 @@ async function signInWithGoogle() {
     
     console.log('🚀 Starting Google Sign-In...');
     
-    // On mobile browsers or when redirect is preferred, use redirect directly
-    if (useRedirect) {
-      console.log('📱 Mobile browser detected - using redirect method');
-      try {
-        console.log('🔄 Calling signInWithRedirect...');
-        // Mark that we're about to redirect so auth.html knows not to auto-redirect on return
-        // Use BOTH localStorage (survives cross-domain redirects on mobile) and sessionStorage
-        localStorage.setItem('googleRedirectPending', '1');
-        sessionStorage.setItem('googleRedirectPending', '1');
-        await auth.signInWithRedirect(googleProvider);
-        console.log('✅ Redirect initiated - page will navigate');
-        // The page will redirect, so we return here
-        return;
-      } catch (redirectError) {
-        console.error('❌ Redirect sign-in error:', redirectError);
-        console.error('Error code:', redirectError.code);
-        console.error('Error message:', redirectError.message);
-        alert('Failed to sign in with Google: ' + redirectError.message);
-        return;
-      }
-    }
-    
-    // For desktop browsers, try popup first, but immediately fallback to redirect if blocked
-    // Note: Many browsers block popups, so redirect is often more reliable
+    // Try popup first on ALL devices (including mobile).
+    // Modern mobile browsers allow popups from user-initiated clicks.
+    // Only fall back to redirect if the popup is explicitly blocked.
     let result;
     let user;
-    
+
     try {
-      // Try popup method first (works best on desktop when not blocked)
       console.log('🪟 Attempting popup sign-in...');
       result = await auth.signInWithPopup(googleProvider);
       user = result.user;
       console.log('✅ Popup sign-in successful');
     } catch (popupError) {
-      // If popup is blocked or fails, immediately use redirect method
-      console.log('⚠️ Popup failed or blocked');
-      console.log('Error code:', popupError.code);
-      console.log('Error message:', popupError.message);
-      
-      // Check if it's a popup-blocked error or any other error
-      const isPopupBlocked = popupError.code === 'auth/popup-blocked' || 
-                            popupError.code === 'auth/popup-closed-by-user' ||
-                            popupError.message?.toLowerCase().includes('popup');
-      
-      if (isPopupBlocked) {
-        console.log('🔄 Popup blocked - switching to redirect method...');
-      } else {
-        console.log('🔄 Popup error - switching to redirect method...');
+      console.log('⚠️ Popup failed:', popupError.code, popupError.message);
+
+      // If popup was closed by user, don't fall back — they intentionally cancelled
+      if (popupError.code === 'auth/popup-closed-by-user' ||
+          popupError.code === 'auth/cancelled-popup-request') {
+        console.log('User cancelled sign-in');
+        return;
       }
 
+      // For popup-blocked or other errors, fall back to redirect
+      console.log('🔄 Falling back to redirect method...');
       try {
-        // Mark that we're about to redirect so auth.html knows not to auto-redirect on return
         localStorage.setItem('googleRedirectPending', '1');
         sessionStorage.setItem('googleRedirectPending', '1');
         await auth.signInWithRedirect(googleProvider);
-        console.log('✅ Redirect initiated - page will navigate');
-        // The page will redirect, so we return here
         return;
       } catch (redirectError) {
         console.error('❌ Redirect also failed:', redirectError);
-        console.error('Redirect error code:', redirectError.code);
-        console.error('Redirect error message:', redirectError.message);
         alert('Failed to sign in with Google. Please check your browser settings and try again.\n\nError: ' + redirectError.message);
         throw new Error('Both popup and redirect methods failed: ' + redirectError.message);
       }
