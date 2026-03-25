@@ -266,6 +266,24 @@ function isIOSSafari() {
   return isIOS && isSafari;
 }
 
+// Detect iOS Chrome (CriOS) - signInWithRedirect is broken on iOS Chrome
+// because it uses SFSafariViewController which doesn't share storage with the app
+function isIOSChrome() {
+  const ua = window.navigator.userAgent.toLowerCase();
+  const isIOS = /iphone|ipad|ipod/.test(ua);
+  const isChrome = /crios/.test(ua);
+  return isIOS && isChrome;
+}
+
+// Detect any iOS in-app or third-party browser where redirect won't work
+function isIOSBrowserWithBrokenRedirect() {
+  const ua = window.navigator.userAgent.toLowerCase();
+  const isIOS = /iphone|ipad|ipod/.test(ua);
+  // CriOS = Chrome, FxiOS = Firefox, EdgiOS = Edge, OPiOS = Opera
+  const isThirdPartyBrowser = /crios|fxios|edgios|opios|gsa\//.test(ua);
+  return isIOS && isThirdPartyBrowser;
+}
+
 // Detect mobile browsers (iOS, Android, etc.)
 function isMobileBrowser() {
   const ua = window.navigator.userAgent.toLowerCase();
@@ -326,14 +344,68 @@ async function signInWithGoogle() {
     // Try popup first on ALL devices (including mobile).
     // Modern mobile browsers allow popups from user-initiated clicks.
     // Only fall back to redirect if the popup is explicitly blocked.
+    // IMPORTANT: On iOS Chrome/Firefox/Edge, NEVER fall back to redirect —
+    // it uses SFSafariViewController which doesn't share storage with the app,
+    // causing "Sign-in timed out" every time.
     let result;
     let user;
+    const brokenRedirect = isIOSBrowserWithBrokenRedirect();
 
     try {
       console.log('🪟 Attempting popup sign-in...');
-      result = await auth.signInWithPopup(googleProvider);
-      user = result.user;
-      console.log('✅ Popup sign-in successful');
+      if (brokenRedirect) {
+        console.log('📱 iOS third-party browser detected — popup-only mode (redirect is broken)');
+      }
+
+      // On iOS Chrome, wrap popup in a race with onAuthStateChanged listener
+      // because sometimes the popup resolves the auth state but the promise hangs
+      if (brokenRedirect) {
+        result = await new Promise((resolve, reject) => {
+          let settled = false;
+
+          // Backup: listen for auth state change in case popup promise doesn't resolve
+          const unsubscribe = auth.onAuthStateChanged((authUser) => {
+            if (authUser && !settled) {
+              settled = true;
+              unsubscribe();
+              console.log('✅ Auth state detected user after popup (backup listener):', authUser.email);
+              resolve({ user: authUser });
+            }
+          });
+
+          // Primary: popup promise
+          auth.signInWithPopup(googleProvider)
+            .then((popupResult) => {
+              if (!settled) {
+                settled = true;
+                unsubscribe();
+                resolve(popupResult);
+              }
+            })
+            .catch((err) => {
+              if (!settled) {
+                settled = true;
+                unsubscribe();
+                reject(err);
+              }
+            });
+
+          // Safety timeout: 60 seconds for the entire flow on iOS
+          setTimeout(() => {
+            if (!settled) {
+              settled = true;
+              unsubscribe();
+              reject(new Error('Sign-in took too long. Please try again.'));
+            }
+          }, 60000);
+        });
+        user = result.user;
+        console.log('✅ Popup sign-in successful (iOS browser)');
+      } else {
+        result = await auth.signInWithPopup(googleProvider);
+        user = result.user;
+        console.log('✅ Popup sign-in successful');
+      }
     } catch (popupError) {
       console.log('⚠️ Popup failed:', popupError.code, popupError.message);
 
@@ -344,7 +416,21 @@ async function signInWithGoogle() {
         return;
       }
 
-      // For popup-blocked or other errors, fall back to redirect
+      // On iOS Chrome/Firefox/Edge, DON'T fall back to redirect — it's broken.
+      // Show a helpful message instead.
+      if (brokenRedirect) {
+        console.log('❌ Popup failed on iOS browser where redirect is also broken');
+        const msgBox = document.getElementById('msgBox');
+        if (msgBox) {
+          msgBox.innerHTML = 'Google sign-in popup was blocked. Please allow pop-ups for this site in your browser settings, or <a href="javascript:void(0)" onclick="window.firebaseAuth.signInWithGoogle()" style="color:var(--accent);text-decoration:underline;">tap to try again</a>. You can also try opening this site in Safari.';
+          msgBox.className = 'msg error visible';
+        } else {
+          alert('Google sign-in was blocked. Please allow pop-ups for this site in your browser settings and try again, or open this site in Safari.');
+        }
+        return;
+      }
+
+      // For popup-blocked or other errors on non-iOS-Chrome browsers, fall back to redirect
       console.log('🔄 Falling back to redirect method...');
       try {
         localStorage.setItem('googleRedirectPending', '1');
