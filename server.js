@@ -1909,6 +1909,19 @@ app.post('/api/admin/backfill-stripe-orders', authenticateToken, requireAdmin, a
   }
 });
 
+// Clear all orders (admin only, one-time reset)
+app.post('/api/admin/clear-orders', authenticateToken, requireAdmin, async (req, res) => {
+  try {
+    await db.pool.query('DELETE FROM user_orders');
+    await db.pool.query('DELETE FROM orders');
+    await db.pool.query("ALTER SEQUENCE orders_id_seq RESTART WITH 1");
+    res.json({ success: true, message: 'All orders cleared' });
+  } catch (error) {
+    console.error('Clear orders error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // ==================== STATS ROUTES (Admin only) ====================
 
 app.get("/api/stats", authenticateToken, requireAdmin, async (req, res) => {
