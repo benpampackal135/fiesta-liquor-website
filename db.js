@@ -143,6 +143,13 @@ async function initTables() {
             );
         `);
 
+        // Fix column types on old tables
+        try { await client.query(`ALTER TABLE users ALTER COLUMN id TYPE BIGINT`); } catch(e) {}
+        try { await client.query(`ALTER TABLE newsletter ALTER COLUMN id TYPE BIGINT`); } catch(e) {}
+        try { await client.query(`ALTER TABLE promo_codes ALTER COLUMN id TYPE BIGINT`); } catch(e) {}
+        try { await client.query(`ALTER TABLE reviews ALTER COLUMN id TYPE BIGINT`); } catch(e) {}
+        try { await client.query(`ALTER TABLE product_requests ALTER COLUMN id TYPE BIGINT`); } catch(e) {}
+
         // Add missing columns to existing tables (safe to run multiple times)
         const migrations = [
             // products
