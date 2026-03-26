@@ -95,7 +95,8 @@ async function initTables() {
                 unsubscribed_at TIMESTAMPTZ
             );
 
-            CREATE TABLE IF NOT EXISTS settings (
+            DROP TABLE IF EXISTS settings;
+            CREATE TABLE settings (
                 id INTEGER PRIMARY KEY DEFAULT 1 CHECK (id = 1),
                 data JSONB NOT NULL
             );
@@ -188,8 +189,7 @@ async function initTables() {
             `ALTER TABLE orders ADD COLUMN IF NOT EXISTS refunded_amount NUMERIC(10,2) DEFAULT 0`,
             `ALTER TABLE orders ADD COLUMN IF NOT EXISTS stripe_fee NUMERIC(10,2)`,
             `ALTER TABLE orders ADD COLUMN IF NOT EXISTS delivery_fee NUMERIC(10,2) DEFAULT 0`,
-            // settings - old table may have individual columns instead of JSONB 'data'
-            `ALTER TABLE settings ADD COLUMN IF NOT EXISTS data JSONB`,
+            // settings table is dropped and recreated above, no migration needed
             // newsletter
             `ALTER TABLE newsletter ADD COLUMN IF NOT EXISTS active BOOLEAN DEFAULT true`,
             `ALTER TABLE newsletter ADD COLUMN IF NOT EXISTS unsubscribed_at TIMESTAMPTZ`,
