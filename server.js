@@ -2415,6 +2415,11 @@ app.post("/api/product-requests", async (req, res) => {
     }
 });
 
+// Health/version check
+app.get('/api/health', (req, res) => {
+  res.json({ status: 'ok', version: '2.1.0', deployed: new Date().toISOString() });
+});
+
 // GET /api/product-requests — admin only, list all requests
 app.get("/api/product-requests", authenticateToken, async (req, res) => {
     try {
