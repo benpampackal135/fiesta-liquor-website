@@ -293,6 +293,25 @@
   <div id="cartBackdrop" class="cart-backdrop"></div>
   <div id="toastContainer" class="toast-container"></div>
 
+  <!-- Product Detail Modal -->
+  <div id="productDetailBackdrop" class="product-detail-backdrop" onclick="closeProductDetail()"></div>
+  <div id="productDetailModal" class="product-detail-modal">
+    <button class="product-detail-close" onclick="closeProductDetail()">&#x2715;</button>
+    <div class="product-detail-inner">
+      <img id="pdImage" class="product-detail-image" alt="">
+      <div class="product-detail-info">
+        <p id="pdCategory" class="product-detail-cat"></p>
+        <h2 id="pdName" class="product-detail-name"></h2>
+        <p id="pdDescription" class="product-detail-desc"></p>
+        <div id="pdSizes" class="product-detail-sizes"></div>
+        <div class="product-detail-footer">
+          <p id="pdPrice" class="product-detail-price"></p>
+          <button id="pdAddBtn" class="primary-btn product-detail-add" type="button">Add to Cart</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <template id="productCardTemplate">
     <article class="product-card">
       <img class="product-image" alt="" loading="lazy">

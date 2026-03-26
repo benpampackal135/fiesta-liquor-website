@@ -261,7 +261,8 @@ function renderProducts() {
     addBtn.disabled = !isInStock;
     addBtn.textContent = isInStock ? "Add to Cart" : "Out of Stock";
 
-    addBtn.addEventListener("click", () => {
+    addBtn.addEventListener("click", (e) => {
+      e.stopPropagation();
       addToCart(product, selectedSize);
       addBtn.textContent = "Added!";
       addBtn.classList.add("added");
@@ -270,6 +271,12 @@ function renderProducts() {
         addBtn.textContent = "Add to Cart";
         addBtn.classList.remove("added");
       }, 1200);
+    });
+
+    // Click card to open product detail
+    node.style.cursor = "pointer";
+    node.addEventListener("click", () => {
+      openProductDetail(product);
     });
 
     // Add reveal class for animation
@@ -469,4 +476,76 @@ function escapeHtml(text) {
     .replace(/>/g, "&gt;")
     .replace(/\"/g, "&quot;")
     .replace(/'/g, "&#39;");
+}
+
+// ── Product Detail Modal ─────────────────────────────────────
+let _pdProduct = null;
+let _pdSelectedSize = null;
+
+function openProductDetail(product) {
+  _pdProduct = product;
+  const hasSizes = Array.isArray(product.sizes) && product.sizes.length > 0;
+  _pdSelectedSize = hasSizes ? product.sizes[0] : null;
+
+  const img = document.getElementById("pdImage");
+  img.src = normalizeImagePath(product.image);
+  img.alt = product.name;
+  img.onerror = () => { img.src = "https://placehold.co/640x480/f4ede1/2a2f28?text=Fiesta+Liquor"; };
+
+  document.getElementById("pdCategory").textContent = getCategoryLabel(product.category || "other");
+  document.getElementById("pdName").textContent = product.name || "Unnamed product";
+  document.getElementById("pdDescription").textContent = product.description || "No description available.";
+
+  // Sizes
+  const sizesEl = document.getElementById("pdSizes");
+  sizesEl.innerHTML = "";
+  if (hasSizes) {
+    product.sizes.forEach((sizeObj) => {
+      const chip = document.createElement("button");
+      chip.type = "button";
+      chip.className = `size-chip${sizeObj === _pdSelectedSize ? " selected" : ""}`;
+      chip.textContent = `${sizeObj.size} — ${currency.format(Number(sizeObj.price))}`;
+      chip.addEventListener("click", () => {
+        _pdSelectedSize = sizeObj;
+        sizesEl.querySelectorAll(".size-chip").forEach(c => c.classList.remove("selected"));
+        chip.classList.add("selected");
+        updatePdPrice();
+      });
+      sizesEl.appendChild(chip);
+    });
+  }
+
+  updatePdPrice();
+
+  // Add button
+  const addBtn = document.getElementById("pdAddBtn");
+  const isInStock = product.inStock && (!hasSizes || _pdSelectedSize?.inStock !== false);
+  addBtn.disabled = !isInStock;
+  addBtn.textContent = isInStock ? "Add to Cart" : "Out of Stock";
+  addBtn.onclick = () => {
+    if (!isInStock) return;
+    addToCart(product, _pdSelectedSize);
+    addBtn.textContent = "Added!";
+    addBtn.classList.add("added");
+    showToast(`${product.name} added to cart`, "success");
+    setTimeout(() => {
+      addBtn.textContent = "Add to Cart";
+      addBtn.classList.remove("added");
+    }, 1200);
+  };
+
+  document.getElementById("productDetailBackdrop").classList.add("open");
+  document.getElementById("productDetailModal").classList.add("open");
+  document.body.style.overflow = "hidden";
+}
+
+function updatePdPrice() {
+  const p = _pdSelectedSize ? Number(_pdSelectedSize.price) : Number(_pdProduct.price || 0);
+  document.getElementById("pdPrice").textContent = currency.format(p);
+}
+
+function closeProductDetail() {
+  document.getElementById("productDetailBackdrop").classList.remove("open");
+  document.getElementById("productDetailModal").classList.remove("open");
+  document.body.style.overflow = "";
 }
