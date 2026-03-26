@@ -549,3 +549,4 @@ function closeProductDetail() {
   document.getElementById("productDetailModal").classList.remove("open");
   document.body.style.overflow = "";
 }
+window.closeProductDetail = closeProductDetail;
