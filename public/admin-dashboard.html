@@ -133,6 +133,8 @@
 
     /* Product image in table */
     .prod-thumb { width: 40px; height: 40px; border-radius: 6px; object-fit: contain; background: #f5f5f0; padding: 2px; }
+    .product-row:hover { background: var(--accent-light); transition: background 0.15s; }
+    .prod-desc-preview { font-size: 0.75rem; color: var(--muted); margin-top: 2px; line-height: 1.3; }
 
     /* Status badges */
     .badge {
@@ -1017,16 +1019,17 @@ function renderProducts(list) {
       ? Math.min(...p.sizes.map(s=>Number(s.price||p.price||0)))
       : Number(p.price||0);
     const img = p.image ? `<img class="prod-thumb" src="${esc(p.image.startsWith('/')||p.image.startsWith('http')?p.image:'/'+p.image)}" alt="${esc(p.name)}" onerror="this.src='https://placehold.co/40x40/f4ede1/888?text=?'">` : '—';
-    return `<tr>
+    const desc = p.description ? esc(p.description.length > 60 ? p.description.slice(0,60) + '…' : p.description) : '<span style="color:var(--muted)">No description</span>';
+    return `<tr class="product-row" onclick="editProduct(${p.id})" style="cursor:pointer;">
       <td>${img}</td>
-      <td><strong>${esc(p.name)}</strong></td>
+      <td><strong>${esc(p.name)}</strong><div class="prod-desc-preview">${desc}</div></td>
       <td><span class="badge badge-gray">${esc(p.category||'')}</span></td>
       <td>${fmt(basePrice)}${Array.isArray(p.sizes)&&p.sizes.length?'+':''}</td>
       <td>${Array.isArray(p.sizes)?p.sizes.length:0} size${p.sizes?.length===1?'':'s'}</td>
       <td>${p.inStock?'<span class="badge badge-green">In Stock</span>':'<span class="badge badge-red">Out</span>'}</td>
       <td><div class="td-actions">
-        <button class="btn btn-ghost btn-sm" onclick="editProduct(${p.id})">Edit</button>
-        <button class="btn btn-danger btn-sm" onclick="deleteProduct(${p.id},'${esc(p.name)}')">Delete</button>
+        <button class="btn btn-ghost btn-sm" onclick="event.stopPropagation();editProduct(${p.id})">Edit</button>
+        <button class="btn btn-danger btn-sm" onclick="event.stopPropagation();deleteProduct(${p.id},'${esc(p.name)}')">Delete</button>
       </div></td>
     </tr>`;
   }).join('');
