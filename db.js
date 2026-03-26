@@ -188,6 +188,29 @@ async function initTables() {
             `ALTER TABLE orders ADD COLUMN IF NOT EXISTS refunded_amount NUMERIC(10,2) DEFAULT 0`,
             `ALTER TABLE orders ADD COLUMN IF NOT EXISTS stripe_fee NUMERIC(10,2)`,
             `ALTER TABLE orders ADD COLUMN IF NOT EXISTS delivery_fee NUMERIC(10,2) DEFAULT 0`,
+            // settings - old table may have individual columns instead of JSONB 'data'
+            `ALTER TABLE settings ADD COLUMN IF NOT EXISTS data JSONB`,
+            // newsletter
+            `ALTER TABLE newsletter ADD COLUMN IF NOT EXISTS active BOOLEAN DEFAULT true`,
+            `ALTER TABLE newsletter ADD COLUMN IF NOT EXISTS unsubscribed_at TIMESTAMPTZ`,
+            // promo_codes
+            `ALTER TABLE promo_codes ADD COLUMN IF NOT EXISTS min_order NUMERIC(10,2) DEFAULT 0`,
+            `ALTER TABLE promo_codes ADD COLUMN IF NOT EXISTS max_discount NUMERIC(10,2)`,
+            `ALTER TABLE promo_codes ADD COLUMN IF NOT EXISTS expires_at TIMESTAMPTZ`,
+            `ALTER TABLE promo_codes ADD COLUMN IF NOT EXISTS usage_limit INTEGER`,
+            `ALTER TABLE promo_codes ADD COLUMN IF NOT EXISTS usage_count INTEGER DEFAULT 0`,
+            `ALTER TABLE promo_codes ADD COLUMN IF NOT EXISTS used_by JSONB DEFAULT '[]'`,
+            `ALTER TABLE promo_codes ADD COLUMN IF NOT EXISTS active BOOLEAN DEFAULT true`,
+            `ALTER TABLE promo_codes ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ DEFAULT NOW()`,
+            `ALTER TABLE promo_codes ADD COLUMN IF NOT EXISTS created_by TEXT`,
+            `ALTER TABLE promo_codes ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ`,
+            `ALTER TABLE promo_codes ADD COLUMN IF NOT EXISTS updated_by TEXT`,
+            // product_requests
+            `ALTER TABLE product_requests ADD COLUMN IF NOT EXISTS message TEXT DEFAULT ''`,
+            `ALTER TABLE product_requests ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ DEFAULT NOW()`,
+            `ALTER TABLE product_requests ADD COLUMN IF NOT EXISTS status TEXT DEFAULT 'pending'`,
+            // reviews
+            `ALTER TABLE reviews ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ DEFAULT NOW()`,
         ];
 
         for (const sql of migrations) {
@@ -623,8 +646,19 @@ const newsletter = {
 
 const settings = {
     async get() {
-        const { rows } = await pool.query('SELECT data FROM settings WHERE id = 1');
-        return rows[0] ? rows[0].data : null;
+        try {
+            const { rows } = await pool.query('SELECT * FROM settings WHERE id = 1');
+            if (!rows[0]) return null;
+            // If 'data' JSONB column exists and has a value, use it
+            if (rows[0].data) return rows[0].data;
+            // Otherwise, return the row as-is (old schema with individual columns)
+            const row = { ...rows[0] };
+            delete row.id;
+            return Object.keys(row).length > 0 ? row : null;
+        } catch (e) {
+            console.error('Settings get error:', e.message);
+            return null;
+        }
     },
     async set(data) {
         await pool.query(
