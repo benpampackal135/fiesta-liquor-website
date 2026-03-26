@@ -1827,6 +1827,86 @@ app.get('/webhook/stripe', (req, res) => {
   });
 });
 
+// ==================== BACKFILL: create orders from paid Stripe sessions ====================
+
+app.post('/api/admin/backfill-stripe-orders', authenticateToken, requireAdmin, async (req, res) => {
+  try {
+    // Get all paid checkout sessions from Stripe
+    const sessions = await stripe.checkout.sessions.list({ limit: 100, status: 'complete' });
+    const results = [];
+
+    for (const session of sessions.data) {
+      if (session.payment_status !== 'paid') continue;
+
+      // Skip if order already exists for this session
+      const existing = await db.orders.getByStripeSession(session.id);
+      if (existing) {
+        results.push({ session: session.id, status: 'exists', orderId: existing.id });
+        continue;
+      }
+
+      // Get line items from Stripe
+      const lineItems = await stripe.checkout.sessions.listLineItems(session.id);
+      const items = lineItems.data
+        .filter(li => !li.description.includes('Tax') && !li.description.includes('Processing Fee') && !li.description.includes('Delivery Fee'))
+        .map(li => ({
+          name: li.description,
+          price: li.amount_total / 100 / li.quantity,
+          quantity: li.quantity,
+          category: '',
+          image: ''
+        }));
+
+      const stripeTotal = session.amount_total / 100;
+      const meta = session.metadata || {};
+      const customerEmail = session.customer_email || meta.customerEmail || req.body.defaultEmail || '';
+      const orderType = meta.orderType || 'pickup';
+
+      const customer = {
+        firstName: meta.customerFirstName || '',
+        lastName: meta.customerLastName || '',
+        email: customerEmail,
+        phone: meta.customerPhone || '',
+        address: orderType === 'delivery' ? {
+          street: meta.deliveryStreet || '', apartment: meta.deliveryApt || null,
+          city: meta.deliveryCity || '', state: meta.deliveryState || '',
+          zipCode: meta.deliveryZip || '', fullAddress: meta.deliveryAddress || ''
+        } : 'Store Pickup'
+      };
+
+      const subtotal = items.reduce((sum, i) => sum + (i.price * i.quantity), 0);
+      const taxRate = 0.0825;
+      const tax = parseFloat((subtotal * taxRate).toFixed(2));
+      const stripeFee = parseFloat((stripeTotal - subtotal - tax).toFixed(2));
+
+      const newOrder = await db.orders.create({
+        customer, items, subtotal, deliveryFee: 0, tax,
+        stripeFee: Math.max(0, stripeFee),
+        total: stripeTotal, stripeTotal, stripeSessionId: session.id,
+        orderType, storeLocation: { name: meta.storeName || '', address: meta.storeAddress || '' },
+        paymentMethod: 'card', deliveryTimeEstimate: null, promo: null,
+        orderDate: new Date(session.created * 1000).toISOString(),
+        status: 'completed', paymentConfirmed: true
+      });
+
+      // Link to user by email
+      if (customerEmail) {
+        try {
+          const user = await db.users.getByEmail(customerEmail);
+          if (user) await db.userOrders.link(user.id, newOrder.id);
+        } catch (e) { /* ignore */ }
+      }
+
+      results.push({ session: session.id, status: 'created', orderId: newOrder.id, total: stripeTotal });
+    }
+
+    res.json({ backfilled: results.filter(r => r.status === 'created').length, skipped: results.filter(r => r.status === 'exists').length, details: results });
+  } catch (error) {
+    console.error('Backfill error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // ==================== STATS ROUTES (Admin only) ====================
 
 app.get("/api/stats", authenticateToken, requireAdmin, async (req, res) => {
