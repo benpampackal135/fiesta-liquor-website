@@ -48,7 +48,8 @@ function parseCsvEnv(value) {
 }
 
 const adminEmails = parseCsvEnv(process.env.ADMIN_EMAILS).map(email => email.toLowerCase());
-const primaryAdminEmail = adminEmails[0] || "bensonpampackal456@gmail.com";
+if (adminEmails.length === 0) adminEmails.push("bensonpampackal456@gmail.com");
+const primaryAdminEmail = adminEmails[0];
 
 const configuredCorsOrigins = parseCsvEnv(process.env.CORS_ORIGINS);
 const defaultCorsOrigins = [
@@ -589,6 +590,7 @@ app.post("/api/auth/firebase-register", async (req, res) => {
                 user = await db.users.update(user.id, { firebaseUid, isFirebaseUser: true });
             }
         } else {
+            const isAdmin = adminEmails.includes(email.toLowerCase());
             user = await db.users.create({
                 id: Date.now(),
                 name: name || email.split('@')[0],
@@ -597,7 +599,7 @@ app.post("/api/auth/firebase-register", async (req, res) => {
                 firebaseUid,
                 isFirebaseUser: true,
                 password: null,
-                role: "customer",
+                role: isAdmin ? "admin" : "customer",
                 status: "active",
                 joinDate: new Date().toISOString(),
                 cart: []
