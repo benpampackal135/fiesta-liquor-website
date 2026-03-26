@@ -911,8 +911,22 @@ app.get("/api/orders", authenticateToken, async (req, res) => {
             const allOrders = await db.orders.getAll();
             res.json(allOrders);
         } else {
-            const userOrders = await db.orders.getByEmail(req.user.email);
-            res.json(userOrders);
+            // Look up orders by both email match AND user_orders join table
+            const [byEmail, byLink] = await Promise.all([
+                db.orders.getByEmail(req.user.email),
+                db.orders.getByUserId(req.user.id)
+            ]);
+            // Merge and deduplicate by order ID
+            const seen = new Set();
+            const merged = [];
+            for (const o of [...byEmail, ...byLink]) {
+                if (!seen.has(o.id)) {
+                    seen.add(o.id);
+                    merged.push(o);
+                }
+            }
+            merged.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+            res.json(merged);
         }
     } catch (error) {
         console.error("Get orders error:", error);
@@ -1406,7 +1420,7 @@ app.get('/get-stripe-session', authenticateToken, async (req, res) => {
     if (!session_id) {
       return res.status(400).json({ error: 'Session ID required' });
     }
-    
+
     const session = await stripe.checkout.sessions.retrieve(session_id);
     res.json({
       id: session.id,
@@ -1417,6 +1431,122 @@ app.get('/get-stripe-session', authenticateToken, async (req, res) => {
   } catch (error) {
     console.error('Error retrieving Stripe session:', error);
     res.status(500).json({ error: 'Failed to retrieve session' });
+  }
+});
+
+// Confirm order exists after payment — fallback if webhook is delayed/missing
+app.post('/api/confirm-order', authenticateToken, async (req, res) => {
+  try {
+    const { session_id } = req.body;
+    if (!session_id) {
+      return res.status(400).json({ error: 'Session ID required' });
+    }
+
+    // Check if order already exists (webhook may have created it)
+    const existing = await db.orders.getByStripeSession(session_id);
+    if (existing) {
+      return res.json({ order: existing, created: false });
+    }
+
+    // Retrieve session from Stripe to verify payment
+    const session = await stripe.checkout.sessions.retrieve(session_id);
+    if (session.payment_status !== 'paid') {
+      return res.status(400).json({ error: 'Payment not completed' });
+    }
+
+    const stripeTotal = session.amount_total / 100;
+    const customerEmail = session.customer_email;
+    const meta = session.metadata || {};
+
+    // Reconstruct cart items from metadata
+    let cartItems = [];
+    if (meta.cartItems) {
+      try { cartItems = JSON.parse(meta.cartItems); } catch (e) { /* ignore */ }
+    } else {
+      let combined = '';
+      for (let i = 0; ; i++) {
+        const chunk = meta['cartItems_' + i];
+        if (!chunk) break;
+        combined += chunk;
+      }
+      if (combined) {
+        try { cartItems = JSON.parse(combined); } catch (e) { /* ignore */ }
+      }
+    }
+
+    const items = cartItems.map(ci => ({
+      id: ci.id, productId: ci.id, name: ci.n, price: ci.p,
+      quantity: ci.q, category: ci.c || '', image: ci.img || '',
+      selectedSize: ci.sz || null
+    }));
+
+    const orderType = meta.orderType || 'pickup';
+    const customer = {
+      firstName: meta.customerFirstName || '',
+      lastName: meta.customerLastName || '',
+      email: customerEmail || meta.customerEmail || '',
+      phone: meta.customerPhone || '',
+      address: orderType === 'delivery' ? {
+        street: meta.deliveryStreet || '', apartment: meta.deliveryApt || null,
+        city: meta.deliveryCity || '', state: meta.deliveryState || '',
+        zipCode: meta.deliveryZip || '', fullAddress: meta.deliveryAddress || ''
+      } : 'Store Pickup'
+    };
+
+    const currentSettings = await db.settings.get() || {};
+    const subtotal = items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+
+    let deliveryFee = 0;
+    if (orderType === 'delivery') {
+      const deliveryDistance = parseFloat(meta.deliveryDistance) || 0;
+      const baseFee = currentSettings.deliveryBaseFee ?? 3.00;
+      const perMile = currentSettings.deliveryPerMileRate ?? 1.50;
+      deliveryFee = deliveryDistance > 0
+        ? parseFloat((baseFee + deliveryDistance * perMile).toFixed(2))
+        : (currentSettings.deliveryFee ?? 7.99);
+    }
+
+    const taxRate = currentSettings.taxRate ?? 0.0825;
+    const promoDiscount = parseFloat(meta.promoDiscount) || 0;
+    const discountedSubtotal = Math.max(0, subtotal - promoDiscount);
+    const subtotalWithFee = discountedSubtotal + deliveryFee;
+    const tax = parseFloat((subtotalWithFee * taxRate).toFixed(2));
+    const amountBeforeFee = subtotalWithFee + tax;
+    const stripeFee = calculateUpfrontProcessingFee(amountBeforeFee);
+
+    const newOrder = await db.orders.create({
+      customer, items, subtotal, deliveryFee, tax, stripeFee,
+      total: stripeTotal, stripeTotal, stripeSessionId: session.id,
+      orderType,
+      storeLocation: { name: meta.storeName || '', address: meta.storeAddress || '' },
+      paymentMethod: 'card',
+      deliveryTimeEstimate: orderType === 'delivery' && meta.deliveryTimeEstimate
+        ? parseInt(meta.deliveryTimeEstimate) : null,
+      promo: meta.promoCode ? { code: meta.promoCode, discount: promoDiscount } : null,
+      orderDate: new Date().toISOString(),
+      status: 'pending',
+      paymentConfirmed: true
+    });
+
+    console.log(`✅ Order #${newOrder.id} created via confirm-order fallback (session: ${session.id})`);
+
+    // Link to user
+    try {
+      const user = await db.users.getByEmail(customerEmail || req.user.email);
+      if (user) await db.userOrders.link(user.id, newOrder.id);
+    } catch (userErr) {
+      console.error('Error linking user to order:', userErr.message);
+    }
+
+    // Send notifications
+    sendOrderSms(newOrder).catch(err => console.error('Owner SMS error:', err));
+    sendCustomerOrderEmail(newOrder).catch(err => console.error('Customer email error:', err));
+    sendCustomerOrderSms(newOrder).catch(err => console.error('Customer SMS error:', err));
+
+    res.json({ order: newOrder, created: true });
+  } catch (error) {
+    console.error('Confirm order error:', error);
+    res.status(500).json({ error: 'Failed to confirm order' });
   }
 });
 

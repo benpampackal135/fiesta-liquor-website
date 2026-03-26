@@ -1,6 +1,6 @@
 // Service Worker for Fiesta Liquor - Enables offline support and caching
 
-const CACHE_NAME = 'fiesta-liquor-v5'; // Increment version to clear old cache
+const CACHE_NAME = 'fiesta-liquor-v6'; // Increment version to clear old cache
 const OFFLINE_URL = '/index.html';
 
 // Assets to cache on install

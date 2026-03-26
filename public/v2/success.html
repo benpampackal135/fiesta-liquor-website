@@ -58,10 +58,38 @@
     </div>
   </main>
 
+  <script src="/api.js"></script>
   <script>
-    (function() {
+    (async function() {
       const checkoutDataStr = localStorage.getItem('checkoutData');
       localStorage.removeItem('cart');
+
+      // Get session_id from URL to confirm the order was created
+      const urlParams = new URLSearchParams(window.location.search);
+      const sessionId = urlParams.get('session_id');
+
+      if (sessionId) {
+        try {
+          const token = localStorage.getItem('authToken');
+          if (token) {
+            const baseUrl = window.API_BASE_URL || '';
+            const resp = await fetch(`${baseUrl}/api/confirm-order`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+              },
+              body: JSON.stringify({ session_id: sessionId })
+            });
+            const result = await resp.json();
+            if (result.order) {
+              console.log(`Order #${result.order.id} confirmed (created: ${result.created})`);
+            }
+          }
+        } catch (e) {
+          console.error('Order confirmation fallback error:', e);
+        }
+      }
 
       if (!checkoutDataStr) return;
 

@@ -415,7 +415,16 @@ const orders = {
     },
     async getByEmail(email) {
         const { rows } = await pool.query(
-            "SELECT * FROM orders WHERE customer->>'email' = $1 ORDER BY id", [email]
+            "SELECT * FROM orders WHERE LOWER(customer->>'email') = LOWER($1) ORDER BY id DESC", [email]
+        );
+        return rows.map(rowToOrder);
+    },
+    async getByUserId(userId) {
+        const { rows } = await pool.query(
+            `SELECT o.* FROM orders o
+             JOIN user_orders uo ON o.id = uo.order_id
+             WHERE uo.user_id = $1
+             ORDER BY o.id DESC`, [userId]
         );
         return rows.map(rowToOrder);
     },
