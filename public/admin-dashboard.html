@@ -730,22 +730,62 @@ let editingImageFile = null;
 
 // ── Init ───────────────────────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', async () => {
-  // Auth guard — verify via backend to handle cases where localStorage is stale
-  const token = localStorage.getItem('authToken') || localStorage.getItem('token');
-  if (!token) { window.location.href = '/auth'; return; }
+  // Auth guard — verify via backend, auto-refresh token if expired
+  let token = localStorage.getItem('authToken') || localStorage.getItem('token');
+
+  // If token is missing or expired, try refreshing via Firebase
+  async function refreshToken() {
+    if (typeof firebase !== 'undefined' && firebase.auth) {
+      const fbUser = firebase.auth().currentUser;
+      if (fbUser) {
+        try {
+          const idToken = await fbUser.getIdToken(true);
+          const apiBase = window.API_BASE_URL || window.location.origin;
+          const res = await fetch(`${apiBase}/api/auth/firebase`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ idToken })
+          });
+          if (res.ok) {
+            const data = await res.json();
+            localStorage.setItem('authToken', data.token);
+            localStorage.setItem('firebaseToken', data.token);
+            if (data.user) localStorage.setItem('currentUser', JSON.stringify(data.user));
+            return data.token;
+          }
+        } catch (e) { console.error('Token refresh failed:', e); }
+      }
+    }
+    return null;
+  }
+
+  if (!token) {
+    // Wait briefly for Firebase to init, then try refresh
+    await new Promise(r => setTimeout(r, 1500));
+    token = await refreshToken();
+    if (!token) { window.location.href = '/auth'; return; }
+  }
 
   let user;
   try {
-    const apiBase = window.location.origin;
-    const res = await fetch(`${apiBase}/api/auth/me`, {
+    const apiBase = window.API_BASE_URL || window.location.origin;
+    let res = await fetch(`${apiBase}/api/auth/me`, {
       headers: { 'Authorization': `Bearer ${token}` }
     });
-    if (!res.ok) { window.location.href = '/auth'; return; }
+    // If token expired, try refreshing once
+    if (!res.ok) {
+      const newToken = await refreshToken();
+      if (newToken) {
+        token = newToken;
+        res = await fetch(`${apiBase}/api/auth/me`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+      }
+      if (!res.ok) { window.location.href = '/auth'; return; }
+    }
     user = await res.json();
-    // Refresh localStorage so other pages are in sync
     localStorage.setItem('currentUser', JSON.stringify(user));
   } catch {
-    // Fallback to localStorage if network fails
     user = JSON.parse(localStorage.getItem('currentUser') || localStorage.getItem('user') || 'null');
   }
 
