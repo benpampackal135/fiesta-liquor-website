@@ -1552,15 +1552,20 @@ app.post('/api/confirm-order', authenticateToken, async (req, res) => {
 
 app.post('/create-checkout-session', async (req, res) => {
   try {
-    const { items, successUrl, cancelUrl, orderMetadata } = req.body;
+    const { items, successUrl, cancelUrl, orderMetadata } = req.body || {};
+
+    console.log('📦 create-checkout-session request body keys:', Object.keys(req.body || {}));
+    console.log('  items count:', items ? items.length : 0);
+    console.log('  has orderMetadata:', !!orderMetadata);
+    if (orderMetadata) {
+      console.log('  metadata keys:', Object.keys(orderMetadata));
+      console.log('  customerEmail:', orderMetadata.customerEmail);
+      console.log('  orderType:', orderMetadata.orderType);
+    }
 
     // Use redirect URLs from frontend if provided, otherwise use SITE_URL env var
     const success_url = successUrl || `${process.env.SITE_URL || `${req.protocol}://${req.get('host')}`}/success.html`;
     const cancel_url = cancelUrl || `${process.env.SITE_URL || `${req.protocol}://${req.get('host')}`}/checkout.html`;
-
-    console.log('Creating Stripe session with redirects:');
-    console.log('  Success:', success_url);
-    console.log('  Cancel:', cancel_url);
 
     // Build Stripe session config
     const sessionConfig = {

@@ -698,7 +698,7 @@ async function proceedToPayment() {
             }
         }
 
-        const apiBase = window.location.origin;
+        const apiBase = window.API_BASE_URL || window.location.origin;
         const authToken = getAuthToken();
 
         // ── NO order is saved here ──────────────────────────
