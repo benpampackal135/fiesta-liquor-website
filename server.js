@@ -7,6 +7,7 @@ const express = require("express");
 const cors = require("cors");
 const fs = require("fs");
 const path = require("path");
+const db = require("./db");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const crypto = require("crypto");
@@ -373,82 +374,21 @@ async function sendCustomerOrderEmail(order) {
 }
 
 
-// Serve root-level HTML files
-app.get('/account.html', (req, res) => {
-    res.sendFile(path.join(__dirname, 'account.html'));
-});
-
-app.get('/admin-dashboard.html', (req, res) => {
-    res.sendFile(path.join(__dirname, 'admin-dashboard.html'));
-});
-
-app.get('/product-import.html', (req, res) => {
-    res.sendFile(path.join(__dirname, 'product-import.html'));
-});
-
-app.get('/checkout.html', (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'checkout.html'));
-});
-
-// Redirect cart.html to index.html (for backward compatibility)
-app.get('/cart.html', (req, res) => {
-    res.redirect('/index.html');
-});
-
-// Data storage files
-// Use DATA_DIR env var if set (for Railway volumes), otherwise use local 'data' directory
+// Data directory (still used for Clover mapping file)
 const DATA_DIR = process.env.DATA_DIR || path.join(__dirname, 'data');
-const PRODUCTS_FILE = path.join(DATA_DIR, 'products.json');
-const USERS_FILE = path.join(DATA_DIR, 'users.json');
-const ORDERS_FILE = path.join(DATA_DIR, 'orders.json');
-const NEWSLETTER_FILE = path.join(DATA_DIR, 'newsletter.json');
-const SETTINGS_FILE = path.join(DATA_DIR, 'settings.json');
-const PROMO_CODES_FILE = path.join(DATA_DIR, 'promo-codes.json');
-const REVIEWS_FILE = path.join(DATA_DIR, 'reviews.json');
-const PRODUCT_REQUESTS_FILE = path.join(DATA_DIR, 'product-requests.json');
-
-// Ensure data directory exists
 if (!fs.existsSync(DATA_DIR)) {
     fs.mkdirSync(DATA_DIR, { recursive: true });
 }
 
-// Initialize data files if they don't exist
-function initDataFiles() {
-    // Seed products ONLY if file doesn't exist AND is empty
-    // NEVER overwrite existing products to preserve user changes
-    const productsExist = fs.existsSync(PRODUCTS_FILE);
-    let shouldSeedProducts = false;
-    
-    if (!productsExist) {
-        shouldSeedProducts = true;
-        console.log('📦 Products file not found, will seed default products...');
-    } else {
-        // Check if file is empty or invalid
-        try {
-            const existingProducts = JSON.parse(fs.readFileSync(PRODUCTS_FILE, 'utf8'));
-            if (!Array.isArray(existingProducts) || existingProducts.length === 0) {
-                shouldSeedProducts = true;
-                console.log('📦 Products file is empty, will seed default products...');
-            } else {
-                console.log(`✅ Found ${existingProducts.length} existing products, preserving them`);
-            }
-        } catch (error) {
-            // File exists but is corrupted, backup and reseed
-            console.log('⚠️ Products file corrupted, backing up and reseeding...');
-            const backupPath = PRODUCTS_FILE + '.backup.' + Date.now();
-            try {
-                fs.copyFileSync(PRODUCTS_FILE, backupPath);
-                console.log('✅ Backed up corrupted file to:', backupPath);
-            } catch (backupError) {
-                console.error('Failed to backup:', backupError);
-            }
-            shouldSeedProducts = true;
-        }
-    }
-    
-    if (shouldSeedProducts) {
-        console.log('📦 Seeding all 25 products on startup...');
-        const seedProducts = JSON.parse(`[
+// Initialize database tables and seed data
+async function initDatabase() {
+    await db.initTables();
+
+    // Seed products if table is empty
+    const productCount = await db.products.count();
+    if (productCount === 0) {
+        console.log('📦 Seeding default products...');
+        const seedProducts = [
   {"id":3,"name":"Jack Daniel's","category":"whiskey","description":"The iconic, original Tennessee Whiskey, charcoal mellowed through sugar maple, creating a smooth character with vanilla, caramel, and a hint of fruit.","image":"images/jackdaniel.png","price":14.99,"inStock":true,"sizes":[{"size":"375ml","price":14.99,"inStock":true},{"size":"750ml","price":27.99,"inStock":true},{"size":"1L","price":36.99,"inStock":true},{"size":"1.75L","price":52.99,"inStock":true}]},
   {"id":5,"name":"Jameson Irish Whiskey","category":"whiskey","description":"Triple-distilled for smoothness, this classic Irish whiskey is perfect for any occasion. Light, crisp, and approachable.","image":"images/jameson.png","price":19.99,"inStock":true,"sizes":[{"size":"375ml","price":19.99,"inStock":true},{"size":"750ml","price":33.99,"inStock":true},{"size":"1L","price":45.99,"inStock":true},{"size":"1.75ml","price":63.99,"inStock":true}]},
   {"id":6,"name":"Don Julio 1942 Añejo","category":"tequila","description":"Ultra-premium añejo tequila aged for a minimum of 30 months in American white-oak barrels. Exceptionally smooth with notes of vanilla and caramel.","image":"images/donjulio1942.png","price":99.99,"inStock":true,"sizes":[{"size":"375ml","price":99.99,"inStock":true},{"size":"750ml","price":199.99,"inStock":true}]},
@@ -473,124 +413,23 @@ function initDataFiles() {
   {"id":26,"name":"Heineken","category":"beer-seltzers","description":"Premium Dutch lager with a distinctive taste and aroma. Brewed with the finest ingredients.","image":"images/heineken.png","price":7.69,"inStock":true,"sizes":[{"size":"6-pack","price":7.69,"inStock":true},{"size":"12-pack","price":13.99,"inStock":true},{"size":"24-pack","price":26.58,"inStock":true}]},
   {"id":27,"name":"Stella Artois","category":"beer-seltzers","description":"Belgian lager with a crisp, refreshing taste and golden color. A premium European beer experience.","image":"images/stella-artois.png","price":8.24,"inStock":true,"sizes":[{"size":"6-pack","price":8.24,"inStock":true},{"size":"12-pack","price":14.99,"inStock":true},{"size":"24-pack","price":28.48,"inStock":true}]},
   {"id":29,"name":"Milagro Silver","category":"tequila","description":"100% blue agave tequila known for its crisp, fresh taste and exceptional smoothness, featuring bright notes of agave, citrus (like lime), herbal hints, and a spicy black pepper finish, making it ideal for sipping neat or in fresh cocktails like Margaritas","image":"images/milagro.png","price":34.99,"inStock":true,"sizes":[{"size":"750ml","price":34.99,"inStock":true}]}
-]`);
-        fs.writeFileSync(PRODUCTS_FILE, JSON.stringify(seedProducts, null, 2));
-        console.log('✅ All 25 products seeded!');
-    }
-    if (!fs.existsSync(USERS_FILE)) {
-        const defaultAdmin = {
-            id: 1,
-            name: "Admin",
-            email: primaryAdminEmail,
-            firebaseUid: null,
-            isFirebaseUser: true,
-            password: null,
-            role: "admin",
-            status: "active",
-            joinDate: new Date().toISOString(),
-            orders: [],
-            cart: []
-        };
-        const testCustomer = {
-            id: 2,
-            name: "Test Customer",
-            email: "customer@test.com",
-            password: bcrypt.hashSync("password123", 10),
-            role: "customer",
-            status: "active",
-            joinDate: new Date().toISOString(),
-            orders: [],
-            cart: []
-        };
-        fs.writeFileSync(USERS_FILE, JSON.stringify([defaultAdmin, testCustomer], null, 2));
-        console.log(`✅ Created default admin user: ${primaryAdminEmail} (Firebase user)`);
-        console.log('✅ Created test customer: customer@test.com / password123');
-    } else {
-        // Ensure the correct admin exists and old admin is removed
-        try {
-            const users = JSON.parse(fs.readFileSync(USERS_FILE, 'utf8'));
-            const oldAdminEmail = 'admin@fiestaliquor.com';
-            const correctAdminEmail = primaryAdminEmail;
-            
-            // Remove old admin if exists
-            const filtered = users.filter(u => u.email !== oldAdminEmail);
-            
-            // Ensure correct admin exists and is admin
-            let adminExists = filtered.find(u => u.email === correctAdminEmail);
-            if (!adminExists) {
-                adminExists = {
-                    id: Date.now(),
-                    name: "Admin",
-                    email: correctAdminEmail,
-                    firebaseUid: null,
-                    isFirebaseUser: true,
-                    password: null,
-                    role: "admin",
-                    status: "active",
-                    joinDate: new Date().toISOString(),
-                    orders: [],
-                    cart: []
-                };
-                filtered.push(adminExists);
-                console.log('✅ Added admin user:', correctAdminEmail);
-            } else {
-                // Ensure it's admin
-                adminExists.role = 'admin';
-                adminExists.status = 'active';
-                // Set a password if one isn't set, so email/password login always works
-                if (!adminExists.password) {
-                    const defaultPwd = process.env.ADMIN_PASSWORD || 'FiestaAdmin2024!';
-                    adminExists.password = bcrypt.hashSync(defaultPwd, 10);
-                    adminExists.isFirebaseUser = false;
-                    console.log('✅ Set fallback password for admin:', correctAdminEmail);
-                }
-                console.log('✅ Confirmed admin privileges for:', correctAdminEmail);
-            }
-
-            // Ensure every configured ADMIN_EMAILS entry has admin access.
-            adminEmails.forEach((email) => {
-                const lower = email.toLowerCase();
-                let existing = filtered.find(u => (u.email || "").toLowerCase() === lower);
-                if (!existing) {
-                    existing = {
-                        id: Date.now() + Math.floor(Math.random() * 1000),
-                        name: "Admin",
-                        email: lower,
-                        firebaseUid: null,
-                        isFirebaseUser: true,
-                        password: null,
-                        role: "admin",
-                        status: "active",
-                        joinDate: new Date().toISOString(),
-                        orders: [],
-                        cart: []
-                    };
-                    filtered.push(existing);
-                    console.log('✅ Added configured admin user:', lower);
-                } else {
-                    existing.role = 'admin';
-                    existing.status = 'active';
-                }
-            });
-            
-            fs.writeFileSync(USERS_FILE, JSON.stringify(filtered, null, 2));
-        } catch (error) {
-            console.error('Error ensuring admin user:', error);
+];
+        for (const p of seedProducts) {
+            await db.products.createWithId(p);
         }
+        await db.pool.query("SELECT setval('products_id_seq', (SELECT COALESCE(MAX(id), 1) FROM products))");
+        console.log('✅ All 25 products seeded!');
+    } else {
+        console.log(`✅ Found ${productCount} existing products`);
     }
-    if (!fs.existsSync(ORDERS_FILE)) {
-        fs.writeFileSync(ORDERS_FILE, JSON.stringify([], null, 2));
-    }
-    if (!fs.existsSync(SETTINGS_FILE)) {
-        const defaultSettings = {
-            deliveryFee: 7.99,
-            deliveryBaseFee: 3.00,
-            deliveryPerMileRate: 1.50,
-            maxDeliveryRadius: 10,
-            minimumOrder: 25.00,
-            taxRate: 0.0825,
-            processingFeeRate: 0.029,
-            processingFeeFixed: 0.30,
+
+    // Seed default settings if empty
+    const existingSettings = await db.settings.get();
+    if (!existingSettings) {
+        await db.settings.set({
+            deliveryFee: 7.99, deliveryBaseFee: 3.00, deliveryPerMileRate: 1.50,
+            maxDeliveryRadius: 10, minimumOrder: 25.00, taxRate: 0.0825,
+            processingFeeRate: 0.029, processingFeeFixed: 0.30,
             businessHours: {
                 monday: { open: "10:00", close: "20:30", enabled: true },
                 tuesday: { open: "10:00", close: "20:30", enabled: true },
@@ -604,42 +443,30 @@ function initDataFiles() {
                 { name: "Zone 1", zipCodes: ["78240", "78249", "78254"], deliveryFee: 7.99, enabled: true },
                 { name: "Zone 2", zipCodes: ["78230", "78231", "78232"], deliveryFee: 9.99, enabled: true }
             ],
-            autoCancel: {
-                enabled: false,
-                timeoutMinutes: 30
-            },
-            notifications: {
-                smsEnabled: true,
-                emailEnabled: true
-            }
-        };
-        fs.writeFileSync(SETTINGS_FILE, JSON.stringify(defaultSettings, null, 2));
+            autoCancel: { enabled: false, timeoutMinutes: 30 },
+            notifications: { smsEnabled: true, emailEnabled: true }
+        });
+        console.log('✅ Default settings created');
     }
-    if (!fs.existsSync(PROMO_CODES_FILE)) {
-        fs.writeFileSync(PROMO_CODES_FILE, JSON.stringify([], null, 2));
-    }
-    if (!fs.existsSync(REVIEWS_FILE)) {
-        fs.writeFileSync(REVIEWS_FILE, JSON.stringify([], null, 2));
-    }
-    if (!fs.existsSync(PRODUCT_REQUESTS_FILE)) {
-        fs.writeFileSync(PRODUCT_REQUESTS_FILE, JSON.stringify([], null, 2));
-    }
-}
 
-initDataFiles();
-
-// Helper functions to read/write data
-function readData(file) {
-    try {
-        const data = fs.readFileSync(file, 'utf8');
-        return JSON.parse(data);
-    } catch (error) {
-        return [];
+    // Ensure admin users exist
+    for (const email of adminEmails) {
+        const lower = email.toLowerCase();
+        let user = await db.users.getByEmail(lower);
+        if (!user) {
+            await db.users.create({
+                id: Date.now() + Math.floor(Math.random() * 1000),
+                name: "Admin", email: lower, phone: '',
+                firebaseUid: null, isFirebaseUser: true,
+                password: null, role: "admin", status: "active",
+                joinDate: new Date().toISOString(), cart: []
+            });
+            console.log('✅ Added admin user:', lower);
+        } else if (user.role !== 'admin') {
+            await db.users.update(user.id, { role: 'admin', status: 'active' });
+            console.log('✅ Confirmed admin privileges for:', lower);
+        }
     }
-}
-
-function writeData(file, data) {
-    fs.writeFileSync(file, JSON.stringify(data, null, 2));
 }
 
 // Cart helpers: sanitize and merge cart items
@@ -704,15 +531,14 @@ app.post("/api/auth/register", async (req, res) => {
             return res.status(400).json({ error: "Password must be at least 6 characters" });
         }
 
-        const users = readData(USERS_FILE);
-        
-        if (users.find(u => u.email === email)) {
+        const existing = await db.users.getByEmail(email);
+        if (existing) {
             return res.status(400).json({ error: "Email already registered" });
         }
 
         const hashedPassword = await bcrypt.hash(password, 10);
         const clientCart = Array.isArray(req.body.cart) ? req.body.cart : [];
-        const newUser = {
+        const newUser = await db.users.create({
             id: Date.now(),
             name,
             email,
@@ -721,12 +547,8 @@ app.post("/api/auth/register", async (req, res) => {
             role: "customer",
             status: "active",
             joinDate: new Date().toISOString(),
-            orders: [],
-            cart: sanitizeCartItems(clientCart) // use sanitized client cart if provided
-        };
-
-        users.push(newUser);
-        writeData(USERS_FILE, users);
+            cart: sanitizeCartItems(clientCart)
+        });
 
         const token = jwt.sign(
             { id: newUser.id, email: newUser.email, role: newUser.role },
@@ -760,41 +582,28 @@ app.post("/api/auth/firebase-register", async (req, res) => {
             return res.status(400).json({ error: "Email and Firebase UID are required" });
         }
 
-        const users = readData(USERS_FILE);
-        let user = users.find(u => u.email === email);
+        let user = await db.users.getByEmail(email);
 
         if (user) {
-            // User already exists, update Firebase UID if not set
-            // IMPORTANT: Preserve existing role (don't overwrite admin role)
             if (!user.firebaseUid) {
-                user.firebaseUid = firebaseUid;
-                user.isFirebaseUser = true;
-                writeData(USERS_FILE, users);
+                user = await db.users.update(user.id, { firebaseUid, isFirebaseUser: true });
             }
-            // Role is preserved from existing user
         } else {
-            // Create new Firebase user (no password needed)
-            const newUser = {
+            user = await db.users.create({
                 id: Date.now(),
                 name: name || email.split('@')[0],
                 email,
                 phone: phone || '',
-                firebaseUid: firebaseUid,
+                firebaseUid,
                 isFirebaseUser: true,
-                password: null, // Firebase users don't have password
+                password: null,
                 role: "customer",
                 status: "active",
                 joinDate: new Date().toISOString(),
-                orders: [],
                 cart: []
-            };
-
-            users.push(newUser);
-            writeData(USERS_FILE, users);
-            user = newUser;
+            });
         }
 
-        // Generate backend token for this user
         const token = jwt.sign(
             { id: user.id, email: user.email, role: user.role },
             process.env.JWT_SECRET || 'your-secret-key-change-in-production',
@@ -827,8 +636,7 @@ app.post("/api/auth/login", async (req, res) => {
             return res.status(400).json({ error: "Email and password are required" });
         }
 
-        const users = readData(USERS_FILE);
-        const user = users.find(u => u.email === email);
+        const user = await db.users.getByEmail(email);
 
         if (!user) {
             return res.status(401).json({ error: "Invalid email or password" });
@@ -842,16 +650,12 @@ app.post("/api/auth/login", async (req, res) => {
             return res.status(401).json({ error: "Invalid email or password" });
         }
 
-        // Check if user account is disabled or banned
         if (user.status === 'disabled') {
             return res.status(403).json({ error: "Your account has been disabled. Please contact support." });
         }
         if (user.status === 'banned') {
             return res.status(403).json({ error: "Your account has been banned. Please contact support." });
         }
-
-        // Return saved cart from server (don't merge with any guest cart)
-        // This ensures users get their saved cart back when logging in
 
         const token = jwt.sign(
             { id: user.id, email: user.email, role: user.role },
@@ -884,16 +688,14 @@ app.post("/api/auth/request-password-reset", async (req, res) => {
             return res.status(400).json({ error: "Email is required" });
         }
 
-        const users = readData(USERS_FILE);
-        const idx = users.findIndex(u => u.email === email);
+        const user = await db.users.getByEmail(email);
 
         // For security, always return success, but only generate token if user exists
         let resetUrl = null;
-        if (idx !== -1) {
+        if (user) {
             const token = crypto.randomBytes(32).toString("hex");
             const expiresAt = Date.now() + 1000 * 60 * 30; // 30 minutes
-            users[idx].resetToken = { token, expiresAt };
-            writeData(USERS_FILE, users);
+            await db.users.update(user.id, { resetToken: { token, expiresAt } });
             resetUrl = `${getSiteUrl(req)}/reset-password.html?token=${token}`;
             console.log(`Password reset requested for ${email}. Reset URL: ${resetUrl}`);
 
@@ -942,25 +744,23 @@ app.post("/api/auth/reset-password", async (req, res) => {
             return res.status(400).json({ error: "Password must be at least 6 characters" });
         }
 
-        const users = readData(USERS_FILE);
-        const idx = users.findIndex(u => u.resetToken && u.resetToken.token === token);
-        if (idx === -1) {
+        // Find user with this reset token
+        const { rows } = await db.pool.query(
+            "SELECT * FROM users WHERE reset_token->>'token' = $1", [token]
+        );
+        if (rows.length === 0) {
             return res.status(400).json({ error: "Invalid or expired token" });
         }
 
-        const { expiresAt } = users[idx].resetToken;
+        const user = rows[0];
+        const expiresAt = user.reset_token.expiresAt;
         if (Date.now() > expiresAt) {
-            // Expired
-            delete users[idx].resetToken;
-            writeData(USERS_FILE, users);
+            await db.users.update(Number(user.id), { resetToken: null });
             return res.status(400).json({ error: "Reset token expired" });
         }
 
-        // Update password
         const hashed = await bcrypt.hash(newPassword, 10);
-        users[idx].password = hashed;
-        delete users[idx].resetToken;
-        writeData(USERS_FILE, users);
+        await db.users.update(Number(user.id), { password: hashed, resetToken: null });
 
         return res.json({ success: true });
     } catch (error) {
@@ -970,10 +770,9 @@ app.post("/api/auth/reset-password", async (req, res) => {
 });
 
 // Get current user
-app.get("/api/auth/me", authenticateToken, (req, res) => {
-    const users = readData(USERS_FILE);
-    const user = users.find(u => u.id === req.user.id);
-    
+app.get("/api/auth/me", authenticateToken, async (req, res) => {
+    const user = await db.users.getById(req.user.id);
+
     if (!user) {
         return res.status(404).json({ error: "User not found" });
     }
@@ -984,52 +783,31 @@ app.get("/api/auth/me", authenticateToken, (req, res) => {
         email: user.email,
         phone: user.phone,
         role: user.role,
-        cart: user.cart || [] // include cart
+        cart: user.cart || []
     });
 });
 
-// ==================== CART ROUTES ====================
-
-// Get user's cart
-app.get("/api/cart", authenticateToken, (req, res) => {
-    try {
-        const users = readData(USERS_FILE);
-        const user = users.find(u => u.id === req.user.id);
-        
-        if (!user) {
-            return res.status(404).json({ error: "User not found" });
-        }
-        
-        res.json({ cart: user.cart || [] });
-    } catch (error) {
-        console.error("Get cart error:", error);
-        res.status(500).json({ error: "Failed to get cart" });
-    }
-});
+// ==================== CART ROUTES (sync) ====================
 
 // Sync cart to server
-app.post("/api/cart/sync", authenticateToken, (req, res) => {
+app.post("/api/cart/sync", authenticateToken, async (req, res) => {
     try {
         const { cart } = req.body;
-        
+
         if (!Array.isArray(cart)) {
             return res.status(400).json({ error: "Cart must be an array" });
         }
-        
-        const users = readData(USERS_FILE);
-        const userIndex = users.findIndex(u => u.id === req.user.id);
-        
-        if (userIndex === -1) {
+
+        const sanitized = sanitizeCartItems(cart);
+        const user = await db.users.update(req.user.id, { cart: sanitized });
+
+        if (!user) {
             return res.status(404).json({ error: "User not found" });
         }
-        
-        // Update user's cart
-        users[userIndex].cart = sanitizeCartItems(cart);
-        writeData(USERS_FILE, users);
-        
-        res.json({ 
-            success: true, 
-            cart: users[userIndex].cart,
+
+        res.json({
+            success: true,
+            cart: user.cart,
             message: "Cart synced successfully"
         });
     } catch (error) {
@@ -1041,9 +819,9 @@ app.post("/api/cart/sync", authenticateToken, (req, res) => {
 // ==================== PRODUCT ROUTES ====================
 
 // Get all products
-app.get("/api/products", (req, res) => {
+app.get("/api/products", async (req, res) => {
     try {
-        const products = readData(PRODUCTS_FILE);
+        const products = await db.products.getAll();
         res.json(products);
     } catch (error) {
         console.error("Get products error:", error);
@@ -1052,15 +830,14 @@ app.get("/api/products", (req, res) => {
 });
 
 // Get product by ID
-app.get("/api/products/:id", (req, res) => {
+app.get("/api/products/:id", async (req, res) => {
     try {
-        const products = readData(PRODUCTS_FILE);
-        const product = products.find(p => p.id === parseInt(req.params.id));
-        
+        const product = await db.products.getById(parseInt(req.params.id));
+
         if (!product) {
             return res.status(404).json({ error: "Product not found" });
         }
-        
+
         res.json(product);
     } catch (error) {
         console.error("Get product error:", error);
@@ -1069,7 +846,7 @@ app.get("/api/products/:id", (req, res) => {
 });
 
 // Create product (Admin only)
-app.post("/api/products", authenticateToken, requireAdmin, (req, res) => {
+app.post("/api/products", authenticateToken, requireAdmin, async (req, res) => {
     try {
         const { name, category, description, image, price, sizes, inStock, barcode } = req.body;
 
@@ -1077,26 +854,14 @@ app.post("/api/products", authenticateToken, requireAdmin, (req, res) => {
             return res.status(400).json({ error: "Name, category, and description are required" });
         }
 
-        const products = readData(PRODUCTS_FILE);
-        const newProduct = {
-            id: products.length > 0 ? Math.max(...products.map(p => p.id)) + 1 : 1,
-            name,
-            category,
-            description,
+        const newProduct = await db.products.create({
+            name, category, description,
             image: image || "images/product_placeholder.svg",
             price: price || 0,
             sizes: sizes || [],
             inStock: inStock !== undefined ? inStock : true,
-            createdAt: new Date().toISOString()
-        };
-
-        // Add barcode if provided
-        if (barcode) {
-            newProduct.barcode = barcode;
-        }
-
-        products.push(newProduct);
-        writeData(PRODUCTS_FILE, products);
+            barcode: barcode || null
+        });
 
         res.status(201).json(newProduct);
     } catch (error) {
@@ -1106,24 +871,15 @@ app.post("/api/products", authenticateToken, requireAdmin, (req, res) => {
 });
 
 // Update product (Admin only)
-app.put("/api/products/:id", authenticateToken, requireAdmin, (req, res) => {
+app.put("/api/products/:id", authenticateToken, requireAdmin, async (req, res) => {
     try {
-        const products = readData(PRODUCTS_FILE);
-        const index = products.findIndex(p => p.id === parseInt(req.params.id));
+        const updated = await db.products.update(parseInt(req.params.id), req.body);
 
-        if (index === -1) {
+        if (!updated) {
             return res.status(404).json({ error: "Product not found" });
         }
 
-        products[index] = {
-            ...products[index],
-            ...req.body,
-            id: products[index].id,
-            updatedAt: new Date().toISOString()
-        };
-
-        writeData(PRODUCTS_FILE, products);
-        res.json(products[index]);
+        res.json(updated);
     } catch (error) {
         console.error("Update product error:", error);
         res.status(500).json({ error: "Failed to update product" });
@@ -1131,16 +887,14 @@ app.put("/api/products/:id", authenticateToken, requireAdmin, (req, res) => {
 });
 
 // Delete product (Admin only)
-app.delete("/api/products/:id", authenticateToken, requireAdmin, (req, res) => {
+app.delete("/api/products/:id", authenticateToken, requireAdmin, async (req, res) => {
     try {
-        const products = readData(PRODUCTS_FILE);
-        const filtered = products.filter(p => p.id !== parseInt(req.params.id));
+        const deleted = await db.products.delete(parseInt(req.params.id));
 
-        if (products.length === filtered.length) {
+        if (!deleted) {
             return res.status(404).json({ error: "Product not found" });
         }
 
-        writeData(PRODUCTS_FILE, filtered);
         res.json({ message: "Product deleted successfully" });
     } catch (error) {
         console.error("Delete product error:", error);
@@ -1151,14 +905,13 @@ app.delete("/api/products/:id", authenticateToken, requireAdmin, (req, res) => {
 // ==================== ORDER ROUTES ====================
 
 // Get all orders (Admin only) or user's orders
-app.get("/api/orders", authenticateToken, (req, res) => {
+app.get("/api/orders", authenticateToken, async (req, res) => {
     try {
-        const orders = readData(ORDERS_FILE);
-        
         if (req.user.role === 'admin') {
-            res.json(orders);
+            const allOrders = await db.orders.getAll();
+            res.json(allOrders);
         } else {
-            const userOrders = orders.filter(o => o.customer.email === req.user.email);
+            const userOrders = await db.orders.getByEmail(req.user.email);
             res.json(userOrders);
         }
     } catch (error) {
@@ -1168,16 +921,14 @@ app.get("/api/orders", authenticateToken, (req, res) => {
 });
 
 // Get order by ID
-app.get("/api/orders/:id", authenticateToken, (req, res) => {
+app.get("/api/orders/:id", authenticateToken, async (req, res) => {
     try {
-        const orders = readData(ORDERS_FILE);
-        const order = orders.find(o => o.id === parseInt(req.params.id));
+        const order = await db.orders.getById(parseInt(req.params.id));
 
         if (!order) {
             return res.status(404).json({ error: "Order not found" });
         }
 
-        // Check if user has access to this order
         if (req.user.role !== 'admin' && order.customer.email !== req.user.email) {
             return res.status(403).json({ error: "Access denied" });
         }
@@ -1220,44 +971,33 @@ function isStoreOpen() {
 }
 
 // Create order
-app.post("/api/orders", authenticateToken, (req, res) => {
+app.post("/api/orders", authenticateToken, async (req, res) => {
     try {
-        // Store hours check removed - orders can be placed anytime
-        
         const { items, customer, orderType, paymentMethod, deliveryTimeEstimate, stripeSessionId, stripeTotal } = req.body;
 
         if (!items || items.length === 0) {
             return res.status(400).json({ error: "Order must contain at least one item" });
         }
 
-        const orders = readData(ORDERS_FILE);
-        const orderId = orders.length > 0 ? Math.max(...orders.map(o => o.id)) + 1 : 1;
-
         const subtotal = items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-        // Read delivery fee from settings
-        const orderSettings = readData(SETTINGS_FILE);
+        const orderSettings = await db.settings.get() || {};
         const deliveryFee = orderType === 'delivery' ? (orderSettings.deliveryFee ?? 7.99) : 0;
         const subtotalWithFee = subtotal + deliveryFee;
         const orderTaxRate = orderSettings.taxRate ?? 0.0825;
         const tax = parseFloat((subtotalWithFee * orderTaxRate).toFixed(2));
-        // Calculate processing fee on amount before fee (subtotal + delivery + tax)
         const amountBeforeFee = subtotalWithFee + tax;
         const stripeFee = calculateUpfrontProcessingFee(amountBeforeFee);
         const total = parseFloat((amountBeforeFee + stripeFee).toFixed(2));
 
-        const newOrder = {
-            id: orderId,
-            customer: {
-                ...customer,
-                email: req.user.email
-            },
+        const newOrder = await db.orders.create({
+            customer: { ...customer, email: req.user.email },
             items,
             subtotal,
             deliveryFee,
             tax,
             stripeFee,
-            total: stripeTotal || total, // Use Stripe total if provided, otherwise use calculated
-            stripeTotal: stripeTotal || null, // Store Stripe total separately
+            total: stripeTotal || total,
+            stripeTotal: stripeTotal || null,
             stripeSessionId: stripeSessionId || null,
             orderType: orderType || 'pickup',
             storeLocation: req.body.storeLocation || null,
@@ -1265,19 +1005,10 @@ app.post("/api/orders", authenticateToken, (req, res) => {
             deliveryTimeEstimate: orderType === 'delivery' ? deliveryTimeEstimate : null,
             orderDate: new Date().toISOString(),
             status: 'pending'
-        };
+        });
 
-        orders.push(newOrder);
-        writeData(ORDERS_FILE, orders);
-
-        // Update user's order history
-        const users = readData(USERS_FILE);
-        const userIndex = users.findIndex(u => u.id === req.user.id);
-        if (userIndex !== -1) {
-            users[userIndex].orders = users[userIndex].orders || [];
-            users[userIndex].orders.push(orderId);
-            writeData(USERS_FILE, users);
-        }
+        // Link order to user
+        await db.userOrders.link(req.user.id, newOrder.id);
 
         res.status(201).json(newOrder);
 
@@ -1292,7 +1023,7 @@ app.post("/api/orders", authenticateToken, (req, res) => {
 });
 
 // Update order status (Admin only)
-app.put("/api/orders/:id/status", authenticateToken, requireAdmin, (req, res) => {
+app.put("/api/orders/:id/status", authenticateToken, requireAdmin, async (req, res) => {
     try {
         const { status, notes } = req.body;
         const validStatuses = ['pending', 'accepted', 'preparing', 'ready', 'out_for_delivery', 'delivered', 'completed', 'cancelled', 'needs_substitution'];
@@ -1301,55 +1032,46 @@ app.put("/api/orders/:id/status", authenticateToken, requireAdmin, (req, res) =>
             return res.status(400).json({ error: "Invalid status. Valid options: pending, accepted, preparing, ready, out_for_delivery, delivered, completed, cancelled, needs_substitution" });
         }
 
-        const orders = readData(ORDERS_FILE);
-        const index = orders.findIndex(o => o.id === parseInt(req.params.id));
-
-        if (index === -1) {
+        const order = await db.orders.getById(parseInt(req.params.id));
+        if (!order) {
             return res.status(404).json({ error: "Order not found" });
         }
 
-        const previousStatus = orders[index].status;
-        orders[index].status = status;
-        orders[index].updatedAt = new Date().toISOString();
-        orders[index].updatedBy = req.user.email;
-        
-        // Track status history
-        if (!orders[index].statusHistory) {
-            orders[index].statusHistory = [];
-        }
-        orders[index].statusHistory.push({
-            from: previousStatus,
-            to: status,
+        const previousStatus = order.status;
+        const statusHistory = order.statusHistory || [];
+        statusHistory.push({
+            from: previousStatus, to: status,
             changedBy: req.user.email,
             changedAt: new Date().toISOString(),
             notes: notes || null
         });
-        
-        // Store admin notes on the order when provided
+
+        const adminNotes = order.adminNotes || [];
         if (notes) {
-            if (!orders[index].adminNotes) orders[index].adminNotes = [];
-            orders[index].adminNotes.push({
-                note: notes,
-                addedBy: req.user.email,
-                addedAt: new Date().toISOString(),
-                status: status
+            adminNotes.push({
+                note: notes, addedBy: req.user.email,
+                addedAt: new Date().toISOString(), status
             });
         }
 
-        // Send customer notification when order is out for delivery, ready, or needs substitution
+        const updated = await db.orders.update(order.id, {
+            status,
+            updatedAt: new Date().toISOString(),
+            updatedBy: req.user.email,
+            statusHistory,
+            adminNotes
+        });
+
         if (status === 'out_for_delivery' || status === 'ready' || status === 'needs_substitution') {
             sendCustomerOrderSms({
-                ...orders[index],
-                statusMessage: status === 'out_for_delivery' ?
-                    'Your order is out for delivery!' :
-                    status === 'ready' ?
-                    'Your order is ready for pickup!' :
+                ...updated,
+                statusMessage: status === 'out_for_delivery' ? 'Your order is out for delivery!' :
+                    status === 'ready' ? 'Your order is ready for pickup!' :
                     'An item in your order needs a substitution. We will call you shortly.'
             }).catch(err => console.error('Customer SMS notify error:', err));
         }
 
-        writeData(ORDERS_FILE, orders);
-        res.json(orders[index]);
+        res.json(updated);
     } catch (error) {
         console.error("Update order status error:", error);
         res.status(500).json({ error: "Failed to update order status" });
@@ -1357,58 +1079,31 @@ app.put("/api/orders/:id/status", authenticateToken, requireAdmin, (req, res) =>
 });
 
 // Cancel order (User can cancel if not yet delivered)
-app.post("/api/orders/:id/cancel", authenticateToken, (req, res) => {
+app.post("/api/orders/:id/cancel", authenticateToken, async (req, res) => {
     try {
-        const orders = readData(ORDERS_FILE);
-        const index = orders.findIndex(o => o.id === parseInt(req.params.id));
+        const order = await db.orders.getById(parseInt(req.params.id));
+        if (!order) return res.status(404).json({ error: "Order not found" });
 
-        if (index === -1) {
-            return res.status(404).json({ error: "Order not found" });
-        }
-
-        const order = orders[index];
-
-        // Check ownership
         if (order.customer.email !== req.user.email) {
             return res.status(403).json({ error: "You can only cancel your own orders" });
         }
+        if (order.status === 'delivered') return res.status(400).json({ error: "Cannot cancel delivered orders. No refunds or returns after delivery." });
+        if (order.status === 'completed') return res.status(400).json({ error: "Order has been completed and cannot be cancelled." });
+        if (order.status === 'cancelled') return res.status(400).json({ error: "This order has already been cancelled." });
 
-        // Check if already delivered
-        if (order.status === 'delivered') {
-            return res.status(400).json({ error: "Cannot cancel delivered orders. No refunds or returns after delivery." });
-        }
-
-        // Cannot cancel if already completed
-        if (order.status === 'completed') {
-            return res.status(400).json({ error: "Order has been completed and cannot be cancelled." });
-        }
-
-        // Cannot cancel if already cancelled
-        if (order.status === 'cancelled') {
-            return res.status(400).json({ error: "This order has already been cancelled." });
-        }
-
-        // Calculate cancellation fee (10% of subtotal)
-        const cancellationFeePercent = 0.10;
-        const cancellationFee = parseFloat((order.subtotal * cancellationFeePercent).toFixed(2));
+        const cancellationFee = parseFloat((order.subtotal * 0.10).toFixed(2));
         const refundAmount = parseFloat((order.subtotal - cancellationFee).toFixed(2));
 
-        // Update status to cancelled
-        orders[index].status = 'cancelled';
-        orders[index].updatedAt = new Date().toISOString();
-        orders[index].cancelledBy = 'customer';
-        orders[index].cancelledAt = new Date().toISOString();
-        orders[index].cancellationFee = cancellationFee;
-        orders[index].refundAmount = refundAmount;
-
-        writeData(ORDERS_FILE, orders);
-        res.json({ 
-            success: true, 
-            message: "Order cancelled successfully", 
-            order: orders[index],
-            cancellationFee: cancellationFee,
-            refundAmount: refundAmount
+        const updated = await db.orders.update(order.id, {
+            status: 'cancelled',
+            updatedAt: new Date().toISOString(),
+            cancelledBy: 'customer',
+            cancelledAt: new Date().toISOString(),
+            cancellationFee,
+            refundAmount
         });
+
+        res.json({ success: true, message: "Order cancelled successfully", order: updated, cancellationFee, refundAmount });
     } catch (error) {
         console.error("Cancel order error:", error);
         res.status(500).json({ error: "Failed to cancel order: " + error.message });
@@ -1416,38 +1111,24 @@ app.post("/api/orders/:id/cancel", authenticateToken, (req, res) => {
 });
 
 // Customer confirms they received the order (pickup or delivery)
-app.post("/api/orders/:id/confirm-received", authenticateToken, (req, res) => {
+app.post("/api/orders/:id/confirm-received", authenticateToken, async (req, res) => {
     try {
-        const orders = readData(ORDERS_FILE);
-        const index = orders.findIndex(o => o.id === parseInt(req.params.id));
+        const order = await db.orders.getById(parseInt(req.params.id));
+        if (!order) return res.status(404).json({ error: "Order not found" });
 
-        if (index === -1) {
-            return res.status(404).json({ error: "Order not found" });
-        }
-
-        const order = orders[index];
-
-        // Check ownership
         if (order.customer.email !== req.user.email) {
             return res.status(403).json({ error: "You can only confirm your own orders" });
         }
-
-        // Do not allow confirming cancelled orders
         if (order.status === 'cancelled') {
             return res.status(400).json({ error: "Cannot confirm a cancelled order" });
         }
 
-        // Mark as confirmed by customer
-        orders[index].customerConfirmed = true;
-        orders[index].customerConfirmedAt = new Date().toISOString();
-
-        writeData(ORDERS_FILE, orders);
-
-        res.json({
-            success: true,
-            message: "Order confirmed as received",
-            order: orders[index]
+        const updated = await db.orders.update(order.id, {
+            customerConfirmed: true,
+            customerConfirmedAt: new Date().toISOString()
         });
+
+        res.json({ success: true, message: "Order confirmed as received", order: updated });
     } catch (error) {
         console.error("Confirm received error:", error);
         res.status(500).json({ error: "Failed to confirm order as received: " + error.message });
@@ -1455,36 +1136,19 @@ app.post("/api/orders/:id/confirm-received", authenticateToken, (req, res) => {
 });
 
 // Admin: Issue refund
-app.post("/api/admin/orders/:id/refund", authenticateToken, requireAdmin, (req, res) => {
+app.post("/api/admin/orders/:id/refund", authenticateToken, requireAdmin, async (req, res) => {
     try {
-        const { amount, reason, type } = req.body; // type: 'full' or 'partial'
-        
-        const orders = readData(ORDERS_FILE);
-        const index = orders.findIndex(o => o.id === parseInt(req.params.id));
-        
-        if (index === -1) {
-            return res.status(404).json({ error: "Order not found" });
-        }
-        
-        const order = orders[index];
-        
-        // Validate refund amount
+        const { amount, reason, type } = req.body;
+
+        const order = await db.orders.getById(parseInt(req.params.id));
+        if (!order) return res.status(404).json({ error: "Order not found" });
+
         const maxRefund = order.total || 0;
         let refundAmount = type === 'full' ? maxRefund : parseFloat(amount);
-        
-        if (refundAmount > maxRefund) {
-            return res.status(400).json({ error: "Refund amount cannot exceed order total" });
-        }
-        
-        if (refundAmount <= 0) {
-            return res.status(400).json({ error: "Refund amount must be greater than 0" });
-        }
-        
-        // Record refund
-        if (!orders[index].refunds) {
-            orders[index].refunds = [];
-        }
-        
+
+        if (refundAmount > maxRefund) return res.status(400).json({ error: "Refund amount cannot exceed order total" });
+        if (refundAmount <= 0) return res.status(400).json({ error: "Refund amount must be greater than 0" });
+
         const refund = {
             id: Date.now(),
             amount: parseFloat(refundAmount.toFixed(2)),
@@ -1492,21 +1156,22 @@ app.post("/api/admin/orders/:id/refund", authenticateToken, requireAdmin, (req, 
             reason: reason || 'No reason provided',
             issuedBy: req.user.email,
             issuedAt: new Date().toISOString(),
-            status: 'completed' // In real app, would integrate with payment gateway
+            status: 'completed'
         };
-        
-        orders[index].refunds.push(refund);
-        orders[index].refundedAmount = (orders[index].refundedAmount || 0) + refund.amount;
-        orders[index].status = type === 'full' ? 'cancelled' : orders[index].status;
-        orders[index].updatedAt = new Date().toISOString();
-        
-        writeData(ORDERS_FILE, orders);
-        
+
+        const refunds = [...(order.refunds || []), refund];
+        const updated = await db.orders.update(order.id, {
+            refunds,
+            refundedAmount: (order.refundedAmount || 0) + refund.amount,
+            status: type === 'full' ? 'cancelled' : order.status,
+            updatedAt: new Date().toISOString()
+        });
+
         res.json({
             success: true,
             message: `${type === 'full' ? 'Full' : 'Partial'} refund of $${refund.amount.toFixed(2)} issued successfully`,
             refund,
-            order: orders[index]
+            order: updated
         });
     } catch (error) {
         console.error("Issue refund error:", error);
@@ -1517,20 +1182,19 @@ app.post("/api/admin/orders/:id/refund", authenticateToken, requireAdmin, (req, 
 // ==================== USER ROUTES ====================
 
 // Get all users (Admin only)
-app.get("/api/users", authenticateToken, requireAdmin, (req, res) => {
+app.get("/api/users", authenticateToken, requireAdmin, async (req, res) => {
     try {
-        const users = readData(USERS_FILE);
-        const usersWithoutPasswords = users.map(u => ({
-            id: u.id,
-            name: u.name,
-            email: u.email,
-            phone: u.phone,
-            role: u.role,
-            status: u.status || 'active',
-            joinDate: u.joinDate,
-            orders: u.orders || []
-        }));
-        res.json(usersWithoutPasswords);
+        const allUsers = await db.users.getAll();
+        const usersWithOrders = [];
+        for (const u of allUsers) {
+            const orderIds = await db.userOrders.getOrderIds(u.id);
+            usersWithOrders.push({
+                id: u.id, name: u.name, email: u.email, phone: u.phone,
+                role: u.role, status: u.status || 'active', joinDate: u.joinDate,
+                orders: orderIds
+            });
+        }
+        res.json(usersWithOrders);
     } catch (error) {
         console.error("Get users error:", error);
         res.status(500).json({ error: "Failed to fetch users" });
@@ -1538,41 +1202,30 @@ app.get("/api/users", authenticateToken, requireAdmin, (req, res) => {
 });
 
 // Admin: Ban/Disable user
-app.put("/api/admin/users/:id/status", authenticateToken, requireAdmin, (req, res) => {
+app.put("/api/admin/users/:id/status", authenticateToken, requireAdmin, async (req, res) => {
     try {
-        const { status } = req.body; // 'active', 'disabled', 'banned'
+        const { status } = req.body;
         const validStatuses = ['active', 'disabled', 'banned'];
-        
         if (!validStatuses.includes(status)) {
             return res.status(400).json({ error: "Invalid status. Use: active, disabled, or banned" });
         }
-        
-        const users = readData(USERS_FILE);
-        const userIndex = users.findIndex(u => u.id === parseInt(req.params.id));
-        
-        if (userIndex === -1) {
-            return res.status(404).json({ error: "User not found" });
-        }
-        
-        // Prevent admin from disabling themselves
-        if (users[userIndex].id === req.user.id) {
+
+        const userId = parseInt(req.params.id);
+        if (userId === req.user.id) {
             return res.status(400).json({ error: "Cannot change your own status" });
         }
-        
-        users[userIndex].status = status;
-        users[userIndex].statusUpdatedAt = new Date().toISOString();
-        users[userIndex].statusUpdatedBy = req.user.email;
-        
-        writeData(USERS_FILE, users);
-        
-        res.json({ 
+
+        const updated = await db.users.update(userId, {
+            status,
+            statusUpdatedAt: new Date().toISOString(),
+            statusUpdatedBy: req.user.email
+        });
+
+        if (!updated) return res.status(404).json({ error: "User not found" });
+
+        res.json({
             message: `User ${status} successfully`,
-            user: {
-                id: users[userIndex].id,
-                name: users[userIndex].name,
-                email: users[userIndex].email,
-                status: users[userIndex].status
-            }
+            user: { id: updated.id, name: updated.name, email: updated.email, status: updated.status }
         });
     } catch (error) {
         console.error("Update user status error:", error);
@@ -1581,44 +1234,33 @@ app.put("/api/admin/users/:id/status", authenticateToken, requireAdmin, (req, re
 });
 
 // Admin: Update user role
-app.put("/api/admin/users/:id/role", authenticateToken, requireAdmin, (req, res) => {
+app.put("/api/admin/users/:id/role", authenticateToken, requireAdmin, async (req, res) => {
     try {
         const { role } = req.body;
-        const validRoles = ['admin', 'customer'];
-        
-        if (!validRoles.includes(role)) {
+        if (!['admin', 'customer'].includes(role)) {
             return res.status(400).json({ error: "Invalid role. Use: admin or customer" });
         }
-        
-        const users = readData(USERS_FILE);
-        const userIndex = users.findIndex(u => u.id === parseInt(req.params.id));
-        
-        if (userIndex === -1) {
-            return res.status(404).json({ error: "User not found" });
-        }
-        
-        // Prevent removing last admin
-        if (role === 'customer' && users[userIndex].role === 'admin') {
-            const adminCount = users.filter(u => u.role === 'admin').length;
+
+        const userId = parseInt(req.params.id);
+        const user = await db.users.getById(userId);
+        if (!user) return res.status(404).json({ error: "User not found" });
+
+        if (role === 'customer' && user.role === 'admin') {
+            const adminCount = await db.users.countAdmins();
             if (adminCount <= 1) {
                 return res.status(400).json({ error: "Cannot remove the last admin user" });
             }
         }
-        
-        users[userIndex].role = role;
-        users[userIndex].roleUpdatedAt = new Date().toISOString();
-        users[userIndex].roleUpdatedBy = req.user.email;
-        
-        writeData(USERS_FILE, users);
-        
-        res.json({ 
+
+        const updated = await db.users.update(userId, {
+            role,
+            roleUpdatedAt: new Date().toISOString(),
+            roleUpdatedBy: req.user.email
+        });
+
+        res.json({
             message: `User role updated to ${role} successfully`,
-            user: {
-                id: users[userIndex].id,
-                name: users[userIndex].name,
-                email: users[userIndex].email,
-                role: users[userIndex].role
-            }
+            user: { id: updated.id, name: updated.name, email: updated.email, role: updated.role }
         });
     } catch (error) {
         console.error("Update user role error:", error);
@@ -1627,37 +1269,21 @@ app.put("/api/admin/users/:id/role", authenticateToken, requireAdmin, (req, res)
 });
 
 // Admin: Get user details with order history
-app.get("/api/admin/users/:id", authenticateToken, requireAdmin, (req, res) => {
+app.get("/api/admin/users/:id", authenticateToken, requireAdmin, async (req, res) => {
     try {
-        const users = readData(USERS_FILE);
-        const user = users.find(u => u.id === parseInt(req.params.id));
-        
-        if (!user) {
-            return res.status(404).json({ error: "User not found" });
-        }
-        
-        // Get user's orders
-        const orders = readData(ORDERS_FILE);
-        const userOrders = orders.filter(o => o.customer?.email === user.email);
-        
-        // Calculate stats
-        const totalSpent = userOrders.reduce((sum, order) => sum + (order.total || 0), 0);
-        const totalOrders = userOrders.length;
+        const user = await db.users.getById(parseInt(req.params.id));
+        if (!user) return res.status(404).json({ error: "User not found" });
+
+        const userOrders = await db.orders.getByEmail(user.email);
+        const totalSpent = userOrders.reduce((sum, o) => sum + (o.total || 0), 0);
         const cancelledOrders = userOrders.filter(o => o.status === 'cancelled').length;
-        
+
         res.json({
-            id: user.id,
-            name: user.name,
-            email: user.email,
-            phone: user.phone,
-            role: user.role,
-            status: user.status || 'active',
-            joinDate: user.joinDate,
+            id: user.id, name: user.name, email: user.email, phone: user.phone,
+            role: user.role, status: user.status || 'active', joinDate: user.joinDate,
             stats: {
-                totalOrders,
-                totalSpent,
-                cancelledOrders,
-                averageOrderValue: totalOrders > 0 ? totalSpent / totalOrders : 0
+                totalOrders: userOrders.length, totalSpent, cancelledOrders,
+                averageOrderValue: userOrders.length > 0 ? totalSpent / userOrders.length : 0
             },
             recentOrders: userOrders.slice(-10).reverse()
         });
@@ -1668,30 +1294,19 @@ app.get("/api/admin/users/:id", authenticateToken, requireAdmin, (req, res) => {
 });
 
 // Admin: Delete user account
-app.delete("/api/admin/users/:id", authenticateToken, requireAdmin, (req, res) => {
+app.delete("/api/admin/users/:id", authenticateToken, requireAdmin, async (req, res) => {
     try {
-        const users = readData(USERS_FILE);
-        const userIndex = users.findIndex(u => u.id === parseInt(req.params.id));
-        
-        if (userIndex === -1) {
-            return res.status(404).json({ error: "User not found" });
-        }
-        
-        // Prevent admin from deleting themselves
-        if (users[userIndex].id === req.user.id) {
+        const userId = parseInt(req.params.id);
+        if (userId === req.user.id) {
             return res.status(400).json({ error: "Cannot delete your own account" });
         }
-        
-        const deletedUser = users.splice(userIndex, 1)[0];
-        writeData(USERS_FILE, users);
-        
-        res.json({ 
+
+        const deleted = await db.users.delete(userId);
+        if (!deleted) return res.status(404).json({ error: "User not found" });
+
+        res.json({
             message: "User deleted successfully",
-            deletedUser: {
-                id: deletedUser.id,
-                email: deletedUser.email,
-                name: deletedUser.name
-            }
+            deletedUser: { id: deleted.id, email: deleted.email, name: deleted.name }
         });
     } catch (error) {
         console.error("Delete user error:", error);
@@ -1703,30 +1318,23 @@ app.delete("/api/admin/users/:id", authenticateToken, requireAdmin, (req, res) =
 app.put("/api/users/profile", authenticateToken, async (req, res) => {
     try {
         const { name, phone, password } = req.body;
-        const users = readData(USERS_FILE);
-        const userIndex = users.findIndex(u => u.id === req.user.id);
+        const updates = {};
 
-        if (userIndex === -1) {
-            return res.status(404).json({ error: "User not found" });
-        }
-
-        if (name) users[userIndex].name = name;
-        if (phone) users[userIndex].phone = phone;
+        if (name) updates.name = name;
+        if (phone) updates.phone = phone;
         if (password) {
             if (password.length < 6) {
                 return res.status(400).json({ error: "Password must be at least 6 characters" });
             }
-            users[userIndex].password = await bcrypt.hash(password, 10);
+            updates.password = await bcrypt.hash(password, 10);
         }
 
-        writeData(USERS_FILE, users);
+        const updated = await db.users.update(req.user.id, updates);
+        if (!updated) return res.status(404).json({ error: "User not found" });
 
         res.json({
-            id: users[userIndex].id,
-            name: users[userIndex].name,
-            email: users[userIndex].email,
-            phone: users[userIndex].phone,
-            role: users[userIndex].role
+            id: updated.id, name: updated.name, email: updated.email,
+            phone: updated.phone, role: updated.role
         });
     } catch (error) {
         console.error("Update profile error:", error);
@@ -1924,13 +1532,9 @@ app.post('/webhook/stripe', express.raw({ type: 'application/json' }), async (re
         });
 
         // ── Create order from metadata (post-payment) ─────────
-        // Orders are only created here, AFTER Stripe confirms
-        // payment. This prevents fake/abandoned orders.
         try {
-          const orders = readData(ORDERS_FILE);
-
-          // Guard: check if this session already created an order (idempotency)
-          const existingOrder = orders.find(o => o.stripeSessionId === session.id);
+          // Idempotency check
+          const existingOrder = await db.orders.getByStripeSession(session.id);
           if (existingOrder) {
             console.log(`⚠️ Order #${existingOrder.id} already exists for session ${session.id}, skipping.`);
             break;
@@ -1941,7 +1545,6 @@ app.post('/webhook/stripe', express.raw({ type: 'application/json' }), async (re
           if (meta.cartItems) {
             try { cartItems = JSON.parse(meta.cartItems); } catch (e) { /* ignore */ }
           } else {
-            // Reassemble from chunked metadata keys (cartItems_0, cartItems_1, …)
             let combined = '';
             for (let i = 0; ; i++) {
               const chunk = meta['cartItems_' + i];
@@ -1953,19 +1556,12 @@ app.post('/webhook/stripe', express.raw({ type: 'application/json' }), async (re
             }
           }
 
-          // Expand compact item format back to full format
           const items = cartItems.map(ci => ({
-            id: ci.id,
-            productId: ci.id,
-            name: ci.n,
-            price: ci.p,
-            quantity: ci.q,
-            category: ci.c || '',
-            image: ci.img || '',
+            id: ci.id, productId: ci.id, name: ci.n, price: ci.p,
+            quantity: ci.q, category: ci.c || '', image: ci.img || '',
             selectedSize: ci.sz || null
           }));
 
-          // Build customer object from metadata
           const orderType = meta.orderType || 'pickup';
           const customer = {
             firstName: meta.customerFirstName || '',
@@ -1973,31 +1569,23 @@ app.post('/webhook/stripe', express.raw({ type: 'application/json' }), async (re
             email: customerEmail || meta.customerEmail || '',
             phone: meta.customerPhone || '',
             address: orderType === 'delivery' ? {
-              street: meta.deliveryStreet || '',
-              apartment: meta.deliveryApt || null,
-              city: meta.deliveryCity || '',
-              state: meta.deliveryState || '',
-              zipCode: meta.deliveryZip || '',
-              fullAddress: meta.deliveryAddress || ''
+              street: meta.deliveryStreet || '', apartment: meta.deliveryApt || null,
+              city: meta.deliveryCity || '', state: meta.deliveryState || '',
+              zipCode: meta.deliveryZip || '', fullAddress: meta.deliveryAddress || ''
             } : 'Store Pickup'
           };
 
-          // Calculate fees — read delivery pricing from settings
-          const currentSettings = readData(SETTINGS_FILE);
+          const currentSettings = await db.settings.get() || {};
           const subtotal = items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
 
-          // Delivery fee: use distance-based pricing from metadata if available,
-          // otherwise fall back to flat fee from settings
           let deliveryFee = 0;
           if (orderType === 'delivery') {
             const deliveryDistance = parseFloat(meta.deliveryDistance) || 0;
             const baseFee = currentSettings.deliveryBaseFee ?? 3.00;
             const perMile = currentSettings.deliveryPerMileRate ?? 1.50;
-            if (deliveryDistance > 0) {
-              deliveryFee = parseFloat((baseFee + deliveryDistance * perMile).toFixed(2));
-            } else {
-              deliveryFee = currentSettings.deliveryFee ?? 7.99;
-            }
+            deliveryFee = deliveryDistance > 0
+              ? parseFloat((baseFee + deliveryDistance * perMile).toFixed(2))
+              : (currentSettings.deliveryFee ?? 7.99);
           }
 
           const taxRate = currentSettings.taxRate ?? 0.0825;
@@ -2008,52 +1596,28 @@ app.post('/webhook/stripe', express.raw({ type: 'application/json' }), async (re
           const amountBeforeFee = subtotalWithFee + tax;
           const stripeFee = calculateUpfrontProcessingFee(amountBeforeFee);
 
-          const orderId = orders.length > 0 ? Math.max(...orders.map(o => o.id)) + 1 : 1;
-
-          const newOrder = {
-            id: orderId,
-            customer: customer,
-            items: items,
-            subtotal: subtotal,
-            deliveryFee: deliveryFee,
-            tax: tax,
-            stripeFee: stripeFee,
-            total: stripeTotal, // Use actual Stripe-charged amount
-            stripeTotal: stripeTotal,
-            stripeSessionId: session.id,
-            orderType: orderType,
-            storeLocation: {
-              name: meta.storeName || '',
-              address: meta.storeAddress || ''
-            },
+          const newOrder = await db.orders.create({
+            customer, items, subtotal, deliveryFee, tax, stripeFee,
+            total: stripeTotal, stripeTotal, stripeSessionId: session.id,
+            orderType,
+            storeLocation: { name: meta.storeName || '', address: meta.storeAddress || '' },
             paymentMethod: 'card',
             deliveryTimeEstimate: orderType === 'delivery' && meta.deliveryTimeEstimate
               ? parseInt(meta.deliveryTimeEstimate) : null,
-            promo: meta.promoCode ? {
-              code: meta.promoCode,
-              discount: promoDiscount
-            } : null,
+            promo: meta.promoCode ? { code: meta.promoCode, discount: promoDiscount } : null,
             orderDate: new Date().toISOString(),
-            createdAt: new Date().toISOString(),
             status: 'pending',
             paymentConfirmed: true
-          };
+          });
 
-          orders.push(newOrder);
-          writeData(ORDERS_FILE, orders);
-          console.log(`✅ Order #${orderId} created after payment confirmation (Stripe session: ${session.id})`);
+          console.log(`✅ Order #${newOrder.id} created after payment confirmation (Stripe session: ${session.id})`);
 
-          // Update user's order history if we can find the user
+          // Link to user
           try {
-            const users = readData(USERS_FILE);
-            const userIndex = users.findIndex(u => u.email === customerEmail);
-            if (userIndex !== -1) {
-              users[userIndex].orders = users[userIndex].orders || [];
-              users[userIndex].orders.push(orderId);
-              writeData(USERS_FILE, users);
-            }
+            const user = await db.users.getByEmail(customerEmail);
+            if (user) await db.userOrders.link(user.id, newOrder.id);
           } catch (userErr) {
-            console.error('Error updating user order history:', userErr.message);
+            console.error('Error linking user to order:', userErr.message);
           }
 
           // Send notifications (non-blocking)
@@ -2063,7 +1627,6 @@ app.post('/webhook/stripe', express.raw({ type: 'application/json' }), async (re
 
         } catch (error) {
           console.error('Error creating order from webhook:', error);
-          // Don't throw - continue processing
         }
         
         // Retrieve payment intent to get actual Stripe fees
@@ -2131,21 +1694,18 @@ app.get('/webhook/stripe', (req, res) => {
 
 // ==================== STATS ROUTES (Admin only) ====================
 
-app.get("/api/stats", authenticateToken, requireAdmin, (req, res) => {
+app.get("/api/stats", authenticateToken, requireAdmin, async (req, res) => {
     try {
-        const orders = readData(ORDERS_FILE);
-        const users = readData(USERS_FILE);
-        const products = readData(PRODUCTS_FILE);
+        const allOrders = await db.orders.getAll();
+        const allUsers = await db.users.getAll();
+        const productCount = await db.products.count();
 
-        const totalOrders = orders.length;
-        const totalRevenue = orders.reduce((sum, order) => sum + (order.stripeTotal || order.total || 0), 0);
-        // Count all users that are not admins (including those without a role set, which default to customer)
-        const totalCustomers = users.filter(u => !u.role || u.role === 'customer' || (u.role !== 'admin' && u.role !== 'Admin')).length;
-        const totalProducts = products.length;
+        const totalOrders = allOrders.length;
+        const totalRevenue = allOrders.reduce((sum, o) => sum + (o.stripeTotal || o.total || 0), 0);
+        const totalCustomers = allUsers.filter(u => !u.role || u.role === 'customer' || (u.role !== 'admin')).length;
 
-        // Calculate sales by category
         const salesByCategory = {};
-        orders.forEach(order => {
+        allOrders.forEach(order => {
             order.items.forEach(item => {
                 if (!salesByCategory[item.category]) {
                     salesByCategory[item.category] = { revenue: 0, units: 0 };
@@ -2155,13 +1715,7 @@ app.get("/api/stats", authenticateToken, requireAdmin, (req, res) => {
             });
         });
 
-        res.json({
-            totalOrders,
-            totalRevenue,
-            totalCustomers,
-            totalProducts,
-            salesByCategory
-        });
+        res.json({ totalOrders, totalRevenue, totalCustomers, totalProducts: productCount, salesByCategory });
     } catch (error) {
         console.error("Get stats error:", error);
         res.status(500).json({ error: "Failed to fetch stats" });
@@ -2209,52 +1763,51 @@ app.get("/api/clover/status", authenticateToken, requireAdmin, (req, res) => {
 });
 
 const PORT = process.env.PORT || 4242;
-app.listen(PORT, () => {
-    console.log(`Server running on http://localhost:${PORT}`);
-    console.log(`Data directory: ${DATA_DIR}`);
-    console.log(`Allowed CORS origins: ${allowedOrigins.length ? allowedOrigins.join(', ') : 'all (no CORS_ORIGINS configured)'}`);
-    
-    // Auto-sync on startup if enabled
-    if (process.env.CLOVER_AUTO_SYNC === 'true') {
-        console.log('🔄 Auto-sync enabled, syncing with Clover...');
-        setTimeout(() => {
-            cloverSync.syncFromClover().catch(err => {
-                console.error('Auto-sync failed:', err.message);
-            });
-        }, 5000); // Wait 5 seconds for server to fully start
-    }
+
+// Initialize database then start server
+initDatabase().then(() => {
+    app.listen(PORT, () => {
+        console.log(`Server running on http://localhost:${PORT}`);
+        console.log(`Database: PostgreSQL`);
+        console.log(`Allowed CORS origins: ${allowedOrigins.length ? allowedOrigins.join(', ') : 'all (no CORS_ORIGINS configured)'}`);
+
+        if (process.env.CLOVER_AUTO_SYNC === 'true') {
+            console.log('🔄 Auto-sync enabled, syncing with Clover...');
+            setTimeout(() => {
+                cloverSync.syncFromClover().catch(err => {
+                    console.error('Auto-sync failed:', err.message);
+                });
+            }, 5000);
+        }
+    });
+}).catch(err => {
+    console.error('❌ Failed to initialize database:', err);
+    process.exit(1);
 });
 
 // ==================== CART ROUTES ====================
 
 // Helper: enrich cart items with product details
-function enrichCartItems(cartItems) {
-    const products = readData(PRODUCTS_FILE);
+async function enrichCartItems(cartItems) {
+    const allProducts = await db.products.getAll();
     return (cartItems || []).map(item => {
-        const product = products.find(p => p.id === item.productId);
+        const product = allProducts.find(p => p.id === item.productId);
         return {
             ...item,
             product: product ? {
-                id: product.id,
-                name: product.name,
-                price: product.price,
-                image: product.image,
-                category: product.category,
-                inStock: product.inStock
+                id: product.id, name: product.name, price: product.price,
+                image: product.image, category: product.category, inStock: product.inStock
             } : null
         };
     });
 }
 
 // Get current user's cart
-app.get("/api/cart", authenticateToken, (req, res) => {
+app.get("/api/cart", authenticateToken, async (req, res) => {
     try {
-        const users = readData(USERS_FILE);
-        const user = users.find(u => u.id === req.user.id);
+        const user = await db.users.getById(req.user.id);
         if (!user) return res.status(404).json({ error: "User not found" });
-
-        const cart = user.cart || [];
-        res.json(enrichCartItems(cart));
+        res.json(await enrichCartItems(user.cart || []));
     } catch (error) {
         console.error("Get cart error:", error);
         res.status(500).json({ error: "Failed to fetch cart" });
@@ -2262,21 +1815,19 @@ app.get("/api/cart", authenticateToken, (req, res) => {
 });
 
 // Add or update a cart item
-app.post("/api/cart/item", authenticateToken, (req, res) => {
+app.post("/api/cart/item", authenticateToken, async (req, res) => {
     try {
         const { productId, quantity, size } = req.body;
         if (!productId || typeof quantity !== 'number') {
             return res.status(400).json({ error: "productId and quantity are required" });
         }
 
-        const users = readData(USERS_FILE);
-        const userIndex = users.findIndex(u => u.id === req.user.id);
-        if (userIndex === -1) return res.status(404).json({ error: "User not found" });
+        const user = await db.users.getById(req.user.id);
+        if (!user) return res.status(404).json({ error: "User not found" });
 
-        const cart = users[userIndex].cart || [];
+        const cart = user.cart || [];
         const matchIndex = cart.findIndex(i => i.productId === productId && i.size === size);
         if (quantity <= 0) {
-            // remove if quantity <= 0
             if (matchIndex !== -1) cart.splice(matchIndex, 1);
         } else if (matchIndex !== -1) {
             cart[matchIndex].quantity = quantity;
@@ -2284,10 +1835,8 @@ app.post("/api/cart/item", authenticateToken, (req, res) => {
             cart.push({ productId, quantity, size });
         }
 
-        users[userIndex].cart = cart;
-        writeData(USERS_FILE, users);
-
-        res.json(enrichCartItems(cart));
+        await db.users.update(user.id, { cart });
+        res.json(await enrichCartItems(cart));
     } catch (error) {
         console.error("Update cart item error:", error);
         res.status(500).json({ error: "Failed to update cart item" });
@@ -2295,22 +1844,17 @@ app.post("/api/cart/item", authenticateToken, (req, res) => {
 });
 
 // Remove a cart item
-app.delete("/api/cart/item", authenticateToken, (req, res) => {
+app.delete("/api/cart/item", authenticateToken, async (req, res) => {
     try {
         const { productId, size } = req.body;
-        if (!productId) {
-            return res.status(400).json({ error: "productId is required" });
-        }
+        if (!productId) return res.status(400).json({ error: "productId is required" });
 
-        const users = readData(USERS_FILE);
-        const userIndex = users.findIndex(u => u.id === req.user.id);
-        if (userIndex === -1) return res.status(404).json({ error: "User not found" });
+        const user = await db.users.getById(req.user.id);
+        if (!user) return res.status(404).json({ error: "User not found" });
 
-        const cart = users[userIndex].cart || [];
-        users[userIndex].cart = cart.filter(i => !(i.productId === productId && i.size === size));
-        writeData(USERS_FILE, users);
-
-        res.json(enrichCartItems(users[userIndex].cart));
+        const cart = (user.cart || []).filter(i => !(i.productId === productId && i.size === size));
+        await db.users.update(user.id, { cart });
+        res.json(await enrichCartItems(cart));
     } catch (error) {
         console.error("Delete cart item error:", error);
         res.status(500).json({ error: "Failed to delete cart item" });
@@ -2318,15 +1862,10 @@ app.delete("/api/cart/item", authenticateToken, (req, res) => {
 });
 
 // Clear cart
-app.delete("/api/cart", authenticateToken, (req, res) => {
+app.delete("/api/cart", authenticateToken, async (req, res) => {
     try {
-        const users = readData(USERS_FILE);
-        const userIndex = users.findIndex(u => u.id === req.user.id);
-        if (userIndex === -1) return res.status(404).json({ error: "User not found" });
-
-        users[userIndex].cart = [];
-        writeData(USERS_FILE, users);
-
+        const updated = await db.users.update(req.user.id, { cart: [] });
+        if (!updated) return res.status(404).json({ error: "User not found" });
         res.json([]);
     } catch (error) {
         console.error("Clear cart error:", error);
@@ -2382,39 +1921,16 @@ app.post('/api/admin/sms/test', authenticateToken, requireAdmin, async (req, res
 
 // ==================== NEWSLETTER ROUTES ====================
 
-// Subscribe to newsletter
-app.post("/api/newsletter/subscribe", (req, res) => {
+app.post("/api/newsletter/subscribe", async (req, res) => {
     try {
         const { email } = req.body;
-        
-        if (!email) {
-            return res.status(400).json({ error: "Email is required" });
-        }
-        
-        // Validate email format
-        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        if (!emailRegex.test(email)) {
-            return res.status(400).json({ error: "Invalid email format" });
-        }
-        
-        const subscribers = readData(NEWSLETTER_FILE);
-        
-        // Check if already subscribed
-        if (subscribers.find(s => s.email === email)) {
-            return res.status(400).json({ error: "Email already subscribed" });
-        }
-        
-        // Add new subscriber
-        const newSubscriber = {
-            id: Date.now(),
-            email: email,
-            subscribedAt: new Date().toISOString(),
-            active: true
-        };
-        
-        subscribers.push(newSubscriber);
-        writeData(NEWSLETTER_FILE, subscribers);
-        
+        if (!email) return res.status(400).json({ error: "Email is required" });
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return res.status(400).json({ error: "Invalid email format" });
+
+        const existing = await db.newsletter.getByEmail(email);
+        if (existing) return res.status(400).json({ error: "Email already subscribed" });
+
+        await db.newsletter.create({ email });
         res.json({ success: true, message: "Successfully subscribed to newsletter" });
     } catch (error) {
         console.error("Newsletter subscribe error:", error);
@@ -2422,61 +1938,39 @@ app.post("/api/newsletter/subscribe", (req, res) => {
     }
 });
 
-// Get all newsletter subscribers (Admin only)
-app.get("/api/newsletter/subscribers", authenticateToken, requireAdmin, (req, res) => {
+app.get("/api/newsletter/subscribers", authenticateToken, requireAdmin, async (req, res) => {
     try {
-        const subscribers = readData(NEWSLETTER_FILE);
-        res.json(subscribers);
+        res.json(await db.newsletter.getAll());
     } catch (error) {
         console.error("Get newsletter subscribers error:", error);
         res.status(500).json({ error: "Failed to get subscribers" });
     }
 });
 
-// Export newsletter subscribers as CSV (Admin only)
-app.get("/api/newsletter/export", authenticateToken, requireAdmin, (req, res) => {
+app.get("/api/newsletter/export", authenticateToken, requireAdmin, async (req, res) => {
     try {
-        const subscribers = readData(NEWSLETTER_FILE);
-        
-        // Create CSV content
+        const subscribers = await db.newsletter.getAll();
         const csvHeader = "Email,Subscribed Date,Status\n";
-        const csvRows = subscribers.map(s => 
+        const csvRows = subscribers.map(s =>
             `${s.email},${new Date(s.subscribedAt).toLocaleDateString()},${s.active ? 'Active' : 'Inactive'}`
         ).join('\n');
-        const csv = csvHeader + csvRows;
-        
-        // Send as downloadable file
         res.setHeader('Content-Type', 'text/csv');
         res.setHeader('Content-Disposition', 'attachment; filename=newsletter-subscribers.csv');
-        res.send(csv);
+        res.send(csvHeader + csvRows);
     } catch (error) {
         console.error("Export newsletter error:", error);
         res.status(500).json({ error: "Failed to export subscribers" });
     }
 });
 
-// Unsubscribe from newsletter
-app.delete("/api/newsletter/unsubscribe", (req, res) => {
+app.delete("/api/newsletter/unsubscribe", async (req, res) => {
     try {
         const { email } = req.body;
-        
-        if (!email) {
-            return res.status(400).json({ error: "Email is required" });
-        }
-        
-        const subscribers = readData(NEWSLETTER_FILE);
-        const index = subscribers.findIndex(s => s.email === email);
-        
-        if (index === -1) {
-            return res.status(404).json({ error: "Email not found" });
-        }
-        
-        // Mark as inactive instead of deleting
-        subscribers[index].active = false;
-        subscribers[index].unsubscribedAt = new Date().toISOString();
-        
-        writeData(NEWSLETTER_FILE, subscribers);
-        
+        if (!email) return res.status(400).json({ error: "Email is required" });
+
+        const updated = await db.newsletter.update(email, { active: false, unsubscribedAt: new Date().toISOString() });
+        if (!updated) return res.status(404).json({ error: "Email not found" });
+
         res.json({ success: true, message: "Successfully unsubscribed" });
     } catch (error) {
         console.error("Newsletter unsubscribe error:", error);
@@ -2486,16 +1980,15 @@ app.delete("/api/newsletter/unsubscribe", (req, res) => {
 
 // ==================== SYSTEM SETTINGS ROUTES ====================
 
-// Get system settings
 // Public delivery settings (no auth required — needed by checkout page)
-app.get("/api/delivery-settings", (req, res) => {
+app.get("/api/delivery-settings", async (req, res) => {
     try {
-        const settings = readData(SETTINGS_FILE);
+        const s = await db.settings.get() || {};
         res.json({
-            deliveryBaseFee: settings.deliveryBaseFee ?? 3.00,
-            deliveryPerMileRate: settings.deliveryPerMileRate ?? 1.50,
-            maxDeliveryRadius: settings.maxDeliveryRadius ?? 10,
-            taxRate: settings.taxRate ?? 0.0825
+            deliveryBaseFee: s.deliveryBaseFee ?? 3.00,
+            deliveryPerMileRate: s.deliveryPerMileRate ?? 1.50,
+            maxDeliveryRadius: s.maxDeliveryRadius ?? 10,
+            taxRate: s.taxRate ?? 0.0825
         });
     } catch (error) {
         console.error("Get delivery settings error:", error);
@@ -2503,35 +1996,26 @@ app.get("/api/delivery-settings", (req, res) => {
     }
 });
 
-app.get("/api/admin/settings", authenticateToken, requireAdmin, (req, res) => {
+app.get("/api/admin/settings", authenticateToken, requireAdmin, async (req, res) => {
     try {
-        const settings = readData(SETTINGS_FILE);
-        res.json(settings);
+        res.json(await db.settings.get() || {});
     } catch (error) {
         console.error("Get settings error:", error);
         res.status(500).json({ error: "Failed to fetch settings" });
     }
 });
 
-// Update system settings
-app.put("/api/admin/settings", authenticateToken, requireAdmin, (req, res) => {
+app.put("/api/admin/settings", authenticateToken, requireAdmin, async (req, res) => {
     try {
-        const currentSettings = readData(SETTINGS_FILE);
-        const updatedSettings = { ...currentSettings, ...req.body };
-        
-        // Validate critical fields
-        if (updatedSettings.deliveryFee < 0) {
-            return res.status(400).json({ error: "Delivery fee cannot be negative" });
-        }
-        if (updatedSettings.minimumOrder < 0) {
-            return res.status(400).json({ error: "Minimum order cannot be negative" });
-        }
-        if (updatedSettings.taxRate < 0 || updatedSettings.taxRate > 1) {
-            return res.status(400).json({ error: "Tax rate must be between 0 and 1" });
-        }
-        
-        writeData(SETTINGS_FILE, updatedSettings);
-        res.json({ message: "Settings updated successfully", settings: updatedSettings });
+        const current = await db.settings.get() || {};
+        const updated = { ...current, ...req.body };
+
+        if (updated.deliveryFee < 0) return res.status(400).json({ error: "Delivery fee cannot be negative" });
+        if (updated.minimumOrder < 0) return res.status(400).json({ error: "Minimum order cannot be negative" });
+        if (updated.taxRate < 0 || updated.taxRate > 1) return res.status(400).json({ error: "Tax rate must be between 0 and 1" });
+
+        await db.settings.set(updated);
+        res.json({ message: "Settings updated successfully", settings: updated });
     } catch (error) {
         console.error("Update settings error:", error);
         res.status(500).json({ error: "Failed to update settings" });
@@ -2540,104 +2024,57 @@ app.put("/api/admin/settings", authenticateToken, requireAdmin, (req, res) => {
 
 // ==================== PROMO CODES ROUTES ====================
 
-// Get all promo codes
-app.get("/api/admin/promo-codes", authenticateToken, requireAdmin, (req, res) => {
+app.get("/api/admin/promo-codes", authenticateToken, requireAdmin, async (req, res) => {
     try {
-        const promoCodes = readData(PROMO_CODES_FILE);
-        res.json(promoCodes);
+        res.json(await db.promoCodes.getAll());
     } catch (error) {
         console.error("Get promo codes error:", error);
         res.status(500).json({ error: "Failed to fetch promo codes" });
     }
 });
 
-// Create promo code
-app.post("/api/admin/promo-codes", authenticateToken, requireAdmin, (req, res) => {
+app.post("/api/admin/promo-codes", authenticateToken, requireAdmin, async (req, res) => {
     try {
         const { code, type, value, minOrder, maxDiscount, expiresAt, usageLimit, active } = req.body;
-        
-        if (!code || !type || !value) {
-            return res.status(400).json({ error: "Code, type, and value are required" });
-        }
-        
-        if (!['percentage', 'fixed'].includes(type)) {
-            return res.status(400).json({ error: "Type must be 'percentage' or 'fixed'" });
-        }
-        
-        const promoCodes = readData(PROMO_CODES_FILE);
-        
-        // Check if code already exists
-        if (promoCodes.find(p => p.code.toLowerCase() === code.toLowerCase())) {
-            return res.status(400).json({ error: "Promo code already exists" });
-        }
-        
-        const newPromoCode = {
-            id: Date.now(),
-            code: code.toUpperCase(),
-            type,
-            value: parseFloat(value),
+        if (!code || !type || !value) return res.status(400).json({ error: "Code, type, and value are required" });
+        if (!['percentage', 'fixed'].includes(type)) return res.status(400).json({ error: "Type must be 'percentage' or 'fixed'" });
+
+        const existing = await db.promoCodes.getByCode(code);
+        if (existing) return res.status(400).json({ error: "Promo code already exists" });
+
+        const created = await db.promoCodes.create({
+            code: code.toUpperCase(), type, value: parseFloat(value),
             minOrder: minOrder ? parseFloat(minOrder) : 0,
             maxDiscount: maxDiscount ? parseFloat(maxDiscount) : null,
-            expiresAt: expiresAt || null,
-            usageLimit: usageLimit || null,
-            usageCount: 0,
-            usedBy: [], // track per-user redemption
-            active: active !== false,
-            createdAt: new Date().toISOString(),
-            createdBy: req.user.email
-        };
-        
-        promoCodes.push(newPromoCode);
-        writeData(PROMO_CODES_FILE, promoCodes);
-        
-        res.status(201).json(newPromoCode);
+            expiresAt: expiresAt || null, usageLimit: usageLimit || null,
+            active: active !== false, createdBy: req.user.email
+        });
+        res.status(201).json(created);
     } catch (error) {
         console.error("Create promo code error:", error);
         res.status(500).json({ error: "Failed to create promo code" });
     }
 });
 
-// Update promo code
-app.put("/api/admin/promo-codes/:id", authenticateToken, requireAdmin, (req, res) => {
+app.put("/api/admin/promo-codes/:id", authenticateToken, requireAdmin, async (req, res) => {
     try {
-        const promoCodes = readData(PROMO_CODES_FILE);
-        const index = promoCodes.findIndex(p => p.id === parseInt(req.params.id));
-        
-        if (index === -1) {
-            return res.status(404).json({ error: "Promo code not found" });
-        }
-        
-        promoCodes[index] = {
-            ...promoCodes[index],
+        const updated = await db.promoCodes.update(parseInt(req.params.id), {
             ...req.body,
-            // preserve usedBy and usageCount unless explicitly provided
-            usedBy: req.body.usedBy ?? promoCodes[index].usedBy ?? [],
-            usageCount: req.body.usageCount ?? promoCodes[index].usageCount ?? 0,
             updatedAt: new Date().toISOString(),
             updatedBy: req.user.email
-        };
-        
-        writeData(PROMO_CODES_FILE, promoCodes);
-        res.json(promoCodes[index]);
+        });
+        if (!updated) return res.status(404).json({ error: "Promo code not found" });
+        res.json(updated);
     } catch (error) {
         console.error("Update promo code error:", error);
         res.status(500).json({ error: "Failed to update promo code" });
     }
 });
 
-// Delete promo code
-app.delete("/api/admin/promo-codes/:id", authenticateToken, requireAdmin, (req, res) => {
+app.delete("/api/admin/promo-codes/:id", authenticateToken, requireAdmin, async (req, res) => {
     try {
-        const promoCodes = readData(PROMO_CODES_FILE);
-        const index = promoCodes.findIndex(p => p.id === parseInt(req.params.id));
-        
-        if (index === -1) {
-            return res.status(404).json({ error: "Promo code not found" });
-        }
-        
-        const deleted = promoCodes.splice(index, 1)[0];
-        writeData(PROMO_CODES_FILE, promoCodes);
-        
+        const deleted = await db.promoCodes.delete(parseInt(req.params.id));
+        if (!deleted) return res.status(404).json({ error: "Promo code not found" });
         res.json({ message: "Promo code deleted successfully", deletedCode: deleted });
     } catch (error) {
         console.error("Delete promo code error:", error);
@@ -2645,61 +2082,31 @@ app.delete("/api/admin/promo-codes/:id", authenticateToken, requireAdmin, (req, 
     }
 });
 
-// Validate promo code (public endpoint for customers)
-app.post("/api/promo-codes/validate", authenticateToken, (req, res) => {
+app.post("/api/promo-codes/validate", authenticateToken, async (req, res) => {
     try {
         const { code, orderTotal } = req.body;
-        
-        if (!code) {
-            return res.status(400).json({ error: "Promo code is required" });
-        }
-        
-        const promoCodes = readData(PROMO_CODES_FILE);
-        const promoCode = promoCodes.find(p => p.code.toLowerCase() === code.toLowerCase());
-        
-        if (!promoCode) {
-            return res.status(404).json({ error: "Invalid promo code" });
-        }
-        
-        if (!promoCode.active) {
-            return res.status(400).json({ error: "This promo code is no longer active" });
-        }
-        
-        if (promoCode.expiresAt && new Date(promoCode.expiresAt) < new Date()) {
-            return res.status(400).json({ error: "This promo code has expired" });
-        }
-        
-        if (promoCode.usageLimit && promoCode.usageCount >= promoCode.usageLimit) {
-            return res.status(400).json({ error: "This promo code has reached its usage limit" });
-        }
+        if (!code) return res.status(400).json({ error: "Promo code is required" });
 
-        // Enforce single use per user
+        const promoCode = await db.promoCodes.getByCode(code);
+        if (!promoCode) return res.status(404).json({ error: "Invalid promo code" });
+        if (!promoCode.active) return res.status(400).json({ error: "This promo code is no longer active" });
+        if (promoCode.expiresAt && new Date(promoCode.expiresAt) < new Date()) return res.status(400).json({ error: "This promo code has expired" });
+        if (promoCode.usageLimit && promoCode.usageCount >= promoCode.usageLimit) return res.status(400).json({ error: "This promo code has reached its usage limit" });
+
         const userIdentifier = req.user?.id || req.user?.email;
-        const usedBy = promoCode.usedBy || [];
-        if (userIdentifier && usedBy.includes(userIdentifier)) {
+        if (userIdentifier && (promoCode.usedBy || []).includes(userIdentifier)) {
             return res.status(400).json({ error: "This promo code has already been used by your account" });
         }
-        
         if (promoCode.minOrder && orderTotal < promoCode.minOrder) {
-            return res.status(400).json({ 
-                error: `Minimum order of $${promoCode.minOrder.toFixed(2)} required for this promo code` 
-            });
+            return res.status(400).json({ error: `Minimum order of $${promoCode.minOrder.toFixed(2)} required for this promo code` });
         }
-        
-        // Calculate discount
-        let discount = 0;
-        if (promoCode.type === 'percentage') {
-            discount = (orderTotal * promoCode.value) / 100;
-            if (promoCode.maxDiscount && discount > promoCode.maxDiscount) {
-                discount = promoCode.maxDiscount;
-            }
-        } else {
-            discount = promoCode.value;
-        }
-        
+
+        let discount = promoCode.type === 'percentage'
+            ? Math.min((orderTotal * promoCode.value) / 100, promoCode.maxDiscount || Infinity)
+            : promoCode.value;
+
         res.json({
-            valid: true,
-            code: promoCode.code,
+            valid: true, code: promoCode.code,
             discount: parseFloat(discount.toFixed(2)),
             type: promoCode.type,
             message: `Promo code applied! You save $${discount.toFixed(2)}`
@@ -2710,45 +2117,27 @@ app.post("/api/promo-codes/validate", authenticateToken, (req, res) => {
     }
 });
 
-// Redeem promo code (marks as used by the current user)
-app.post("/api/promo-codes/redeem", authenticateToken, (req, res) => {
+app.post("/api/promo-codes/redeem", authenticateToken, async (req, res) => {
     try {
         const { code } = req.body;
-        
-        if (!code) {
-            return res.status(400).json({ error: "Promo code is required" });
-        }
-        
-        const promoCodes = readData(PROMO_CODES_FILE);
-        const promoCode = promoCodes.find(p => p.code.toLowerCase() === code.toLowerCase());
-        
-        if (!promoCode) {
-            return res.status(404).json({ error: "Invalid promo code" });
-        }
-        
-        if (!promoCode.active) {
-            return res.status(400).json({ error: "This promo code is no longer active" });
-        }
-        
-        if (promoCode.expiresAt && new Date(promoCode.expiresAt) < new Date()) {
-            return res.status(400).json({ error: "This promo code has expired" });
-        }
-        
-        if (promoCode.usageLimit && promoCode.usageCount >= promoCode.usageLimit) {
-            return res.status(400).json({ error: "This promo code has reached its usage limit" });
-        }
-        
+        if (!code) return res.status(400).json({ error: "Promo code is required" });
+
+        const promoCode = await db.promoCodes.getByCode(code);
+        if (!promoCode) return res.status(404).json({ error: "Invalid promo code" });
+        if (!promoCode.active) return res.status(400).json({ error: "This promo code is no longer active" });
+        if (promoCode.expiresAt && new Date(promoCode.expiresAt) < new Date()) return res.status(400).json({ error: "This promo code has expired" });
+        if (promoCode.usageLimit && promoCode.usageCount >= promoCode.usageLimit) return res.status(400).json({ error: "This promo code has reached its usage limit" });
+
         const userIdentifier = req.user?.id || req.user?.email;
-        const usedBy = promoCode.usedBy || [];
-        if (userIdentifier && usedBy.includes(userIdentifier)) {
+        if (userIdentifier && (promoCode.usedBy || []).includes(userIdentifier)) {
             return res.status(400).json({ error: "This promo code has already been used by your account" });
         }
-        
-        // Mark as used
-        promoCode.usageCount = (promoCode.usageCount || 0) + 1;
-        promoCode.usedBy = [...usedBy, userIdentifier];
-        writeData(PROMO_CODES_FILE, promoCodes);
-        
+
+        await db.promoCodes.update(promoCode.id, {
+            usageCount: (promoCode.usageCount || 0) + 1,
+            usedBy: [...(promoCode.usedBy || []), userIdentifier]
+        });
+
         res.json({ success: true, code: promoCode.code });
     } catch (error) {
         console.error("Redeem promo code error:", error);
@@ -2760,13 +2149,10 @@ app.post("/api/promo-codes/redeem", authenticateToken, (req, res) => {
 // Reviews API
 // ============================================================
 
-// GET /api/reviews — public, returns all approved reviews (newest first)
-app.get("/api/reviews", (req, res) => {
+// GET /api/reviews — public, returns all reviews (newest first)
+app.get("/api/reviews", async (req, res) => {
     try {
-        const reviews = readData(REVIEWS_FILE);
-        // Return all reviews, newest first
-        const sorted = reviews.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-        res.json(sorted);
+        res.json(await db.reviews.getAll());
     } catch (error) {
         console.error("Get reviews error:", error);
         res.status(500).json({ error: "Failed to load reviews" });
@@ -2774,36 +2160,17 @@ app.get("/api/reviews", (req, res) => {
 });
 
 // POST /api/reviews — public, submit a new review
-app.post("/api/reviews", (req, res) => {
+app.post("/api/reviews", async (req, res) => {
     try {
         const { name, rating, comment } = req.body;
+        if (!name || !name.trim()) return res.status(400).json({ error: "Name is required" });
+        if (!rating || rating < 1 || rating > 5 || !Number.isInteger(rating)) return res.status(400).json({ error: "Rating must be an integer from 1 to 5" });
+        if (!comment || !comment.trim()) return res.status(400).json({ error: "Comment is required" });
+        if (comment.trim().length > 1000) return res.status(400).json({ error: "Comment must be under 1000 characters" });
 
-        // Validation
-        if (!name || !name.trim()) {
-            return res.status(400).json({ error: "Name is required" });
-        }
-        if (!rating || rating < 1 || rating > 5 || !Number.isInteger(rating)) {
-            return res.status(400).json({ error: "Rating must be an integer from 1 to 5" });
-        }
-        if (!comment || !comment.trim()) {
-            return res.status(400).json({ error: "Comment is required" });
-        }
-        if (comment.trim().length > 1000) {
-            return res.status(400).json({ error: "Comment must be under 1000 characters" });
-        }
-
-        const reviews = readData(REVIEWS_FILE);
-        const newReview = {
-            id: Date.now(),
-            name: name.trim(),
-            rating: parseInt(rating, 10),
-            comment: comment.trim(),
-            createdAt: new Date().toISOString()
-        };
-
-        reviews.push(newReview);
-        writeData(REVIEWS_FILE, reviews);
-
+        const newReview = await db.reviews.create({
+            name: name.trim(), rating: parseInt(rating, 10), comment: comment.trim()
+        });
         res.status(201).json(newReview);
     } catch (error) {
         console.error("Submit review error:", error);
@@ -2816,33 +2183,16 @@ app.post("/api/reviews", (req, res) => {
 // ============================================================
 
 // POST /api/product-requests — public, submit a product request
-app.post("/api/product-requests", (req, res) => {
+app.post("/api/product-requests", async (req, res) => {
     try {
         const { name, productName, message } = req.body;
+        if (!name || !name.trim()) return res.status(400).json({ error: "Your name is required" });
+        if (!productName || !productName.trim()) return res.status(400).json({ error: "Product name is required" });
+        if (message && message.length > 500) return res.status(400).json({ error: "Message must be under 500 characters" });
 
-        if (!name || !name.trim()) {
-            return res.status(400).json({ error: "Your name is required" });
-        }
-        if (!productName || !productName.trim()) {
-            return res.status(400).json({ error: "Product name is required" });
-        }
-        if (message && message.length > 500) {
-            return res.status(400).json({ error: "Message must be under 500 characters" });
-        }
-
-        const requests = readData(PRODUCT_REQUESTS_FILE);
-        const newRequest = {
-            id: Date.now(),
-            name: name.trim(),
-            productName: productName.trim(),
-            message: (message || '').trim(),
-            createdAt: new Date().toISOString(),
-            status: 'pending'
-        };
-
-        requests.push(newRequest);
-        writeData(PRODUCT_REQUESTS_FILE, requests);
-
+        const newRequest = await db.productRequests.create({
+            name: name.trim(), productName: productName.trim(), message: (message || '').trim()
+        });
         res.status(201).json({ success: true, request: newRequest });
     } catch (error) {
         console.error("Product request error:", error);
@@ -2851,14 +2201,10 @@ app.post("/api/product-requests", (req, res) => {
 });
 
 // GET /api/product-requests — admin only, list all requests
-app.get("/api/product-requests", authenticateToken, (req, res) => {
+app.get("/api/product-requests", authenticateToken, async (req, res) => {
     try {
-        if (req.user.role !== 'admin') {
-            return res.status(403).json({ error: "Admin access required" });
-        }
-        const requests = readData(PRODUCT_REQUESTS_FILE);
-        const sorted = requests.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-        res.json(sorted);
+        if (req.user.role !== 'admin') return res.status(403).json({ error: "Admin access required" });
+        res.json(await db.productRequests.getAll());
     } catch (error) {
         console.error("Get product requests error:", error);
         res.status(500).json({ error: "Failed to load product requests" });
