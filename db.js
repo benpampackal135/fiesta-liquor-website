@@ -141,6 +141,59 @@ async function initTables() {
                 PRIMARY KEY (user_id, order_id)
             );
         `);
+
+        // Add missing columns to existing tables (safe to run multiple times)
+        const migrations = [
+            // products
+            `ALTER TABLE products ADD COLUMN IF NOT EXISTS in_stock BOOLEAN DEFAULT true`,
+            `ALTER TABLE products ADD COLUMN IF NOT EXISTS barcode TEXT`,
+            `ALTER TABLE products ADD COLUMN IF NOT EXISTS sizes JSONB DEFAULT '[]'`,
+            `ALTER TABLE products ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ DEFAULT NOW()`,
+            `ALTER TABLE products ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ`,
+            `ALTER TABLE products ADD COLUMN IF NOT EXISTS description TEXT DEFAULT ''`,
+            `ALTER TABLE products ADD COLUMN IF NOT EXISTS image TEXT DEFAULT 'images/product_placeholder.svg'`,
+            `ALTER TABLE products ADD COLUMN IF NOT EXISTS price NUMERIC(10,2) DEFAULT 0`,
+            // users
+            `ALTER TABLE users ADD COLUMN IF NOT EXISTS firebase_uid TEXT`,
+            `ALTER TABLE users ADD COLUMN IF NOT EXISTS is_firebase_user BOOLEAN DEFAULT false`,
+            `ALTER TABLE users ADD COLUMN IF NOT EXISTS status TEXT DEFAULT 'active'`,
+            `ALTER TABLE users ADD COLUMN IF NOT EXISTS cart JSONB DEFAULT '[]'`,
+            `ALTER TABLE users ADD COLUMN IF NOT EXISTS reset_token JSONB`,
+            `ALTER TABLE users ADD COLUMN IF NOT EXISTS status_updated_at TIMESTAMPTZ`,
+            `ALTER TABLE users ADD COLUMN IF NOT EXISTS status_updated_by TEXT`,
+            `ALTER TABLE users ADD COLUMN IF NOT EXISTS role_updated_at TIMESTAMPTZ`,
+            `ALTER TABLE users ADD COLUMN IF NOT EXISTS role_updated_by TEXT`,
+            // orders
+            `ALTER TABLE orders ADD COLUMN IF NOT EXISTS stripe_total NUMERIC(10,2)`,
+            `ALTER TABLE orders ADD COLUMN IF NOT EXISTS stripe_session_id TEXT`,
+            `ALTER TABLE orders ADD COLUMN IF NOT EXISTS order_type TEXT DEFAULT 'pickup'`,
+            `ALTER TABLE orders ADD COLUMN IF NOT EXISTS store_location JSONB`,
+            `ALTER TABLE orders ADD COLUMN IF NOT EXISTS payment_method TEXT DEFAULT 'card'`,
+            `ALTER TABLE orders ADD COLUMN IF NOT EXISTS delivery_time_estimate TEXT`,
+            `ALTER TABLE orders ADD COLUMN IF NOT EXISTS promo JSONB`,
+            `ALTER TABLE orders ADD COLUMN IF NOT EXISTS order_date TIMESTAMPTZ DEFAULT NOW()`,
+            `ALTER TABLE orders ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ DEFAULT NOW()`,
+            `ALTER TABLE orders ADD COLUMN IF NOT EXISTS payment_confirmed BOOLEAN DEFAULT false`,
+            `ALTER TABLE orders ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ`,
+            `ALTER TABLE orders ADD COLUMN IF NOT EXISTS updated_by TEXT`,
+            `ALTER TABLE orders ADD COLUMN IF NOT EXISTS cancelled_by TEXT`,
+            `ALTER TABLE orders ADD COLUMN IF NOT EXISTS cancelled_at TIMESTAMPTZ`,
+            `ALTER TABLE orders ADD COLUMN IF NOT EXISTS cancellation_fee NUMERIC(10,2)`,
+            `ALTER TABLE orders ADD COLUMN IF NOT EXISTS refund_amount NUMERIC(10,2)`,
+            `ALTER TABLE orders ADD COLUMN IF NOT EXISTS customer_confirmed BOOLEAN DEFAULT false`,
+            `ALTER TABLE orders ADD COLUMN IF NOT EXISTS customer_confirmed_at TIMESTAMPTZ`,
+            `ALTER TABLE orders ADD COLUMN IF NOT EXISTS status_history JSONB DEFAULT '[]'`,
+            `ALTER TABLE orders ADD COLUMN IF NOT EXISTS admin_notes JSONB DEFAULT '[]'`,
+            `ALTER TABLE orders ADD COLUMN IF NOT EXISTS refunds JSONB DEFAULT '[]'`,
+            `ALTER TABLE orders ADD COLUMN IF NOT EXISTS refunded_amount NUMERIC(10,2) DEFAULT 0`,
+            `ALTER TABLE orders ADD COLUMN IF NOT EXISTS stripe_fee NUMERIC(10,2)`,
+            `ALTER TABLE orders ADD COLUMN IF NOT EXISTS delivery_fee NUMERIC(10,2) DEFAULT 0`,
+        ];
+
+        for (const sql of migrations) {
+            try { await client.query(sql); } catch (e) { /* column may already exist */ }
+        }
+
         console.log('✅ PostgreSQL tables initialized');
     } finally {
         client.release();
