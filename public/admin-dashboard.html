@@ -315,6 +315,7 @@
     <button class="nav-item" onclick="showPanel('promos')" id="nav-promos">Promo Codes</button>
     <button class="nav-item" onclick="showPanel('newsletter')" id="nav-newsletter">Newsletter</button>
     <div class="nav-sep"></div>
+    <button class="nav-item" onclick="showPanel('scanner')" id="nav-scanner">Scanner</button>
     <button class="nav-item" onclick="showPanel('settings')" id="nav-settings">Settings</button>
   </nav>
   <div class="sidebar-footer">
@@ -535,6 +536,114 @@
       </div>
     </div>
 
+    <!-- ═══ SCANNER ═══════════════════════════════════════════════════════ -->
+    <div class="panel" id="panel-scanner">
+
+      <!-- Catalog Upload -->
+      <div class="card" style="margin-bottom:1.25rem;">
+        <div class="card-header">
+          <h2>Product Catalog</h2>
+          <span style="font-size:0.82rem;color:var(--muted);" id="catalogCountLabel">— items loaded</span>
+        </div>
+        <div class="card-body">
+          <p style="font-size:0.85rem;color:var(--muted);margin-bottom:1rem;">
+            Upload a CSV from Google Sheets with columns: <strong>Barcode, Name, Size, Price</strong>. Existing barcodes will be updated.
+          </p>
+          <div style="display:flex;gap:0.75rem;align-items:center;flex-wrap:wrap;">
+            <label class="btn btn-ghost" style="cursor:pointer;">
+              Choose CSV File
+              <input type="file" id="catalogFileInput" accept=".csv,.tsv,.txt" style="display:none;" onchange="handleCatalogUpload(event)">
+            </label>
+            <span id="catalogUploadStatus" style="font-size:0.82rem;color:var(--muted);"></span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Barcode Scanner -->
+      <div class="card" style="margin-bottom:1.25rem;">
+        <div class="card-header">
+          <h2>Scan Barcode</h2>
+        </div>
+        <div class="card-body">
+          <div style="display:flex;gap:0.75rem;align-items:flex-end;flex-wrap:wrap;">
+            <div class="field" style="flex:1;min-width:200px;">
+              <label>Barcode Number</label>
+              <input type="text" id="scanBarcodeInput" placeholder="Enter or scan barcode…" onkeydown="if(event.key==='Enter')lookupBarcode()">
+            </div>
+            <button class="btn btn-primary" onclick="lookupBarcode()" style="height:fit-content;">Look Up</button>
+            <button class="btn btn-ghost" onclick="startCameraScan()" id="cameraScanBtn" style="height:fit-content;">Camera Scan</button>
+          </div>
+          <!-- Camera preview -->
+          <div id="cameraScannerWrap" style="display:none;margin-top:1rem;position:relative;max-width:480px;">
+            <div id="cameraScannerViewport" style="width:100%;border-radius:8px;overflow:hidden;background:#000;"></div>
+            <button class="btn btn-danger btn-sm" onclick="stopCameraScan()" style="position:absolute;top:8px;right:8px;z-index:5;">Stop</button>
+          </div>
+          <div id="scanResult" style="margin-top:1rem;"></div>
+        </div>
+      </div>
+
+      <!-- Product Form (shown after barcode lookup) -->
+      <div class="card" id="scannerProductForm" style="display:none;">
+        <div class="card-header">
+          <h2>Add Product to Shop</h2>
+          <button class="btn btn-ghost btn-sm" onclick="resetScannerForm()">Clear</button>
+        </div>
+        <div class="card-body">
+          <div class="field-row" style="margin-bottom:0.85rem;">
+            <div class="field">
+              <label>Product Name *</label>
+              <input type="text" id="scanProductName">
+            </div>
+            <div class="field">
+              <label>Category *</label>
+              <select id="scanProductCategory">
+                <option value="">Select…</option>
+                <option value="whiskey">Whiskey</option>
+                <option value="tequila">Tequila</option>
+                <option value="vodka">Vodka</option>
+                <option value="gin">Gin</option>
+                <option value="rum">Rum</option>
+                <option value="beer-seltzers">Beer & Seltzers</option>
+                <option value="wine">Wine</option>
+                <option value="brandy">Brandy</option>
+                <option value="liqueur">Liqueur</option>
+                <option value="candy-snacks">Candy & Snacks</option>
+                <option value="other">Other</option>
+              </select>
+            </div>
+          </div>
+          <div class="field-row" style="margin-bottom:0.85rem;">
+            <div class="field">
+              <label>Price ($)</label>
+              <input type="number" id="scanProductPrice" step="0.01" min="0">
+            </div>
+            <div class="field">
+              <label>Size</label>
+              <input type="text" id="scanProductSize" placeholder="e.g. 750ml">
+            </div>
+          </div>
+          <div class="field" style="margin-bottom:0.85rem;">
+            <label>Description</label>
+            <textarea id="scanProductDesc" placeholder="Brief description (optional)…" style="min-height:60px;"></textarea>
+          </div>
+          <div class="field" style="margin-bottom:0.85rem;">
+            <label>Image URL</label>
+            <input type="text" id="scanProductImage" placeholder="images/product_placeholder.svg">
+          </div>
+          <div class="toggle-wrap" style="margin-bottom:1rem;">
+            <input type="checkbox" class="toggle" id="scanProductInStock" checked>
+            <span class="toggle-label">In Stock</span>
+          </div>
+          <input type="hidden" id="scanProductBarcode">
+          <div style="display:flex;gap:0.75rem;align-items:center;">
+            <button class="btn btn-primary" onclick="addScannedProduct()" id="addScannedProductBtn">Add to Shop</button>
+            <span id="scannerFormMsg" style="font-size:0.85rem;"></span>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
   </div><!-- /content -->
 </div><!-- /main -->
 
@@ -721,6 +830,8 @@
 <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
 <script src="/firebase.js"></script>
 <script src="/api.js"></script>
+<!-- QuaggaJS barcode scanner -->
+<script src="https://cdn.jsdelivr.net/npm/@ericblade/quagga2@1.8.4/dist/quagga.min.js"></script>
 
 <script>
 // ── State ──────────────────────────────────────────────────────────────────────
@@ -811,10 +922,10 @@ function showPanel(name) {
   document.getElementById('panel-' + name).classList.add('active');
   document.getElementById('nav-' + name).classList.add('active');
   document.getElementById('pageTitle').textContent =
-    { overview:'Overview', products:'Products', orders:'Orders', customers:'Customers', promos:'Promo Codes', newsletter:'Newsletter', settings:'Settings' }[name];
+    { overview:'Overview', products:'Products', orders:'Orders', customers:'Customers', promos:'Promo Codes', newsletter:'Newsletter', scanner:'Scanner', settings:'Settings' }[name];
   currentPanel = name;
 
-  const loaders = { orders: loadOrders, customers: loadCustomers, promos: loadPromos, newsletter: loadNewsletter, settings: loadSettings };
+  const loaders = { orders: loadOrders, customers: loadCustomers, promos: loadPromos, newsletter: loadNewsletter, settings: loadSettings, scanner: loadScannerPanel };
   if (loaders[name]) loaders[name]();
 }
 
@@ -1648,6 +1759,251 @@ async function loadProductRequests() {
   } catch(e) {
     $('productRequestsBody').innerHTML = '<tr><td colspan="4" class="empty">Failed to load</td></tr>';
   }
+}
+
+// ── Scanner Panel ───────────────────────────────────────────────────────────────
+
+async function loadScannerPanel() {
+  try {
+    const data = await apiRequest('/api/admin/catalog-count');
+    $('catalogCountLabel').textContent = `${data.count.toLocaleString()} items loaded`;
+  } catch(e) {
+    $('catalogCountLabel').textContent = 'Could not load count';
+  }
+}
+
+function handleCatalogUpload(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const status = $('catalogUploadStatus');
+  status.textContent = 'Reading file…';
+  status.style.color = 'var(--muted)';
+
+  const reader = new FileReader();
+  reader.onload = async function(e) {
+    try {
+      const text = e.target.result;
+      const lines = text.split(/\r?\n/).filter(l => l.trim());
+      if (lines.length < 2) { status.textContent = 'File is empty or has no data rows.'; status.style.color = 'var(--danger)'; return; }
+
+      // Detect delimiter: tab or comma
+      const header = lines[0];
+      const delim = header.includes('\t') ? '\t' : ',';
+      const cols = header.split(delim).map(c => c.trim().toLowerCase());
+
+      const barcodeIdx = cols.findIndex(c => c === 'barcode' || c === 'upc' || c === 'code');
+      const nameIdx = cols.findIndex(c => c === 'name' || c === 'product' || c === 'product name' || c === 'item');
+      const sizeIdx = cols.findIndex(c => c === 'size' || c === 'volume');
+      const priceIdx = cols.findIndex(c => c === 'price' || c === 'retail' || c === 'cost');
+
+      if (barcodeIdx === -1 || nameIdx === -1) {
+        status.textContent = 'CSV must have "Barcode" and "Name" columns.';
+        status.style.color = 'var(--danger)';
+        return;
+      }
+
+      const items = [];
+      for (let i = 1; i < lines.length; i++) {
+        const parts = lines[i].split(delim);
+        const barcode = (parts[barcodeIdx] || '').trim().replace(/^['"]|['"]$/g, '');
+        const name = (parts[nameIdx] || '').trim();
+        if (!barcode || !name) continue;
+        const size = sizeIdx >= 0 ? (parts[sizeIdx] || '').trim() : '';
+        const priceStr = priceIdx >= 0 ? (parts[priceIdx] || '').trim().replace(/[$,]/g, '') : '';
+        const price = priceStr ? parseFloat(priceStr) : null;
+        items.push({ barcode, name, size, price: (price && !isNaN(price)) ? price : null });
+      }
+
+      if (items.length === 0) { status.textContent = 'No valid rows found.'; status.style.color = 'var(--danger)'; return; }
+
+      status.textContent = `Uploading ${items.length} items…`;
+
+      // Upload in batches of 500
+      const batchSize = 500;
+      let total = 0;
+      for (let i = 0; i < items.length; i += batchSize) {
+        const batch = items.slice(i, i + batchSize);
+        const result = await apiRequest('/api/admin/upload-catalog', {
+          method: 'POST',
+          body: JSON.stringify(batch)
+        });
+        total += result.count;
+      }
+
+      status.textContent = `Uploaded ${total} catalog items.`;
+      status.style.color = 'var(--success)';
+      toast(`Catalog updated: ${total} items uploaded`);
+      loadScannerPanel();
+    } catch(err) {
+      status.textContent = 'Upload failed: ' + err.message;
+      status.style.color = 'var(--danger)';
+    }
+  };
+  reader.readAsText(file);
+  // Reset file input so the same file can be re-uploaded
+  event.target.value = '';
+}
+
+async function lookupBarcode() {
+  const barcode = $('scanBarcodeInput').value.trim();
+  if (!barcode) { toast('Enter a barcode number', 'error'); return; }
+
+  const resultDiv = $('scanResult');
+  resultDiv.innerHTML = '<span style="color:var(--muted);font-size:0.85rem;">Looking up…</span>';
+
+  try {
+    const data = await apiRequest(`/api/admin/catalog-lookup/${encodeURIComponent(barcode)}`);
+    resultDiv.innerHTML = `
+      <div style="padding:0.85rem;background:var(--success-light);border:1px solid #bbf7d0;border-radius:8px;font-size:0.88rem;">
+        <strong>Found:</strong> ${esc(data.name)}
+        ${data.size ? ` — ${esc(data.size)}` : ''}
+        ${data.price ? ` — $${parseFloat(data.price).toFixed(2)}` : ''}
+      </div>`;
+
+    // Populate the product form
+    $('scanProductName').value = data.name;
+    $('scanProductPrice').value = data.price || '';
+    $('scanProductSize').value = data.size || '';
+    $('scanProductBarcode').value = barcode;
+    $('scanProductDesc').value = '';
+    $('scanProductImage').value = 'images/product_placeholder.svg';
+    $('scanProductInStock').checked = true;
+    $('scanProductCategory').value = '';
+    $('scannerProductForm').style.display = 'block';
+    $('scannerFormMsg').textContent = '';
+  } catch(e) {
+    resultDiv.innerHTML = `
+      <div style="padding:0.85rem;background:var(--warning-light);border:1px solid #fde68a;border-radius:8px;font-size:0.88rem;">
+        <strong>Not found in catalog.</strong> You can still fill in the details manually.
+      </div>`;
+
+    // Show empty form for manual entry
+    $('scanProductName').value = '';
+    $('scanProductPrice').value = '';
+    $('scanProductSize').value = '';
+    $('scanProductBarcode').value = barcode;
+    $('scanProductDesc').value = '';
+    $('scanProductImage').value = 'images/product_placeholder.svg';
+    $('scanProductInStock').checked = true;
+    $('scanProductCategory').value = '';
+    $('scannerProductForm').style.display = 'block';
+    $('scannerFormMsg').textContent = '';
+  }
+}
+
+let _quaggaRunning = false;
+
+function startCameraScan() {
+  if (_quaggaRunning) { stopCameraScan(); return; }
+  if (typeof Quagga === 'undefined') { toast('QuaggaJS not loaded. Check your connection.', 'error'); return; }
+
+  const wrap = $('cameraScannerWrap');
+  const viewport = $('cameraScannerViewport');
+  wrap.style.display = 'block';
+  viewport.innerHTML = '';
+
+  Quagga.init({
+    inputStream: {
+      name: 'Live',
+      type: 'LiveStream',
+      target: viewport,
+      constraints: {
+        facingMode: 'environment',
+        width: { ideal: 640 },
+        height: { ideal: 480 }
+      }
+    },
+    decoder: {
+      readers: ['ean_reader', 'ean_8_reader', 'upc_reader', 'upc_e_reader', 'code_128_reader', 'code_39_reader']
+    },
+    locate: true
+  }, function(err) {
+    if (err) {
+      console.error('Quagga init error:', err);
+      toast('Camera access failed. Make sure you allow camera permissions.', 'error');
+      wrap.style.display = 'none';
+      return;
+    }
+    Quagga.start();
+    _quaggaRunning = true;
+    $('cameraScanBtn').textContent = 'Stop Camera';
+  });
+
+  Quagga.onDetected(function(result) {
+    const code = result.codeResult.code;
+    if (code) {
+      $('scanBarcodeInput').value = code;
+      stopCameraScan();
+      lookupBarcode();
+    }
+  });
+}
+
+function stopCameraScan() {
+  if (typeof Quagga !== 'undefined' && _quaggaRunning) {
+    Quagga.stop();
+    Quagga.offDetected();
+  }
+  _quaggaRunning = false;
+  $('cameraScannerWrap').style.display = 'none';
+  $('cameraScanBtn').textContent = 'Camera Scan';
+}
+
+async function addScannedProduct() {
+  const name = $('scanProductName').value.trim();
+  const category = $('scanProductCategory').value;
+  if (!name || !category) { toast('Name and category are required', 'error'); return; }
+
+  const btn = $('addScannedProductBtn');
+  const msg = $('scannerFormMsg');
+  btn.disabled = true;
+  btn.textContent = 'Adding…';
+  msg.textContent = '';
+
+  try {
+    const sizeText = $('scanProductSize').value.trim();
+    const price = parseFloat($('scanProductPrice').value) || 0;
+    const desc = $('scanProductDesc').value.trim();
+    const descFull = sizeText ? (desc ? `${desc} (${sizeText})` : sizeText) : desc;
+
+    const body = {
+      name,
+      category,
+      description: descFull,
+      price,
+      inStock: $('scanProductInStock').checked,
+      image: $('scanProductImage').value.trim() || 'images/product_placeholder.svg',
+      barcode: $('scanProductBarcode').value.trim() || null,
+      sizes: []
+    };
+
+    await apiRequest('/api/products', { method: 'POST', body: JSON.stringify(body) });
+
+    msg.textContent = 'Product added!';
+    msg.style.color = 'var(--success)';
+    toast('Product added to shop');
+
+    // Reset for next scan
+    $('scanBarcodeInput').value = '';
+    $('scanResult').innerHTML = '';
+    $('scannerProductForm').style.display = 'none';
+    loadProducts();
+  } catch(e) {
+    msg.textContent = 'Error: ' + e.message;
+    msg.style.color = 'var(--danger)';
+    toast(e.message, 'error');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Add to Shop';
+  }
+}
+
+function resetScannerForm() {
+  $('scannerProductForm').style.display = 'none';
+  $('scanBarcodeInput').value = '';
+  $('scanResult').innerHTML = '';
+  $('scannerFormMsg').textContent = '';
+  stopCameraScan();
 }
 </script>
 </body>

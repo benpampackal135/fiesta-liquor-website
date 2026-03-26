@@ -141,6 +141,15 @@ async function initTables() {
                 order_id INTEGER REFERENCES orders(id) ON DELETE CASCADE,
                 PRIMARY KEY (user_id, order_id)
             );
+
+            CREATE TABLE IF NOT EXISTS product_catalog (
+                id SERIAL PRIMARY KEY,
+                barcode TEXT UNIQUE NOT NULL,
+                name TEXT NOT NULL,
+                size TEXT DEFAULT '',
+                price NUMERIC(10,2),
+                created_at TIMESTAMPTZ DEFAULT NOW()
+            );
         `);
 
         // Fix column types on old tables
@@ -229,6 +238,12 @@ async function initTables() {
             `ALTER TABLE product_requests ADD COLUMN IF NOT EXISTS status TEXT DEFAULT 'pending'`,
             // reviews
             `ALTER TABLE reviews ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ DEFAULT NOW()`,
+            // product_catalog
+            `ALTER TABLE product_catalog ADD COLUMN IF NOT EXISTS barcode TEXT`,
+            `ALTER TABLE product_catalog ADD COLUMN IF NOT EXISTS name TEXT DEFAULT ''`,
+            `ALTER TABLE product_catalog ADD COLUMN IF NOT EXISTS size TEXT DEFAULT ''`,
+            `ALTER TABLE product_catalog ADD COLUMN IF NOT EXISTS price NUMERIC(10,2)`,
+            `ALTER TABLE product_catalog ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ DEFAULT NOW()`,
         ];
 
         for (const sql of migrations) {
@@ -777,6 +792,46 @@ const productRequests = {
     }
 };
 
+// ── Product Catalog (barcode lookup) ─────────────────────────────────────────
+
+const productCatalog = {
+    async upsertBatch(items) {
+        // items: array of { barcode, name, size, price }
+        const client = await pool.connect();
+        try {
+            await client.query('BEGIN');
+            let inserted = 0;
+            for (const item of items) {
+                if (!item.barcode || !item.name) continue;
+                await client.query(
+                    `INSERT INTO product_catalog (barcode, name, size, price, created_at)
+                     VALUES ($1, $2, $3, $4, NOW())
+                     ON CONFLICT (barcode) DO UPDATE SET name=$2, size=$3, price=$4`,
+                    [item.barcode.trim(), item.name.trim(), (item.size || '').trim(), item.price ? parseFloat(item.price) : null]
+                );
+                inserted++;
+            }
+            await client.query('COMMIT');
+            return inserted;
+        } catch (e) {
+            await client.query('ROLLBACK');
+            throw e;
+        } finally {
+            client.release();
+        }
+    },
+    async lookupBarcode(barcode) {
+        const { rows } = await pool.query('SELECT * FROM product_catalog WHERE barcode = $1', [barcode.trim()]);
+        if (!rows[0]) return null;
+        const r = rows[0];
+        return { id: r.id, barcode: r.barcode, name: r.name, size: r.size || '', price: r.price ? parseFloat(r.price) : null };
+    },
+    async count() {
+        const { rows } = await pool.query('SELECT COUNT(*) FROM product_catalog');
+        return parseInt(rows[0].count);
+    }
+};
+
 module.exports = {
     pool,
     initTables,
@@ -788,5 +843,6 @@ module.exports = {
     settings,
     promoCodes,
     reviews,
-    productRequests
+    productRequests,
+    productCatalog
 };

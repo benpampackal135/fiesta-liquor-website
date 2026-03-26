@@ -2430,6 +2430,46 @@ app.post("/api/product-requests", async (req, res) => {
     }
 });
 
+// ── Product Catalog (barcode scanner) ────────────────────────────────────────
+
+// Upload CSV catalog data (JSON array of {barcode, name, size, price})
+app.post("/api/admin/upload-catalog", authenticateToken, requireAdmin, async (req, res) => {
+    try {
+        const items = req.body;
+        if (!Array.isArray(items) || items.length === 0) {
+            return res.status(400).json({ error: "Expected a non-empty JSON array of catalog items" });
+        }
+        const inserted = await db.productCatalog.upsertBatch(items);
+        res.json({ success: true, count: inserted });
+    } catch (error) {
+        console.error("Upload catalog error:", error);
+        res.status(500).json({ error: "Failed to upload catalog data" });
+    }
+});
+
+// Look up a barcode in the catalog
+app.get("/api/admin/catalog-lookup/:barcode", authenticateToken, requireAdmin, async (req, res) => {
+    try {
+        const result = await db.productCatalog.lookupBarcode(req.params.barcode);
+        if (!result) return res.status(404).json({ error: "Barcode not found in catalog" });
+        res.json(result);
+    } catch (error) {
+        console.error("Catalog lookup error:", error);
+        res.status(500).json({ error: "Failed to look up barcode" });
+    }
+});
+
+// Get catalog item count
+app.get("/api/admin/catalog-count", authenticateToken, requireAdmin, async (req, res) => {
+    try {
+        const count = await db.productCatalog.count();
+        res.json({ count });
+    } catch (error) {
+        console.error("Catalog count error:", error);
+        res.status(500).json({ error: "Failed to get catalog count" });
+    }
+});
+
 // Health/version check
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', version: '2.1.0', deployed: new Date().toISOString() });
