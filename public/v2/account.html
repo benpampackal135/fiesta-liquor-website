@@ -213,8 +213,8 @@
     }
 
     function renderOrder(order) {
-      const date = new Date(order.createdAt).toLocaleDateString('en-US', {
-        month: 'short', day: 'numeric', year: 'numeric'
+      const date = new Date(order.createdAt).toLocaleString('en-US', {
+        month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit'
       });
       const status = order.status || 'pending';
       const items = Array.isArray(order.items) ? order.items : [];

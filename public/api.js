@@ -55,6 +55,70 @@ console.log('📍 Hostname:', window.location.hostname);
     }
 })();
 
+// ── Session Timeout (auto-logout after inactivity) ──
+(function initSessionTimeout() {
+    const SESSION_TIMEOUT_MS = 2 * 60 * 60 * 1000; // 2 hours of inactivity
+    const ACTIVITY_KEY = 'lastActivityTimestamp';
+
+    function updateActivity() {
+        localStorage.setItem(ACTIVITY_KEY, Date.now().toString());
+    }
+
+    function isSessionExpired() {
+        const token = localStorage.getItem('authToken') || localStorage.getItem('token');
+        if (!token) return false; // not logged in, nothing to expire
+        const last = parseInt(localStorage.getItem(ACTIVITY_KEY) || '0');
+        if (last === 0) return false; // no timestamp yet
+        return (Date.now() - last) > SESSION_TIMEOUT_MS;
+    }
+
+    function performAutoLogout() {
+        console.log('⏰ Session expired due to inactivity — logging out');
+        // Clear all auth data
+        localStorage.removeItem('authToken');
+        localStorage.removeItem('token');
+        localStorage.removeItem('tokenTimestamp');
+        localStorage.removeItem('firebaseUser');
+        localStorage.removeItem('firebaseToken');
+        localStorage.removeItem('currentUser');
+        localStorage.removeItem('user');
+        localStorage.removeItem(ACTIVITY_KEY);
+        // Sign out of Firebase if available
+        if (typeof firebase !== 'undefined' && firebase.auth) {
+            try { firebase.auth().signOut(); } catch (e) { /* ignore */ }
+        }
+        // Redirect to homepage with a message
+        if (!window.location.pathname.includes('index') && window.location.pathname !== '/') {
+            window.location.href = '/?session=expired';
+        } else {
+            window.location.reload();
+        }
+    }
+
+    // Check on page load
+    if (isSessionExpired()) {
+        performAutoLogout();
+        return; // stop further init
+    }
+
+    // Record activity on user interactions
+    ['click', 'keydown', 'scroll', 'touchstart'].forEach(function(evt) {
+        document.addEventListener(evt, updateActivity, { passive: true });
+    });
+
+    // Set initial activity timestamp if logged in and none exists
+    if ((localStorage.getItem('authToken') || localStorage.getItem('token')) && !localStorage.getItem(ACTIVITY_KEY)) {
+        updateActivity();
+    }
+
+    // Periodic check every 60 seconds
+    setInterval(function() {
+        if (isSessionExpired()) {
+            performAutoLogout();
+        }
+    }, 60 * 1000);
+})();
+
 // Get auth token from localStorage (supports legacy key)
 function getAuthToken() {
     return localStorage.getItem('authToken') || localStorage.getItem('token');
@@ -65,12 +129,14 @@ function setAuthToken(token) {
     localStorage.setItem('authToken', token);
     localStorage.setItem('token', token);
     localStorage.setItem('tokenTimestamp', Date.now().toString()); // Track when token was set
+    localStorage.setItem('lastActivityTimestamp', Date.now().toString()); // Reset session timeout
 }
 
 // Remove auth token from localStorage
 function removeAuthToken() {
     localStorage.removeItem('authToken');
     localStorage.removeItem('token');
+    localStorage.removeItem('lastActivityTimestamp');
 }
 
 // Get current user from localStorage (supports legacy key)

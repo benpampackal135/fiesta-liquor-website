@@ -943,7 +943,7 @@ function toast(msg, type = 'success') {
 // ── Helpers ────────────────────────────────────────────────────────────────────
 const $ = id => document.getElementById(id);
 const fmt = n => new Intl.NumberFormat('en-US',{style:'currency',currency:'USD'}).format(n);
-const dateStr = d => new Date(d).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});
+const dateStr = d => new Date(d).toLocaleString('en-US',{month:'short',day:'numeric',year:'numeric',hour:'numeric',minute:'2-digit'});
 function esc(t) { return String(t||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 const STATUS_LABELS = {
   pending: 'Pending', accepted: 'Confirmed', preparing: 'Preparing',
